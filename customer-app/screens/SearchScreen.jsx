@@ -479,6 +479,15 @@ const ShopDetailsSheet = memo(({ visible, shop, onClose, theme, styles, onLike, 
       if (!memberId) return null;
 
       const data = getBarberData(memberId);
+      const ownerId = shop.owner?._id || shop.owner?.id;
+      const ownerData = ownerId ? getBarberData(ownerId) : null;
+      const ownerServices = ownerData?.services || [];
+
+      let services = data?.services || [];
+      if (!isOwner && services.length === 0 && ownerServices.length > 0) {
+        services = ownerServices;
+      }
+
       return {
         id: memberId,
         type: 'barber',
@@ -493,7 +502,8 @@ const ShopDetailsSheet = memo(({ visible, shop, onClose, theme, styles, onLike, 
         todaysBookings: isOwner ? (shop.ownerTodaysBookings || 0) : (shop.staffTodaysBookings?.[memberId] || 0),
         listingTier: data?.listingTier || shop.listingTier,
         shopName: shop.name,
-        approvalStatus: data?.approvalStatus
+        approvalStatus: data?.approvalStatus,
+        services: services
       };
     };
 
@@ -831,11 +841,11 @@ const SearchScreen = ({ navigation, route }) => {
     }
   }, [route.params]);
 
-  // Handle navigation from HistoryScreen to open shop modal
+  // Handle navigation from HomeScreen, HistoryScreen or ShopMapScreen to open shop modal
   useEffect(() => {
-    const { selectedShopId, fromHistoryScreen } = route.params || {};
+    const { selectedShopId, fromHistoryScreen, fromShopMapScreen, fromHomeScreen } = route.params || {};
 
-    if (fromHistoryScreen && selectedShopId && allBarbers.length > 0) {
+    if ((fromHistoryScreen || fromShopMapScreen || fromHomeScreen) && selectedShopId && allBarbers.length > 0) {
       // Find the shop (robustly searching by shop ID, owner ID, or staff ID)
       const shop = allBarbers.find(s =>
         (s._id || s.id) === selectedShopId ||
@@ -849,10 +859,10 @@ const SearchScreen = ({ navigation, route }) => {
           setSelectedShop(shop);
         }
         // CRITICAL: Clear the params so it doesn't trigger again on re-renders or updates
-        navigation.setParams({ fromHistoryScreen: false, selectedShopId: null });
+        navigation.setParams({ fromHistoryScreen: false, fromShopMapScreen: false, fromHomeScreen: false, selectedShopId: null });
       }
     }
-  }, [route.params?.selectedShopId, route.params?.fromHistoryScreen, allBarbers, navigation]);
+  }, [route.params?.selectedShopId, route.params?.fromHistoryScreen, route.params?.fromShopMapScreen, route.params?.fromHomeScreen, allBarbers, navigation]);
 
   useEffect(() => {
     if (selectedCategory) {
@@ -1193,8 +1203,8 @@ const SearchScreen = ({ navigation, route }) => {
     }, [showLottie, fetchBarbers])
   );
 
-  const handleLikePress = useCallback(async (barberId) => {
-    const providerId = barberId;
+  const handleLikePress = useCallback(async (barber) => {
+    const providerId = typeof barber === 'object' ? (barber.id || barber._id) : barber;
     const providerType = 'barber';
 
     const result = await likeProvider(providerId, providerType);
@@ -1327,7 +1337,7 @@ const SearchScreen = ({ navigation, route }) => {
             <View style={styles.hsRatingBadge}>
               <Star size={12} color={theme.colors.text} fill={theme.colors.text} />
               <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
-                {item.rating > 0 ? item.rating.toFixed(1) : 'New'}
+                {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : 'New'}
               </Text>
             </View>
           </View>
@@ -1360,7 +1370,7 @@ const SearchScreen = ({ navigation, route }) => {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="#111111" translucent />
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#ffffffff' }]}>
         <TopToastAlert
           visible={toast.visible}
           message={toast.message}
@@ -1368,11 +1378,11 @@ const SearchScreen = ({ navigation, route }) => {
           onHide={useCallback(() => setToast({ ...toast, visible: false }), [toast])}
           theme={theme}
           styles={styles}
-          topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
+          topInset={(insets && typeof insets.top === 'number') ? insets.top + (Platform.OS === 'android' ? 10 : 0) : 40}
         />
 
         {/* --- PREMIUM COMPACT TOP SECTION --- */}
-        <View style={[styles.topSection, { paddingTop: insets.top + 10 }]}>
+        <View style={[styles.topSection, { paddingTop: (insets && typeof insets.top === 'number') ? insets.top + 10 : 50 }]}>
           {/* CONSOLIDATED HEADER (Location + Navigation) */}
           <View style={styles.locationRow}>
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -1417,7 +1427,7 @@ const SearchScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  onPress={() => setShowFilters(!showFilters)}
+                  onPress={() => setShowFilters(true)}
                   style={styles.searchDivider}
                 >
                   <Filter size={18} color="rgba(255, 255, 255, 0.4)" />
@@ -1473,68 +1483,39 @@ const SearchScreen = ({ navigation, route }) => {
                 />
               }
               ListHeaderComponent={
-                <View style={{ backgroundColor: theme.colors.background, paddingBottom: 10 }}>
+                <View style={{ backgroundColor: '#FFFFFF', paddingBottom: 10 }}>
                   {/* SPACER FOR ABSOLUTE HEADER */}
-                  <View style={{ height: insets.top + 140 }} />
+                  <View style={{ height: ((insets && typeof insets.top === 'number') ? insets.top : 0) + 140 }} />
 
                   {/* UNIFIED FILTER ROW — categories + filters in one horizontal scroll */}
-                  {showFilters && (
+                  {/* ACTIVE FILTERS ROW — horizontal scroll of active filters */}
+                  {activeFilters.length > 0 && (
                     <View style={[styles.categoryScrollContainer, { paddingHorizontal: 0, marginBottom: 8, marginTop: 0 }]}>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScrollContent}>
-                        {/* Category Pills */}
-                        {categoryOptions.map((cat) => {
-                          const isActive = activeFilters.includes(cat.value);
-                          const IconComp = cat.icon;
+                        {activeFilters.map((filterVal) => {
+                          const catOpt = categoryOptions.find(c => c.value === filterVal);
+                          const filterOpt = filterOptions.find(f => f.value === filterVal);
+                          const label = catOpt?.label || filterOpt?.label || filterVal;
                           return (
                             <TouchableOpacity
-                              key={cat.value}
+                              key={filterVal}
                               activeOpacity={0.7}
                               style={[
                                 styles.categoryPill,
                                 {
-                                  backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
-                                  borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                                  shadowOpacity: isActive ? 0.25 : 0.05
+                                  backgroundColor: theme.colors.primary,
+                                  borderColor: theme.colors.primary,
+                                  shadowOpacity: 0.25,
+                                  flexDirection: 'row',
+                                  alignItems: 'center'
                                 }
                               ]}
-                              onPress={() => setActiveFilters((prev) =>
-                                prev.includes(cat.value) ? prev.filter(f => f !== cat.value) : [...prev, cat.value]
-                              )}
+                              onPress={() => setActiveFilters((prev) => prev.filter(f => f !== filterVal))}
                             >
-                              <IconComp size={11} color={isActive ? "#FFF" : theme.colors.textSecondary} strokeWidth={2.5} style={{ marginRight: 4 }} />
-                              <Text style={[styles.categoryPillText, { color: isActive ? "#fff" : theme.colors.text }]}>
-                                {cat.label}
+                              <Text style={[styles.categoryPillText, { color: "#fff", marginRight: 6 }]}>
+                                {label}
                               </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-
-                        {/* Inline divider shown when filter panel is open */}
-                        <View style={{ width: 1, height: 20, backgroundColor: theme.colors.border, marginHorizontal: 6, alignSelf: 'center' }} />
-
-                        {/* Filter Chips — inline, appear only when filter icon is tapped */}
-                        {filterOptions.map((option) => {
-                          const isActive = activeFilters.includes(option.value);
-                          return (
-                            <TouchableOpacity
-                              key={option.value}
-                              activeOpacity={0.7}
-                              style={[
-                                styles.categoryPill,
-                                {
-                                  backgroundColor: isActive ? theme.colors.primary : theme.colors.card,
-                                  borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                                  shadowOpacity: isActive ? 0.2 : 0.05
-                                }
-                              ]}
-                              onPress={() => setActiveFilters((prev) =>
-                                prev.includes(option.value) ? prev.filter(f => f !== option.value) : [...prev, option.value]
-                              )}
-                            >
-                              {isActive && <CheckCircle size={10} color="#fff" style={{ marginRight: 3 }} strokeWidth={3} />}
-                              <Text style={[styles.categoryPillText, { color: isActive ? "#fff" : theme.colors.text }]}>
-                                {option.label}
-                              </Text>
+                              <X size={10} color="#fff" strokeWidth={3} />
                             </TouchableOpacity>
                           );
                         })}
@@ -1585,7 +1566,136 @@ const SearchScreen = ({ navigation, route }) => {
           airDistances={airDistances}
         />
 
-        <TopToastAlert visible={toast.visible} message={toast.message} type={toast.type} onHide={hideAlert} theme={theme} styles={styles} />
+        {/* PREMIUM FILTER BOTTOM SHEET MODAL */}
+        <Modal
+          visible={showFilters}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowFilters(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <BlurView
+              intensity={20}
+              tint="dark"
+              style={StyleSheet.absoluteFillObject}
+            >
+              <TouchableOpacity
+                style={styles.modalBackdrop}
+                activeOpacity={1}
+                onPress={() => setShowFilters(false)}
+              />
+            </BlurView>
+            <View style={[styles.filterSheetContainer, { paddingBottom: (insets && typeof insets.bottom === 'number') ? Math.max(insets.bottom, 24) : 24 }]}>
+              {/* Drag Handle */}
+              <View style={styles.sheetHandle} />
+
+              {/* Header */}
+              <View style={styles.sheetHeader}>
+                <View>
+                  <Text style={styles.sheetTitle}>Filters</Text>
+                  <Text style={styles.sheetSubtitle}>Refine your expert search</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowFilters(false)}
+                  style={styles.sheetCloseBtn}
+                >
+                  <X size={18} color="#475569" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Filter Options Content */}
+              <ScrollView showsVerticalScrollIndicator={false} style={styles.sheetContent}>
+                {/* Category Selection */}
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterSectionTitle}>Service Category</Text>
+                  <View style={styles.categoryGrid}>
+                    {categoryOptions.map((cat) => {
+                      const isActive = activeFilters.includes(cat.value);
+                      const IconComp = cat.icon;
+                      return (
+                        <TouchableOpacity
+                          key={cat.value}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            setActiveFilters((prev) =>
+                              prev.includes(cat.value)
+                                ? prev.filter((f) => f !== cat.value)
+                                : [...prev, cat.value]
+                            );
+                          }}
+                          style={[
+                            styles.gridCard,
+                            isActive && styles.gridCardActive
+                          ]}
+                        >
+                          <IconComp size={20} color={isActive ? theme.colors.primary : "#64748B"} strokeWidth={2} style={{ marginBottom: 6 }} />
+                          <Text style={[styles.gridCardText, isActive && styles.gridCardTextActive]}>
+                            {cat.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Additional Sort / Filter Options */}
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterSectionTitle}>Sort & Filter By</Text>
+                  <View style={styles.optionsList}>
+                    {filterOptions.map((option) => {
+                      const isActive = activeFilters.includes(option.value);
+                      return (
+                        <TouchableOpacity
+                          key={option.value}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            setActiveFilters((prev) =>
+                              prev.includes(option.value)
+                                ? prev.filter((f) => f !== option.value)
+                                : [...prev, option.value]
+                            );
+                          }}
+                          style={[
+                            styles.listRow,
+                            isActive && styles.listRowActive
+                          ]}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            {React.cloneElement(option.icon, { color: isActive ? theme.colors.primary : "#64748B", size: 16 })}
+                            <Text style={[styles.rowLabel, isActive && styles.rowLabelActive]}>
+                              {option.label}
+                            </Text>
+                          </View>
+                          <View style={[styles.checkboxOutline, isActive && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}>
+                            {isActive && <CheckCircle size={10} color="#FFF" strokeWidth={3.5} />}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* Action Buttons */}
+              <View style={styles.sheetActions}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setActiveFilters([]);
+                  }}
+                  style={styles.resetBtn}
+                >
+                  <Text style={styles.resetBtnText}>Clear All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowFilters(false)}
+                  style={[styles.applyBtn, { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary }]}
+                >
+                  <Text style={styles.applyBtnText}>Apply Filters</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaProvider>
   );
@@ -1593,7 +1703,7 @@ const SearchScreen = ({ navigation, route }) => {
 
 // --- POLISHED PREMIUM STYLES (WITH META ROW) ---
 const getStyles = (theme, insets) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
 
   // --- TOP SECTION ---
   topSection: {
@@ -2318,6 +2428,185 @@ const getStyles = (theme, insets) => StyleSheet.create({
   distancePillOnImage: { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, gap: 4 },
   distancePillText: { fontSize: 10, fontWeight: '800', color: '#FFF' },
   bookmarkBtn: { position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+
+  // Premium Bottom Sheet Filter styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end'
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject
+  },
+  filterSheetContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 8,
+    maxHeight: '75%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 24
+  },
+  sheetHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E2E8F0',
+    alignSelf: 'center',
+    marginBottom: 8
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderColor: '#F1F5F9'
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontFamily: 'DMSans_700Bold',
+    color: '#0F172A',
+    lineHeight: 24
+  },
+  sheetSubtitle: {
+    fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
+    color: '#64748B',
+    marginTop: 2
+  },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  sheetContent: {
+    paddingHorizontal: 24,
+    paddingTop: 20
+  },
+  filterSection: {
+    marginBottom: 24
+  },
+  filterSectionTitle: {
+    fontSize: 11,
+    fontFamily: 'DMSans_700Bold',
+    color: '#94A3B8',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    gap: 10
+  },
+  gridCard: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  gridCardActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '08'
+  },
+  gridCardText: {
+    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    color: '#475569',
+    textAlign: 'center'
+  },
+  gridCardTextActive: {
+    color: theme.colors.primary
+  },
+  optionsList: {
+    gap: 8
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0'
+  },
+  listRowActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary + '04'
+  },
+  rowLabel: {
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    color: '#334155'
+  },
+  rowLabelActive: {
+    color: theme.colors.primary,
+    fontFamily: 'DMSans_700Bold'
+  },
+  checkboxOutline: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  sheetActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderColor: '#F1F5F9',
+    gap: 12
+  },
+  resetBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  resetBtnText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: '#64748B'
+  },
+  applyBtn: {
+    flex: 2,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4
+  },
+  applyBtnText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    color: '#FFFFFF'
+  }
 });
 
 export default SearchScreen;

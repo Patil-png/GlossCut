@@ -1,482 +1,527 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  memo,
+  useMemo
+} from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Platform,
   StatusBar,
   Animated,
-  ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
-  ScrollView,
-  TouchableWithoutFeedback,
   Dimensions,
-  Easing
+  Image,
+  TextInput,
+  Easing,
+  ScrollView
 } from "react-native";
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '../contexts/ThemeContext.jsx';
-import { useAuth } from '../contexts/AuthContext.jsx';
-import { ChevronLeft, ArrowRight, Phone, ShieldCheck, CheckCircle, AlertTriangle, XCircle, Info } from 'lucide-react-native';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../contexts/ThemeContext.jsx";
+import { useAuth } from "../contexts/AuthContext.jsx";
+import {
+  X,
+  CheckCircle,
+  AlertCircle,
+  ChevronLeft,
+  ShieldAlert,
+  Fingerprint,
+  BellRing,
+  MessagesSquare
+} from "lucide-react-native";
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+// Cap the scale factor to prevent elements from becoming massive on tablets
+const scale = Math.min(SCREEN_WIDTH / 375, 1.25);
+
+/**
+ * Normalizes font size and dimensions based on screen width
+ * Industry standard approach for responsive React Native UIs
+ */
+const normalize = (size) => {
+  const newSize = size * scale;
+  if (Platform.OS === 'ios') {
+    return Math.round(newSize);
+  } else {
+    return Math.round(newSize) - 1;
+  }
+};
+
+// --- OPTIMIZED SUB-COMPONENTS ---
+
+const Header = memo(({ onBack, insets }) => (
+  <View
+    style={[styles.headerOuterContainer, { paddingTop: Math.max(insets.top, 16) }]}
+    accessibilityRole="header"
+  >
+    <View style={styles.headerContainer}>
+      <TouchableOpacity
+        onPress={onBack}
+        style={styles.backBtn}
+        accessibilityLabel="Go back"
+        accessibilityRole="button"
+      >
+        <ChevronLeft size={normalize(22)} color="#1E293B" strokeWidth={2.5} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Display Identity</Text>
+      <View style={{ width: normalize(40) }} />
+    </View>
+  </View>
+));
+
+const CustomToast = memo(({ visible, message, type, animatedValue }) => {
+  if (!visible) return null;
+
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-100, 0],
+  });
+
+  const isSuccess = type === "success";
+  const iconColor = isSuccess ? "#10B981" : "#F59E0B";
+
+  return (
+    <Animated.View
+      style={[
+        styles.toastContainer,
+        { transform: [{ translateY }] },
+      ]}
+      accessibilityLiveRegion="polite"
+    >
+      <View style={[styles.toastContent, { borderLeftColor: iconColor }]}>
+        {isSuccess ? <CheckCircle size={20} color={iconColor} /> : <AlertCircle size={20} color={iconColor} />}
+        <View style={styles.toastTextContainer}>
+          <Text style={styles.toastMessage}>{message}</Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+});
+
+// --- MAIN SCREEN ---
 
 const EditPhoneNumberScreen = ({ navigation }) => {
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth() || { user: {} };
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const [phoneNumber, setPhoneNumber] = useState("");
 
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  // Animation Refs
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
 
-  // --- ANIMATION REFS ---
-  const slideUp = useRef(new Animated.Value(50)).current;
-  const fade = useRef(new Animated.Value(0)).current;
+  // Staggered Animation Refs
+  const itemAnims = useRef([...Array(6)].map(() => new Animated.Value(30))).current;
+  const itemFades = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
 
-  // --- CUSTOM ALERT STATE & REFS ---
-  const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '', type: 'success' });
-  const alertTranslateY = useRef(new Animated.Value(-150)).current; // Start off-screen (top)
-  const alertTimeoutRef = useRef(null);
+  const [toast, setToast] = useState({ visible: false, message: "", type: "info" });
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef(null);
 
-  // --- INITIAL MOUNT ANIMATION ---
   useEffect(() => {
     if (user?.phone) {
-      const number = user.phone.startsWith('+91') ? user.phone.slice(3) : user.phone;
+      const number = user.phone.startsWith("+91") ? user.phone.slice(3) : user.phone;
       setPhoneNumber(number);
     }
 
-    // Optimized: Parallel execution on UI thread
-    Animated.parallel([
-      Animated.timing(slideUp, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.back(1.5)) // Added nice bounce
-      }),
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true
-      }),
+    // Staggered Entrance Animation
+    const animations = itemAnims.map((anim, i) =>
+      Animated.parallel([
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.back(1.5))
+        }),
+        Animated.timing(itemFades[i], {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true
+        })
+      ])
+    );
+
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.stagger(100, animations)
     ]).start();
+
+    // Floating Loop Animation for illustration
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -10,
+          duration: 2500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+      ])
+    ).start();
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [user]);
 
-  // --- CUSTOM ALERT LOGIC ---
-  const triggerAlert = useCallback((title, message, type = 'success') => {
-    // Clear existing timeout if user triggers alert rapidly
-    if (alertTimeoutRef.current) clearTimeout(alertTimeoutRef.current);
+  const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
 
-    setAlertConfig({ visible: true, title, message, type });
-
-    // Slide In Animation
-    Animated.spring(alertTranslateY, {
-      toValue: insets.top + (Platform.OS === 'android' ? 10 : 0),
-      useNativeDriver: true,
-      damping: 15,
-      mass: 1,
-      stiffness: 120
-    }).start();
-
-    // Auto Hide after 3 seconds
-    alertTimeoutRef.current = setTimeout(() => {
-      closeAlert();
-    }, 3500);
-  }, []);
-
-  const closeAlert = useCallback(() => {
-    Animated.timing(alertTranslateY, {
-      toValue: -150, // Move back up off-screen
-      duration: 300,
-      useNativeDriver: true,
-      easing: Easing.in(Easing.cubic)
-    }).start(() => {
-      setAlertConfig(prev => ({ ...prev, visible: false }));
-    });
-  }, []);
-
-  // --- MEMOIZED HANDLERS ---
-  const handleGoBack = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
-
-  const handleSupport = useCallback(() => {
-    triggerAlert("Support", "Contacting support@gloss.cut...", "info");
-  }, [triggerAlert]);
-
-  const handleFocus = useCallback(() => setIsFocused(true), []);
-  const handleBlur = useCallback(() => setIsFocused(false), []);
-
-  const handleUpdatePhoneNumber = useCallback(async () => {
-    // Validation
-    if (phoneNumber.length !== 10) {
-      triggerAlert('Invalid Phone', 'Please enter a valid 10-digit number.', 'error');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Safe execution to prevent crashes
-      const success = await updateProfile({ phone: `+91${phoneNumber}` });
-
-      if (success) {
-        triggerAlert('Success', 'Phone number updated successfully!', 'success');
-        // Small delay to let the user see the success message before leaving
-        setTimeout(() => navigation.goBack(), 1500);
-      } else {
-        triggerAlert('Update Failed', 'Could not update number. Try again.', 'error');
-      }
-    } catch (error) {
-      triggerAlert('Network Error', 'Please check your internet connection.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [phoneNumber, updateProfile, navigation, triggerAlert]);
-
-  // --- MEMOIZED UI COMPONENTS ---
-
-  const HeaderComponent = useMemo(() => (
-    <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
-      <TouchableOpacity
-        onPress={handleGoBack}
-        style={styles.backBtn}
-        activeOpacity={0.7}
-      >
-        <ChevronLeft size={24} color="#000" />
-      </TouchableOpacity>
-    </View>
-  ), [handleGoBack]);
-
-  const IllustrationComponent = useMemo(() => (
-    <View style={styles.illustrationArea}>
-      <View style={[styles.circleBack, { backgroundColor: theme.colors.primary + '15' }]}>
-        <View style={[styles.circleFront, { backgroundColor: theme.colors.primary + '25' }]}>
-          <Phone size={48} color={theme.colors.primary} />
-        </View>
-      </View>
-    </View>
-  ), [theme.colors.primary]);
-
-  // --- DYNAMIC STYLES CALCULATION ---
-  const phoneInputContainerStyle = useMemo(() => ([
-    styles.phoneInputContainer,
-    {
-      backgroundColor: isFocused ? '#fff' : '#F7F8F9',
-      borderColor: isFocused ? theme.colors.primary : '#F7F8F9',
-      borderWidth: 2
-    }
-  ]), [isFocused, theme.colors.primary]);
-
-  const buttonStyle = useMemo(() => ([
-    styles.submitBtn,
-    { backgroundColor: theme.colors.primary, opacity: isLoading ? 0.7 : 1 }
-  ]), [theme.colors.primary, isLoading]);
-
-  // --- RENDER CUSTOM ALERT ---
-  // This is rendered outside the main flow to float on top
-  const renderCustomAlert = () => {
-    if (!alertConfig.visible && alertTranslateY._value === -150) return null;
-
-    const getAlertColor = () => {
-      switch (alertConfig.type) {
-        case 'error': return '#EF4444'; // Red
-        case 'success': return '#10B981'; // Green
-        case 'info': return '#3B82F6'; // Blue
-        default: return '#10B981';
-      }
-    };
-
-    const getAlertIcon = () => {
-      switch (alertConfig.type) {
-        case 'error': return <AlertTriangle size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
-        case 'success': return <CheckCircle size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
-        case 'info': return <Info size={24} color={getAlertColor()} fill={getAlertColor() + "20"} />;
-        default: return <CheckCircle size={24} color={getAlertColor()} />;
-      }
-    };
-
-    return (
-      <Animated.View style={[styles.alertWrapper, { transform: [{ translateY: alertTranslateY }] }]}>
-        <View style={[styles.alertContainer]}>
-          <View style={styles.alertIconWrapper}>
-            {getAlertIcon()}
-          </View>
-          <View style={styles.alertTextContainer}>
-            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
-            <Text style={styles.alertMessage} numberOfLines={2}>{alertConfig.message}</Text>
-          </View>
-          <TouchableOpacity onPress={closeAlert} style={styles.alertCloseBtn}>
-            <XCircle size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    );
-  };
+  const animatedStyle = (index) => ({
+    opacity: itemFades[index],
+    transform: [{ translateY: itemAnims[index] }]
+  });
 
   return (
-    <View style={styles.mainContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF" />
 
-      {/* RENDER ALERT AT TOP LEVEL - ABSOLUTE POSITIONED */}
-      {renderCustomAlert()}
+      {/* Toast Notification */}
+      <View style={[styles.toastWrapper, { top: insets.top + 10 }]}>
+        <CustomToast visible={toast.visible} message={toast.message} type={toast.type} animatedValue={toastAnim} />
+      </View>
 
-      <View style={styles.flexOne}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.flexOne}
+      <Header onBack={handleGoBack} insets={insets} />
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.content}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + normalize(40) }]}
+          scrollEventThrottle={16}
         >
-          {HeaderComponent}
+          <View style={styles.centeredContentWrapper}>
+            {/* 1. Illustration Section */}
+            <Animated.View style={[styles.illustrationContainer, { transform: [{ translateY: floatAnim }] }, animatedStyle(0)]}>
+              <Image
+                source={require("../assets/phone_verification_illustration_1778294935586.png")}
+                style={styles.illustration}
+                resizeMode="contain"
+                accessibilityLabel="Identity Verification Illustration"
+              />
+            </Animated.View>
 
-          <View style={styles.contentContainer}>
-            {IllustrationComponent}
+            {/* 2. Text Header Section */}
+            <Animated.View style={[styles.textContainer, animatedStyle(1)]}>
+              <Text style={styles.title}>Identity Verification</Text>
+              <Text style={styles.subtitle}>
+                Your phone number is more than just contact info—it's your secure gateway to the GLOSSCUT ecosystem.
+              </Text>
+            </Animated.View>
 
-            <Animated.View style={{ opacity: fade, transform: [{ translateY: slideUp }] }}>
-
-              <View>
-                <Text style={styles.heading}>Update Phone Number</Text>
-                <Text style={styles.subHeading}>
-                  We'll send a verification code to confirm your number.
-                </Text>
-              </View>
-
-              {/* --- PHONE INPUT --- */}
-              <View style={styles.inputSection}>
-                <Text style={styles.inputLabel}>Phone Number</Text>
-                <View style={phoneInputContainerStyle}>
-                  <View style={styles.countryCodeContainer}>
-                    <Text style={styles.flag}>🇮🇳</Text>
-                    <Text style={styles.countryCodeText}>+91</Text>
-                  </View>
+            {/* 3. Input Section (Moved up) */}
+            <Animated.View style={[styles.inputWrapper, animatedStyle(2)]}>
+              <View style={styles.inputOutline}>
+                <View style={styles.labelBackground}>
+                  <Text style={styles.inputLabel}>VERIFIED MOBILE</Text>
+                </View>
+                <View style={styles.inputContent}>
+                  <Text style={styles.countryCode}>🇮🇳 +91</Text>
+                  <View style={styles.verticalDivider} />
                   <TextInput
-                    style={styles.phoneNumberInput}
+                    style={styles.textInput}
                     value={phoneNumber}
-                    onChangeText={(text) => setPhoneNumber(text.replace(/[^0-9]/g, ''))}
-                    placeholder="98765 43210"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="number-pad" // Optimized keyboard type
-                    maxLength={10}
-                    onFocus={handleFocus}
-                    onBlur={handleBlur}
-                    cursorColor={theme.colors.primary}
+                    editable={false}
+                    accessibilityLabel="Registered phone number"
+                    accessibilityHint="This number is verified and cannot be edited directly."
                   />
+                  <CheckCircle size={18} color="#10B981" />
+                </View>
+              </View>
+            </Animated.View>
+
+            {/* 4. Usage Benefits Section */}
+            <Animated.View style={[styles.usageContainer, animatedStyle(3)]}>
+              <View style={styles.usageItem}>
+                <View style={styles.iconCircle}>
+                  <Fingerprint size={normalize(16)} color={theme.colors.primary} />
+                </View>
+                <View style={styles.usageTextContent}>
+                  <Text style={styles.usageTitle}>Secure Authentication</Text>
+                  <Text style={styles.usageDesc}>Used for encrypted two-factor security protocols.</Text>
                 </View>
               </View>
 
-              {/* --- MAIN BUTTON --- */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handleUpdatePhoneNumber}
-                style={buttonStyle}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Text style={styles.btnText}>Update Phone Number</Text>
-                    <ArrowRight size={20} color="#fff" strokeWidth={2.5} />
-                  </>
-                )}
-              </TouchableOpacity>
+              <View style={styles.usageItem}>
+                <View style={styles.iconCircle}>
+                  <BellRing size={normalize(16)} color={theme.colors.primary} />
+                </View>
+                <View style={styles.usageTextContent}>
+                  <Text style={styles.usageTitle}>Smart Notifications</Text>
+                  <Text style={styles.usageDesc}>Real-time status updates on your bookings & queue.</Text>
+                </View>
+              </View>
 
-              <TouchableOpacity style={styles.helpLink} onPress={handleSupport}>
-                <Text style={[styles.helpText, { color: theme.colors.textSecondary }]}>Having trouble?</Text>
-              </TouchableOpacity>
+              <View style={styles.usageItem}>
+                <View style={styles.iconCircle}>
+                  <MessagesSquare size={normalize(16)} color={theme.colors.primary} />
+                </View>
+                <View style={styles.usageTextContent}>
+                  <Text style={styles.usageTitle}>Studio Access</Text>
+                  <Text style={styles.usageDesc}>Direct encrypted communication with your stylist.</Text>
+                </View>
+              </View>
+            </Animated.View>
 
+
+            {/* 5. Security Protocol Note */}
+            <Animated.View style={[styles.noteContainer, animatedStyle(4)]}>
+              <View style={styles.noteHeader}>
+                <ShieldAlert size={16} color="#B91C1C" strokeWidth={2.5} />
+                <Text style={styles.noteTitle}>SECURITY PROTOCOL</Text>
+              </View>
+              <Text style={styles.noteText}>
+                For your account safety, identity-linked contact details are locked. If you no longer have access to this number, please contact our <Text style={{ fontWeight: '700' }}>Administrative Support</Text> with valid ID proof to initiate a manual identity recovery and update process.
+              </Text>
             </Animated.View>
           </View>
-
-          {/* --- FOOTER BADGE --- */}
-          <View style={styles.footer}>
-            <ShieldCheck size={16} color="#10B981" />
-            <Text style={styles.footerText}>Secure 256-bit Encryption</Text>
-          </View>
-
-        </KeyboardAvoidingView>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
+  container: {
     flex: 1,
-    backgroundColor: '#ffffff'
+    backgroundColor: "#FFFFFF"
   },
-  flexOne: {
+  content: {
     flex: 1
   },
-  // --- CUSTOM ALERT STYLES ---
-  alertWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 9999, // Ensure it is above everything
-    alignItems: 'center',
+  headerOuterContainer: {
+    width: "100%",
+    backgroundColor: "#FFFFFF"
   },
-  alertContainer: {
-    width: width - 32, // Responsive width
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    // Modern shadow similar to Blinkit/Zomato
-    borderWidth: 1,
-    borderColor: '#f0f0f0'
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: normalize(16),
+    paddingBottom: normalize(12),
+    maxWidth: 500,
+    width: "100%",
+    alignSelf: "center"
   },
-  alertIconWrapper: {
-    marginRight: 12
-  },
-  alertTextContainer: {
-    flex: 1
-  },
-  alertTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 2
-  },
-  alertMessage: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-    lineHeight: 18
-  },
-  alertCloseBtn: {
-    padding: 4,
-    marginLeft: 8
-  },
-
-  // --- EXISTING STYLES ---
-  navBar: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    alignItems: 'flex-start'
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5'
-  },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
-    paddingBottom: 80
-  },
-  illustrationArea: {
-    alignItems: 'center',
-    marginBottom: 40
-  },
-  circleBack: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  circleFront: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative'
-  },
-  heading: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 12,
+  headerTitle: {
+    fontSize: normalize(15),
+    fontWeight: "800",
+    color: "#0F172A",
     letterSpacing: -0.5
   },
-  subHeading: {
-    fontSize: 15,
-    color: '#6B7280',
-    lineHeight: 24,
-    marginBottom: 32,
-    fontWeight: '500'
+  backBtn: {
+    padding: normalize(8),
+    borderRadius: normalize(12),
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
   },
-  inputSection: {
-    marginBottom: 24
+  scrollContent: {
+    paddingTop: normalize(10),
+    width: "100%"
+  },
+  centeredContentWrapper: {
+    maxWidth: 500,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: normalize(24)
+  },
+  illustrationContainer: {
+    width: "100%",
+    height: normalize(180),
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: normalize(20)
+  },
+  illustration: {
+    width: "85%",
+    height: "100%"
+  },
+  textContainer: {
+    marginBottom: normalize(28)
+  },
+  title: {
+    fontSize: normalize(24),
+    fontWeight: "900",
+    color: "#0F172A",
+    letterSpacing: -0.8,
+    marginBottom: normalize(10),
+    textAlign: "center"
+  },
+  subtitle: {
+    fontSize: normalize(13),
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: normalize(20),
+    fontWeight: "500",
+    paddingHorizontal: normalize(10)
+  },
+  usageContainer: {
+    width: "100%",
+    backgroundColor: "#F8FAFC",
+    borderRadius: normalize(20),
+    padding: normalize(20),
+    marginBottom: normalize(30),
+    gap: normalize(18),
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  usageItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: normalize(14)
+  },
+  iconCircle: {
+    width: normalize(36),
+    height: normalize(36),
+    borderRadius: normalize(18),
+    backgroundColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    shadowColor: "#000",
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2
+  },
+  usageTextContent: {
+    flex: 1
+  },
+  usageTitle: {
+    fontSize: normalize(13),
+    color: "#0F172A",
+    fontWeight: "800",
+    marginBottom: normalize(2)
+  },
+  usageDesc: {
+    fontSize: normalize(11),
+    color: "#64748B",
+    fontWeight: "500",
+    lineHeight: normalize(16)
+  },
+  inputWrapper: {
+    width: "100%",
+    marginBottom: normalize(30)
+  },
+  inputOutline: {
+    height: normalize(52),
+    borderWidth: 1.5,
+    borderColor: "#F1F5F9",
+    borderRadius: normalize(12),
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: normalize(16),
+    backgroundColor: "#F8FAFC"
+  },
+  labelBackground: {
+    position: "absolute",
+    top: normalize(-8),
+    left: normalize(12),
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: normalize(4),
+    zIndex: 1
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 8,
-    marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+    fontSize: normalize(9),
+    color: "#94A3B8",
+    fontWeight: "800",
+    letterSpacing: 0.8
   },
-  phoneInputContainer: {
-    height: 56,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexDirection: 'row'
+  inputContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1
   },
-  countryCodeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12
+  countryCode: {
+    fontSize: normalize(15),
+    color: "#0F172A",
+    fontWeight: "800"
   },
-  flag: {
-    fontSize: 20,
-    marginRight: 6
+  verticalDivider: {
+    width: 2,
+    height: normalize(24),
+    backgroundColor: "#E2E8F0",
+    marginHorizontal: normalize(16),
+    borderRadius: 1
   },
-  countryCodeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827'
-  },
-  phoneNumberInput: {
+  textInput: {
     flex: 1,
-    fontSize: 17,
-    color: '#111827',
-    fontWeight: '600',
-    height: '100%'
+    fontSize: normalize(16),
+    color: "#0F172A",
+    fontWeight: "800",
+    letterSpacing: 1
   },
-  submitBtn: {
-    height: 58,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8
+  noteContainer: {
+    width: "100%",
+    padding: normalize(18),
+    backgroundColor: "#FEF2F2",
+    borderRadius: normalize(16),
+    borderWidth: 1,
+    borderColor: "#FEE2E2"
   },
-  btnText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff'
+  noteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: normalize(8),
+    marginBottom: normalize(8)
   },
-  helpLink: {
-    alignItems: 'center',
-    marginTop: 24
+  noteTitle: {
+    fontSize: normalize(11),
+    fontWeight: "900",
+    color: "#B91C1C",
+    letterSpacing: 1
   },
-  helpText: {
+  noteText: {
+    fontSize: normalize(11),
+    color: "#991B1B",
+    lineHeight: normalize(18),
+    fontWeight: "500"
+  },
+  toastWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 2000,
+    alignItems: "center"
+  },
+  toastContainer: {
+    width: '90%',
+    maxWidth: 450,
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  toastContent: {
+    padding: 16,
+    borderLeftWidth: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
+  toastTextContainer: {
+    flex: 1
+  },
+  toastMessage: {
     fontSize: 14,
-    fontWeight: '600'
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingBottom: 20,
-    opacity: 0.8
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500'
+    color: "#0F172A",
+    fontWeight: "600"
   }
 });
 

@@ -78,7 +78,7 @@ const LoginScreen = () => {
         const result = await login(sanitizedEmail, password);
 
         if (result.success) {
-            showAlert("Success", "Welcome back to SetKarr!", "success");
+            showAlert("Success", "Welcome back to GlossCut!", "success");
             setTimeout(() => navigate('/'), 800);
         } else {
             showAlert("Login Failed", result.message || "Incorrect email or password.", "error");

@@ -1,10 +1,17 @@
-# Ignore the backend (if it's inside or near this folder)
-../backend
-backend/
-server.js
+# Ignore local node packages and temp folders
+node_modules
+.expo
+.git
 
-# Ignore standard heavy folders
-node_modules/
-.git/
-android/
-ios/
+# Ignore local Android build caches and outputs (resolves EPERM file locking errors on Windows)
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/*.aar
+android/*.apk
+
+# Ignore local iOS build caches
+ios/build
+ios/Pods
+ios/.xcode.env.local

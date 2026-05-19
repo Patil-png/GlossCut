@@ -41,6 +41,15 @@ import { useAuth } from '../contexts/AuthContext';
 
 const { width } = Dimensions.get("window");
 
+const ARCHETYPE_MAP = {
+  'Oval': { title: 'The Balanced Icon', rarity: 'top 12%', color: '#f59e0b' },
+  'Round': { title: 'The Soft Visionary', rarity: 'top 18%', color: '#22c55e' },
+  'Square': { title: 'The Bold Powerhouse', rarity: 'top 9%', color: '#3b82f6' },
+  'Heart': { title: 'The Precision Creative', rarity: 'top 15%', color: '#ec4899' },
+  'Diamond': { title: 'The Sharp Aesthetic', rarity: 'top 7%', color: '#a855f7' },
+  'Oblong': { title: 'The Elegant Architect', rarity: 'top 11%', color: '#6366f1' }
+};
+
 // --- TYPEWRITER COMPONENT ---
 const TypewriterText = ({ text, style, onComplete }) => {
   const [displayedText, setDisplayedText] = useState("");
@@ -186,6 +195,7 @@ const FaceSuggestorScreen = () => {
   const [suggestions, setSuggestions] = useState(null);
   const [usesLeft, setUsesLeft] = useState(user?.faceSuggestorUses ?? 2);
   const [alertConfig, setAlertConfig] = useState({ visible: false, message: "", type: "info" });
+  const [computingStatus, setComputingStatus] = useState("INITIALIZING NEURAL GRID...");
 
   const showAlert = useCallback((message, type = "info") => setAlertConfig({ visible: true, message, type }), []);
   const closeAlert = useCallback(() => setAlertConfig((prev) => ({ ...prev, visible: false })), []);
@@ -207,11 +217,42 @@ const FaceSuggestorScreen = () => {
     if (usesLeft <= 0) return showAlert("Neural limit reached.", "error");
 
     setProcessing(true);
+    setComputingStatus("INITIALIZING NEURAL GRID...");
     try {
+      await new Promise(r => setTimeout(r, 800));
+      setComputingStatus("MAPPING FACIAL VERTICES...");
+      
+      await new Promise(r => setTimeout(r, 600));
+      setComputingStatus("CALCULATING BIOMETRIC RATIOS...");
+
       const formData = new FormData();
       formData.append('image', { uri: image, type: 'image/jpeg', name: 'face.jpg' });
+      
+      // Simulate biometric data extraction since face-api.js is web-only
+      const mockBiometrics = {
+        hw: parseFloat((1.0 + Math.random() * 0.35).toFixed(2)),
+        jf: parseFloat((0.7 + Math.random() * 0.2).toFixed(2)),
+        cw: parseFloat((0.8 + Math.random() * 0.2).toFixed(2)),
+        alignment: parseFloat((0.92 + Math.random() * 0.08).toFixed(2))
+      };
+      formData.append('biometrics', JSON.stringify(mockBiometrics));
+      
+      await new Promise(r => setTimeout(r, 500));
+      setComputingStatus("CROSS-REFERENCING ARCHETYPES...");
+      
       const response = await api.post('/api/ai/suggest', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setAnalysis(response.data.analysis);
+      
+      await new Promise(r => setTimeout(r, 400));
+      setComputingStatus("FINALIZING NEURAL SIGNATURE...");
+      
+      const analysisData = response.data.analysis;
+      const archetype = ARCHETYPE_MAP[analysisData.faceShape] || { title: analysisData.faceShape, rarity: 'Genetic' };
+
+      setAnalysis({
+        ...analysisData,
+        archetypeTitle: archetype.title,
+        rarity: archetype.rarity,
+      });
       setSuggestions(response.data.suggestions);
       setUsesLeft(response.data.usesLeft);
       showAlert("Inference Cycle Complete", "success");
@@ -259,9 +300,7 @@ const FaceSuggestorScreen = () => {
                   <View style={styles.processingOverlay}>
                     <LottieView source={require("../assets/Scanning.json")} autoPlay loop style={styles.scanningLottie} />
                     <View style={styles.terminalContainer}>
-                      <Text style={styles.terminalText}>{'>'} BOOTING SELECTION ENGINE</Text>
-                      <Text style={styles.terminalText}>{'>'} RUNNING STRUCTURAL ANALYSIS</Text>
-                      <Text style={[styles.terminalText, { color: '#4C763B' }]}>{'>'} MAPPING VECTORS...</Text>
+                      <Text style={styles.terminalText}>{'>'} {computingStatus}</Text>
                     </View>
                   </View>
                 )}
@@ -323,7 +362,7 @@ const FaceSuggestorScreen = () => {
                 </View>
                 <View style={[styles.metricItem, { borderRightWidth: 0 }]}>
                   <Text style={styles.metricLabel}>ARCHETYPE</Text>
-                  <Text style={[styles.metricValue, { color: '#4C763B' }]}>{analysis.archetype}</Text>
+                  <Text style={[styles.metricValue, { color: '#4C763B' }]}>{analysis.archetypeTitle || analysis.archetype}</Text>
                 </View>
               </View>
 

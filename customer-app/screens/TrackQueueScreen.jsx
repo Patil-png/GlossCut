@@ -1,628 +1,555 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, StatusBar, Animated, Easing, Alert, Dimensions, RefreshControl, Platform,
-  Image
+  View, Text, StyleSheet, TouchableOpacity, Animated, StatusBar,
+  Dimensions, TextInput, ScrollView, Platform, Image, ActivityIndicator, Linking
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  Search, Users, AlertCircle, ArrowLeft, RefreshCcw, Clock,
-  ShieldCheck, CheckCircle, Scissors, MapPin, Info, Gift, ChevronRight, Star, Sparkles,
-  Check, Play, Flag
+  ArrowLeft, Clock, MapPin, Search, ChevronRight, CheckCircle2, QrCode,
+  AlertCircle, X, ShieldCheck, Zap, Scissors, Phone, MessageSquare, Info, Users,
+  Calendar, ShieldAlert, HeartHandshake, Shield
 } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
-import io from 'socket.io-client';
-import api, { API_URL } from "../utils/api";
-import { format } from "date-fns";
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
+import api from "../utils/api";
 
-const { width, height } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// --- THEME COLORS ---
-const COLORS = {
-  primary: '#4C763B',
-  primaryGradient: ['#4C763B', '#22C55E'],
-  black: '#1C1C1E',
-  dark: '#0F172A',
-  white: '#FFFFFF',
-  gray: {
-    50: '#F8F9FB',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    400: '#94A3B8',
-    600: '#64748B',
-    900: '#1C1C1E',
-  },
-  status: {
-    started: { bg: 'rgba(0, 191, 165, 0.1)', text: '#00695C', border: '#00BFA5' },
-    pending: { bg: 'rgba(41, 121, 255, 0.1)', text: '#1565C0', border: '#2979FF' },
-    confirmed: { bg: 'rgba(106, 27, 154, 0.1)', text: '#6A1B9A', border: '#6A1B9A' },
-    completed: { bg: 'rgba(76, 175, 80, 0.1)', text: '#2E7D32', border: '#4CAF50' },
-    cancelled: { bg: 'rgba(239, 83, 80, 0.1)', text: '#C62828', border: '#EF5350' },
-  }
+const safeUpper = (val) => {
+  if (!val) return "";
+  return String(val).toUpperCase();
 };
 
 const TrackQueueScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
-  const urlTrackingId = route.params?.trackingId;
-
-  const [trackingId, setTrackingId] = useState(urlTrackingId || '');
+  const [trackingId, setTrackingId] = useState(route.params?.trackingId || '');
   const [queueData, setQueueData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Queue List State
-  const [appointments, setAppointments] = useState([]);
-  const [listLoading, setListLoading] = useState(false);
-  const [activeBooking, setActiveBooking] = useState(null);
-  const [activeBookingLoading, setActiveBookingLoading] = useState(false);
+  const toastAnim = useRef(new Animated.Value(-100)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
 
-  // Live Tracker State for 'started' appointments
-  const [nowTick, setNowTick] = useState(Date.now());
-  const [timeOffset, setTimeOffset] = useState(0);
-
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-
-  // Sync time with server
   useEffect(() => {
-    const syncTime = async () => {
+    const checkActiveBooking = async () => {
+      if (route.params?.trackingId) {
+        fetchQueuePosition(route.params.trackingId);
+        return;
+      }
       try {
-        const res = await api.get('/api/booking/server-time');
-        if (res.data.success && res.data.serverTimeMs) {
-          const localTime = Date.now();
-          const offset = res.data.serverTimeMs - localTime;
-          setTimeOffset(offset);
-          setNowTick(localTime + offset);
+        const res = await api.get('/api/booking/active');
+        if (res.data.success && res.data.activeBooking) {
+          const activeId = res.data.activeBooking.queueTrackingId || res.data.activeBooking._id;
+          if (activeId) {
+            setTrackingId(activeId);
+            fetchQueuePosition(activeId);
+          }
         }
       } catch (err) {
-        console.error("Failed to sync server time", err);
+        console.log("No active booking found");
       }
     };
-    syncTime();
-  }, []);
+    checkActiveBooking();
+  }, [route.params?.trackingId]);
 
-  // Update tick for active appointments
-  useEffect(() => {
-    let interval;
-    if (queueData?.status === 'started') {
-      interval = setInterval(() => {
-        setNowTick(Date.now() + timeOffset);
-      }, 30000); // Match website's 30s
-    }
-    return () => clearInterval(interval);
-  }, [queueData?.status, timeOffset]);
+  const triggerError = (msg) => {
+    setError(msg);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
+    Animated.spring(toastAnim, { toValue: insets.top + 10, useNativeDriver: true, tension: 80, friction: 10 }).start();
+    setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: -100, duration: 500, useNativeDriver: true }).start(() => setError(null));
+    }, 3000);
+  };
 
-  const fetchQueuePosition = useCallback(async (id, silent = false) => {
-    if (!silent) setLoading(true);
+  const fetchQueuePosition = useCallback(async (id) => {
+    if (!id || !id.trim()) return;
+    setLoading(true);
     setError(null);
-
     try {
-      if (!id) return;
-      const searchId = id.length === 6 ? id.toUpperCase() : id;
-      const res = await api.get(`/api/booking/track/${searchId}`);
-
+      const res = await api.get(`/api/booking/track/${id}`);
       if (res.data.success) {
         setQueueData(res.data.data);
-        setAutoRefresh(true);
-
-
-        Animated.parallel([
-          Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-          Animated.timing(slideAnim, { toValue: 0, duration: 600, easing: Easing.out(Easing.back(1)), useNativeDriver: true })
-        ]).start();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } else {
-        setError(res.data.msg || 'Booking not found');
-        setQueueData(null);
-        setAutoRefresh(false);
+        if (id === trackingId) triggerError("This ID doesn't exist");
       }
     } catch (err) {
-      setError('Network error. Please try again.');
-      setAutoRefresh(false);
+      if (id === trackingId) triggerError("This ID doesn't exist");
     } finally {
       setLoading(false);
     }
-  }, [fadeAnim, slideAnim]);
+  }, [insets.top, trackingId]);
 
-
-  useEffect(() => {
-    if (urlTrackingId) {
-      fetchQueuePosition(urlTrackingId);
-    }
-  }, [urlTrackingId, fetchQueuePosition]);
-
-  useEffect(() => {
-    const fetchActive = async () => {
-      if (urlTrackingId) return;
-      setActiveBookingLoading(true);
-      try {
-        const activeRes = await api.get('/api/booking/active');
-        if (activeRes.data.success && activeRes.data.activeBooking) {
-          setActiveBooking(activeRes.data.activeBooking);
-        }
-      } catch (err) {
-        console.log("Auto-fetch failed", err);
-      } finally {
-        setActiveBookingLoading(false);
-      }
-    };
-    fetchActive();
-  }, [urlTrackingId]);
-
-  useEffect(() => {
-    let interval;
-    let socket;
-
-    if (queueData && autoRefresh) {
-      socket = io(API_URL, { transports: ['websocket'] });
-
-      socket.on('connect', () => {
-        socket.emit('join', `booking_${queueData.bookingId}`);
-      });
-
-      socket.on('booking_status_update', (data) => {
-        if (data.status) {
-          fetchQueuePosition(queueData.trackingId, true);
-        }
-      });
-
-      socket.on('almost_ready_call', (data) => {
-        Alert.alert(
-          "🚨 YOU ARE UP NEXT! 🚨",
-          `Your barber is almost ready for you! Please head to the shop within the next 10 minutes to avoid losing your spot.`
-        );
-        fetchQueuePosition(queueData.trackingId, true);
-      });
-
-      interval = setInterval(() => {
-        fetchQueuePosition(queueData.trackingId, true);
-      }, 15000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-      if (socket) socket.disconnect();
-    };
-  }, [queueData, autoRefresh, fetchQueuePosition]);
-
-  const handleSubmit = () => {
-    if (trackingId.trim()) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      fetchQueuePosition(trackingId.trim());
+  const handleCall = () => {
+    if (queueData?.barberPhone) {
+      Linking.openURL(`tel:${queueData.barberPhone}`);
     }
   };
 
-  const getRemainingTime = () => {
-    if (!queueData || queueData.status !== 'started') return null;
-    const baseMins = queueData.baseDuration || 30;
-    const offset = queueData.durationOffset || 0;
-    const totalMins = baseMins + offset;
-    const elapsedMs = nowTick - new Date(queueData.startedAt).getTime();
-    const elapsedMinutes = Math.floor(elapsedMs / 60000);
-    const rem = totalMins - elapsedMinutes;
-    return rem;
+  const handleMap = () => {
+    if (queueData?.shopAddress) {
+      const url = Platform.select({
+        ios: `maps:0,0?q=${queueData.shopAddress}`,
+        android: `geo:0,0?q=${queueData.shopAddress}`
+      });
+      Linking.openURL(url);
+    }
   };
 
-  const SEARCH_ILLUSTRATION = require("../assets/images/search_doodle.png");
+  const handleChat = () => {
+    navigation.navigate("Chat");
+  };
+
+  const renderQueueItem = (item, index) => {
+    const isCurrent = item.isTarget;
+    const isStarted = item.status === 'started';
+
+    return (
+      <View key={item.id} style={[styles.queueTimelineItem, isCurrent && styles.itemCurrent]}>
+        <View style={styles.timelineLeft}>
+          <View style={[styles.timelineDot, isCurrent && styles.dotCurrent, isStarted && styles.dotStarted]} />
+          {index !== queueData.queueList.length - 1 && <View style={styles.timelineLine} />}
+        </View>
+
+        <View style={styles.rankContainer}>
+          <Text style={[styles.rankText, isCurrent && styles.rankTextCurrent]}>{String(item.rank).padStart(2, '0')}</Text>
+        </View>
+
+        <View style={[styles.timelineContent, isCurrent && styles.contentCurrent]}>
+          <View style={styles.timelineHeaderRow}>
+            <Text style={[styles.timelineName, isCurrent && styles.textCurrent]}>
+              {isCurrent ? "YOUR SESSION" : item.name}
+            </Text>
+            <View style={styles.timeStack}>
+              <Text style={[styles.timelineTime, isCurrent && styles.textCurrent]}>{item.estArrival}</Text>
+              <Text style={styles.slotLabel}>SLOT: {item.time}</Text>
+            </View>
+          </View>
+          <View style={styles.timelineStatusRow}>
+            <Text style={styles.timelineStatus}>{safeUpper(item.status)}</Text>
+            {isStarted && <View style={styles.livePulseMini} />}
+          </View>
+        </View>
+
+        {isCurrent && (
+          <View style={styles.currentIndicatorBox}>
+            <CheckCircle2 size={16} color="#00C896" />
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.bgDecorCircle1} />
+      <View style={styles.bgDecorCircle2} />
 
-      {/* Background Decor */}
-      <View style={styles.bgOrb1} />
-      <View style={styles.bgOrb2} />
-
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity style={styles.backIconButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={22} color={COLORS.black} strokeWidth={3} />
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.headerSubtitle}>LIVE STATUS</Text>
-          <Text style={styles.headerTitle}>Queue Tracker</Text>
+      <Animated.View style={[styles.toast, { transform: [{ translateY: toastAnim }] }]}>
+        <View style={styles.toastInner}>
+          <AlertCircle size={20} color="#FFF" strokeWidth={2.5} />
+          <Text style={styles.toastText}>{error}</Text>
+          <TouchableOpacity onPress={() => Animated.timing(toastAnim, { toValue: -100, duration: 300, useNativeDriver: true }).start()}>
+            <X size={18} color="rgba(255,255,255,0.7)" strokeWidth={2.5} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.headerActionButton}
-          onPress={() => queueData ? fetchQueuePosition(queueData.trackingId) : null}
-          disabled={!queueData || loading}
-        >
-          <RefreshCcw size={18} color={COLORS.black} strokeWidth={3} className={loading ? 'animate-spin' : ''} />
+      </Animated.View>
+
+      <View style={[styles.premiumHeader, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionBtn}>
+          <ArrowLeft size={20} color="#111" strokeWidth={3} />
         </TouchableOpacity>
+
+        <View style={styles.headerMain}>
+          <Text style={styles.headerTagline}>SYSTEM STATUS: ACTIVE</Text>
+          <Text style={styles.headerPrimaryTitle}>SESSION TRACKER</Text>
+        </View>
+
+        <View style={styles.headerStatusBox}>
+          <View style={styles.statusPulse} />
+        </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={() => queueData ? fetchQueuePosition(queueData.trackingId) : null} tintColor={COLORS.primary} />
-        }
-      >
-        {!queueData ? (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchHero}>
-              <View style={styles.heroImageWrapper}>
-                <Image source={SEARCH_ILLUSTRATION} style={styles.searchIllustration} resizeMode="contain" />
-              </View>
-              <Text style={styles.searchHeroTitle}>Check your position</Text>
-              <Text style={styles.searchHeroSub}>Enter the 6-digit tracking ID found on your booking receipt or SMS.</Text>
-            </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 60, paddingBottom: insets.bottom + 40 }}>
+        <View style={styles.bottomRegion}>
+          {!queueData ? (
+            <>
+              <Animated.View style={[styles.inputCard, { transform: [{ translateX: shakeAnim }], marginTop: 80 }]}>
+                <View style={styles.inputHeader}>
+                  <View style={styles.iconBox}><QrCode size={18} color="#111" strokeWidth={2.5} /></View>
+                  <View><Text style={styles.inputTitle}>Live Tracking</Text><Text style={styles.inputTag}>SECURE GATEWAY</Text></View>
+                </View>
 
-            <View style={styles.searchForm}>
-              <View style={styles.idInputBox}>
-                <TextInput
-                  style={styles.idInput}
-                  placeholder="X X X X X X"
-                  placeholderTextColor={COLORS.gray[400]}
-                  value={trackingId}
-                  onChangeText={(val) => setTrackingId(val.toUpperCase())}
-                  autoCapitalize="characters"
-                  maxLength={6}
-                />
-              </View>
-              <TouchableOpacity
-                style={styles.mainSubmitBtnContainer}
-                onPress={handleSubmit}
-                disabled={loading || activeBookingLoading || (trackingId?.length || 0) < 6}
-              >
-                <LinearGradient
-                  colors={COLORS.primaryGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.mainSubmitBtn, (trackingId?.length || 0) < 6 && { opacity: 0.5 }]}
-                >
-                  {loading || activeBookingLoading ? (
-                    <RefreshCcw size={22} color="#FFF" />
+                <Text style={styles.inputSubtitle}>Enter your unique Tracking ID from your booking confirmation to unlock your All-Access Pass.</Text>
+
+                <View style={[styles.modernInputWrapper, isFocused && styles.modernInputFocused]}>
+                  <TextInput
+                    style={styles.modernInput}
+                    placeholder="ID CODE"
+                    placeholderTextColor="#CCC"
+                    value={trackingId}
+                    onChangeText={(v) => { setTrackingId(v.toUpperCase()); if (error) setError(null); }}
+                    autoCapitalize="characters"
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                  />
+                  <View style={styles.inputDecor}><Search size={20} color={isFocused ? "#111" : "#BBB"} strokeWidth={2.5} /></View>
+                </View>
+
+                <TouchableOpacity style={[styles.trackBtn, loading && { opacity: 0.6 }]} onPress={() => fetchQueuePosition(trackingId)} activeOpacity={0.8}>
+                  {loading ? (
+                    <ActivityIndicator color="#FFF" />
                   ) : (
-                    <Text style={styles.mainSubmitBtnText}>Track Queue</Text>
+                    <>
+                      <Text style={styles.trackBtnText}>VERIFY & TRACK</Text>
+                      <ChevronRight size={18} color="#FFF" strokeWidth={3} />
+                    </>
                   )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+                </TouchableOpacity>
+              </Animated.View>
 
-            {error && (
-              <View style={styles.errorPill}>
-                <AlertCircle size={14} color="#FFF" />
-                <Text style={styles.errorPillText}>{error}</Text>
-              </View>
-            )}
-
-            {activeBooking && (
-              <TouchableOpacity
-                style={styles.activeShortcutCard}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                  const tid = activeBooking.queueTrackingId || activeBooking._id;
-                  setTrackingId(tid);
-                  fetchQueuePosition(tid);
-                }}
-              >
-                <View style={styles.shortcutIconBox}>
-                  <LinearGradient colors={COLORS.primaryGradient} style={styles.shortcutIconGradient}>
-                    <CheckCircle size={20} color="#FFF" />
-                  </LinearGradient>
+              <View style={styles.externalSecurityNotes}>
+                <View style={styles.notesHeader}>
+                  <View style={styles.notesIconBox}><Shield size={14} color="#111" /></View>
+                  <Text style={styles.notesTitle}>SECURITY PROTOCOL</Text>
                 </View>
-                <View style={styles.shortcutText}>
-                  <Text style={styles.shortcutLabel}>ACTIVE BOOKING FOUND</Text>
-                  <Text style={styles.shortcutValue}>{activeBooking.barberId?.shopName || "Live Session"}</Text>
+                <View style={styles.notesList}>
+                  <View style={styles.noteRow}>
+                    <ShieldCheck size={14} color="#00C896" />
+                    <Text style={styles.noteText}>End-to-end encrypted session tracking.</Text>
+                  </View>
+                  <View style={styles.noteRow}>
+                    <Info size={14} color="#3B82F6" />
+                    <Text style={styles.noteText}>ID is available in your WhatsApp confirmation.</Text>
+                  </View>
+                  <View style={styles.noteRow}>
+                    <Clock size={14} color="#F59E0B" />
+                    <Text style={styles.noteText}>Refreshes automatically every 60 seconds.</Text>
+                  </View>
                 </View>
-                <ChevronRight size={18} color={COLORS.gray[400]} />
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <Animated.View style={[styles.trackerContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-
-            {/* Back Button / Switch Tracking */}
-            <TouchableOpacity
-              style={styles.switchButton}
-              onPress={() => {
-                setQueueData(null);
-                setTrackingId('');
-                setAutoRefresh(false);
-              }}
-            >
-              <ArrowLeft size={16} color={COLORS.gray[600]} />
-              <Text style={styles.switchButtonText}>Track different booking</Text>
-            </TouchableOpacity>
-
-            <View style={styles.trackerMainGrid}>
-              {/* Position Card */}
-              <View style={styles.heroCard}>
-                {queueData.status === 'cancelled' ? (
-                  <View style={styles.cancelledState}>
-                    <View style={styles.cancelIconBox}><Flag size={32} color="#EF4444" /></View>
-                    <Text style={styles.cancelledHeading}>APPOINTMENT CANCELLED</Text>
-                    {queueData.cancellationReason && (
-                      <Text style={styles.cancelledReason}>"{queueData.cancellationReason}"</Text>
-                    )}
-                    <Text style={styles.cancelledSubtext}>Unfortunately, this appointment has been cancelled. Please contact the shop.</Text>
-                  </View>
-                ) : (
-                  <View style={styles.verticalTicket}>
-                    {/* Top Stub Section (Position) */}
-                    <View style={styles.vStubSection}>
-                      <View style={styles.vInnerStub}>
-                        {/* Decorative Stars */}
-                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarTL} />
-                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarTR} />
-                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarBL} />
-                        <Star size={12} color="#5D4037" fill="#5D4037" style={styles.vStarBR} />
-
-                        <View style={styles.vStubLeft}>
-                          <Text style={styles.vStubLabel}>YOUR POSITION</Text>
-                          <View style={styles.vBarcodeContainer}>
-                            {[3, 6, 2, 8, 3, 5, 2, 7, 4, 2, 6, 3, 5].map((w, i) => (
-                              <View key={i} style={[styles.vBarcodeLine, { width: w }]} />
-                            ))}
-                          </View>
-                        </View>
-                        <Text style={styles.vStubVal}>#{queueData.queuePosition}</Text>
-                      </View>
-                    </View>
-
-                    {/* Horizontal Perforation */}
-                    <View style={styles.vPerforation}>
-                      <View style={styles.vPerfNotchLeft} />
-                      <View style={styles.vPerfLine} />
-                      <View style={styles.vPerfNotchRight} />
-                    </View>
-
-                    {/* Main Section (Details) */}
-                    <View style={styles.vMainSection}>
-                      <View style={styles.vInnerMain}>
-                        <View style={styles.vHeader}>
-                          <Text style={styles.vShopName}>{queueData.shopName || "GLOSSCUT STUDIO"}</Text>
-                          <Text style={styles.vBarberName}>with {queueData.barberName}</Text>
-                        </View>
-
-                        {/* Live Status Pill */}
-                        <View style={styles.vLiveStatusBox}>
-                          <View style={styles.vLivePulse}>
-                            <View style={styles.vLiveDot} />
-                            <View style={styles.vLiveRing} />
-                          </View>
-                          <Text style={styles.vLiveText}>LIVE TRACKING ACTIVE</Text>
-                        </View>
-
-                        {/* Wait Time Integration */}
-                        {['pending', 'confirmed'].includes(queueData.status) && (
-                          <View style={styles.vWaitBox}>
-                            <Text style={styles.vWaitLabel}>ESTIMATED WAIT</Text>
-                            <Text style={styles.vWaitVal}>
-                              {queueData.estimatedWaitRange
-                                ? `${queueData.estimatedWaitRange.min}-${queueData.estimatedWaitRange.max}`
-                                : queueData.estimatedWaitMinutes || '--'}
-                              <Text style={styles.vWaitUnit}> MINS</Text>
-                            </Text>
-                          </View>
-                        )}
-
-                        {queueData.status === 'started' && (
-                          <View style={styles.vProgressBox}>
-                            <Text style={styles.vProgressLabel}>✂️ IN PROGRESS</Text>
-                            {(() => {
-                              const rem = getRemainingTime();
-                              if (rem === null) return null;
-                              return <Text style={styles.vProgressVal}>{rem} MIN LEFT</Text>;
-                            })()}
-                          </View>
-                        )}
-                      </View>
-                    </View>
-
-                    {/* Scallops (Top and Bottom) */}
-                    <View style={styles.vScallopsTop}>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => <View key={i} style={styles.vScallopCircle} />)}
-                    </View>
-                    <View style={styles.vScallopsBottom}>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => <View key={i} style={styles.vScallopCircle} />)}
-                    </View>
-                  </View>
-                )}
               </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.passWrapper}>
+                {/* --- REALISTIC LANYARD STRAP --- */}
+                <View style={styles.lanyardStrap}>
+                  <LinearGradient
+                    colors={['#1F2937', '#374151', '#1F2937']}
+                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <View style={styles.strapTexture} />
+                </View>
 
-
-              {/* Booking Details Card */}
-              <View style={styles.detailsCard}>
-                <Text style={styles.detailsTitle}>Booking Details</Text>
-                <View style={styles.detailsList}>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Tracking ID</Text>
-                    <View style={styles.trackingIdBadge}><Text style={styles.trackingIdText}>#{queueData.trackingId}</Text></View>
+                {/* --- NEXT-LEVEL 3D LOBSTER CLAW ASSEMBLY --- */}
+                <View style={styles.lanyardHook}>
+                  <View style={styles.hookBackLoop} />
+                  <View style={styles.hookSwivel}>
+                    <LinearGradient colors={['#F3F4F6', '#9CA3AF', '#4B5563']} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
+                    <View style={styles.swivelGlint} />
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Shop</Text>
-                    <Text style={styles.detailValue}>{queueData.shopName}</Text>
+                  <View style={styles.hookJoint}>
+                    <LinearGradient colors={['#D1D5DB', '#4B5563']} style={StyleSheet.absoluteFill} />
+                    <View style={styles.jointPin} />
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Barber</Text>
-                    <Text style={styles.detailValue}>{queueData.barberName}</Text>
+                  <View style={styles.clawBody}>
+                    <LinearGradient colors={['#F9FAFB', '#D1D5DB', '#9CA3AF', '#4B5563']} style={StyleSheet.absoluteFill} />
+                    <View style={styles.clawReflection} />
+                    <View style={styles.clawGlint} />
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Services</Text>
-                    <Text style={styles.detailValueRight}>{queueData.services.join(', ')}</Text>
+                </View>
+                <View style={styles.lanyardSlot}>
+                  <View style={styles.slotInnerShadow} />
+                </View>
+                <View style={styles.idCard}>
+                  <LinearGradient colors={['#18181B', '#09090B']} style={styles.cardBg} />
+                  <View style={styles.idTopRow}>
+                    <View style={styles.idLogo}><Zap size={20} color="#FFF" strokeWidth={2.5} /></View>
+                    <View style={styles.rankBadge}>
+                      <Text style={styles.rankBadgeLabel}>RANK</Text>
+                      <Text style={styles.rankBadgeNumber}>#{queueData.queuePosition}</Text>
+                    </View>
                   </View>
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>Booked at</Text>
-                    <Text style={styles.detailValue}>{queueData.bookingTime}</Text>
-                  </View>
-                  <View style={[styles.detailItem, styles.detailItemLast]}>
-                    <Text style={styles.detailLabel}>Status</Text>
-                    <View style={[styles.statusPill, { backgroundColor: COLORS.status[queueData.status]?.bg || COLORS.gray[100] }]}>
-                      <Text style={[styles.statusPillText, { color: COLORS.status[queueData.status]?.text || COLORS.gray[600] }]}>
-                        {queueData.status.toUpperCase()}
+                  <Text style={styles.idMainTitle}>SALON PASS</Text>
+                  <View style={styles.idMetaGrid}>
+                    <View style={styles.idMetaCol}>
+                      <Text style={styles.idMetaLabel}>LOCATION</Text>
+                      <Text style={styles.idShopName} numberOfLines={1}>{safeUpper(queueData.shopName)}</Text>
+                      <Text style={styles.idShopAddress} numberOfLines={1} ellipsizeMode="tail">
+                        {safeUpper(queueData.shopAddress) || "INDIA"}
                       </Text>
                     </View>
+                    <View style={styles.idMetaCol}>
+                      <Text style={styles.idMetaLabel}>BARBER</Text>
+                      <Text style={styles.idMetaValue}>{safeUpper(queueData.barberName) || "MASTER"}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.idDivider} />
+                  <View style={styles.idHolderBox}>
+                    <Text style={styles.idMetaLabel}>@HOLDER</Text>
+                    <Text style={styles.idHolderName}>{safeUpper(queueData.customerName) || "VIP"}</Text>
+                  </View>
+                  <View style={styles.idFooter}>
+                    <View style={styles.idQrContainer}>
+                      <Image 
+                        source={{ uri: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://www.instagram.com/glosscut.india/&color=ffffff&bgcolor=09090b' }} 
+                        style={styles.realQrImage} 
+                      />
+                    </View>
+                    <View style={styles.idBottomMeta}>
+                      <View style={styles.idBottomMetaRow}>
+                        <Text style={styles.idMetaLabel}>EST. ARRIVAL</Text>
+                        <Text style={[styles.idBottomValue, { fontSize: 16, color: '#00C896' }]}>
+                          {queueData.queueList?.find(i => i.isTarget)?.estArrival || "SCHEDULED"}
+                        </Text>
+                      </View>
+                      <View style={styles.idBottomMetaRow}>
+                        <Text style={styles.idMetaLabel}>PASS STATUS</Text>
+                        <Text style={styles.idBottomValue}>VERIFIED ACCESS</Text>
+                      </View>
+                      <View style={styles.idBottomMetaRow}>
+                        <Text style={styles.idMetaLabel}>QUEUE RANK</Text>
+                        <Text style={[styles.idBottomValue, { fontSize: 16 }]}>#{queueData.queuePosition}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.idStudioRow}>
+                    <View style={styles.studioIconBox}><View style={styles.studioBar1} /><View style={styles.studioBar2} /></View>
+                    <Text style={styles.studioText}>GLOSSCUT STUDIO</Text>
                   </View>
                 </View>
               </View>
 
-              {/* Live Updates Indicator */}
-              <View style={styles.liveSyncBox}>
-                <View style={styles.syncLeft}>
-                  <View style={styles.pulseContainer}>
-                    <View style={styles.pulseDot} />
-                    <View style={styles.pulseRing} />
+              {/* --- LIVE QUEUE --- */}
+              <View style={styles.dashboardSection}>
+                <View style={styles.sectionHeader}>
+                  <Users size={16} color="#111" />
+                  <Text style={styles.sectionTitle}>Queue Timeline</Text>
+                </View>
+                <View style={styles.timelineCard}>
+                  <View style={styles.timelineStats}>
+                    <Text style={styles.timelineCountText}>{queueData.queueList?.length || 0} ACTIVE SESSIONS</Text>
+                    <View style={styles.liveIndicator}><View style={styles.liveDot} /><Text style={styles.liveText}>LIVE</Text></View>
                   </View>
-                  <Text style={styles.syncText}>Live Updates (15s)</Text>
-                </View>
-                <TouchableOpacity onPress={() => fetchQueuePosition(queueData.trackingId, false)}>
-                  <Text style={styles.refreshBtnText}>REFRESH</Text>
-                </TouchableOpacity>
-              </View>
-
-
-              {/* Footer */}
-              <View style={styles.trackerFooter}>
-                <Text style={styles.footerBrand}>GLOSSCUT PARTNER NETWORK</Text>
-                <View style={styles.footerDots}>
-                  <View style={styles.footerDot} />
-                  <View style={styles.footerDot} />
-                  <View style={styles.footerDot} />
+                  {queueData.queueList && queueData.queueList.length > 0 ? (
+                    queueData.queueList.map((item, index) => renderQueueItem(item, index))
+                  ) : (
+                    <View style={styles.emptyQueueBox}>
+                      <Info size={14} color="#94A3B8" />
+                      <Text style={styles.emptyQueueText}>STATION CLEAR - NO OTHERS IN QUEUE</Text>
+                    </View>
+                  )}
                 </View>
               </View>
 
-            </View>
-          </Animated.View>
-        )}
+              {/* --- FOOTER ASSISTANCE --- */}
+              <TouchableOpacity style={styles.assistanceBtn} onPress={handleChat}>
+                <HeartHandshake size={18} color="#111" />
+                <Text style={styles.assistanceText}>Need Help? Chat with Us</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.gray[50] },
-  bgOrb1: { position: 'absolute', top: -100, right: -100, width: 400, height: 400, borderRadius: 200, backgroundColor: 'rgba(76, 118, 59, 0.05)', zIndex: 0 },
-  bgOrb2: { position: 'absolute', bottom: 100, left: -100, width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(0, 191, 165, 0.05)', zIndex: 0 },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  bgDecorCircle1: { position: 'absolute', top: -50, right: -50, width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(0,200,150,0.03)', zIndex: 0 },
+  bgDecorCircle2: { position: 'absolute', bottom: 100, left: -100, width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(17,17,17,0.02)', zIndex: 0 },
+  toast: { position: 'absolute', left: 20, right: 20, zIndex: 1000 },
+  toastInner: { backgroundColor: '#111', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 15 },
+  toastText: { flex: 1, fontFamily: 'PlusJakartaSans_700Bold', fontSize: 14, color: '#FFF' },
+  premiumHeader: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 15, backgroundColor: 'rgba(248, 250, 252, 0.98)', borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)', zIndex: 100 },
+  headerActionBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+  headerMain: { alignItems: 'center', flex: 1 },
+  headerTagline: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 7, color: '#94A3B8', fontWeight: '800', letterSpacing: 1, marginBottom: 2 },
+  headerPrimaryTitle: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 13, color: '#111', fontWeight: '800', letterSpacing: 1.5 },
+  headerStatusBox: { width: 40, alignItems: 'flex-end' },
+  statusPulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C896', shadowColor: '#00C896', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 5 },
+  bottomRegion: { paddingHorizontal: 20 },
+  inputCard: { backgroundColor: '#FFF', borderRadius: 32, padding: 25, borderWidth: 1.5, borderColor: '#F2F4F7', shadowColor: '#000', shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.05, shadowRadius: 30, elevation: 10 },
+  inputHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 15 },
+  iconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F8F9FA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E9ECEF' },
+  inputTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 16, color: '#111' },
+  inputTag: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 8, color: '#AAA', letterSpacing: 1.5, marginTop: -2 },
+  inputSubtitle: { fontFamily: 'PlusJakartaSans_500Medium', fontSize: 12, color: '#999', marginBottom: 20, lineHeight: 18 },
+  modernInputWrapper: { backgroundColor: '#F8F9FA', borderRadius: 16, height: 56, borderWidth: 2, borderColor: '#F1F3F5', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15 },
+  modernInputFocused: { borderColor: '#111', backgroundColor: '#FFF' },
+  modernInput: { flex: 1, fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 18, color: '#111', letterSpacing: 6, height: '100%' },
+  inputDecor: { paddingLeft: 10 },
+  trackBtn: { backgroundColor: '#111', height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 15 },
+  trackBtnText: { fontFamily: 'PlusJakartaSans_800ExtraBold', color: '#FFF', fontSize: 13, letterSpacing: 1 },
+  externalSecurityNotes: { marginTop: 35, paddingHorizontal: 5, gap: 12 },
+  notesHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  notesIconBox: { width: 24, height: 24, borderRadius: 8, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
+  notesTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 10, color: '#64748B', letterSpacing: 1.5 },
+  notesList: { gap: 10 },
+  noteRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  noteText: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 12, color: '#64748B' },
 
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: COLORS.gray[100] },
-  backIconButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: COLORS.gray[50], alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.gray[100] },
-  headerSubtitle: { fontSize: 10, fontWeight: '900', color: COLORS.primary, letterSpacing: 2, marginBottom: 2, opacity: 0.6 },
-  headerTitle: { fontSize: 24, fontWeight: '1000', color: COLORS.black, letterSpacing: -1 },
-  headerActionButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: COLORS.gray[50], alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.gray[100] },
+  // --- REALISTIC LANYARD & ID CARD ---
+  passWrapper: { alignItems: 'center', paddingTop: 60, marginBottom: 25, width: '100%' },
+  lanyardStrap: { position: 'absolute', top: -100, width: 32, height: 180, backgroundColor: '#1F2937', zIndex: 1, overflow: 'hidden', borderRadius: 4 },
+  strapTexture: { ...StyleSheet.absoluteFillObject, opacity: 0.1, backgroundColor: '#000', borderRightWidth: 1, borderLeftWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
 
-  scrollContent: { paddingBottom: 40 },
-  searchContainer: { padding: 24, alignItems: 'center' },
-  searchHero: { alignItems: 'center', marginTop: width * 0.05, marginBottom: width * 0.08 },
-  heroImageWrapper: { width: width * 0.6, height: width * 0.6, marginBottom: 24 },
-  searchIllustration: { width: '100%', height: '100%' },
-  searchHeroTitle: { fontSize: Math.max(22, width * 0.07), fontWeight: '1000', color: COLORS.black, letterSpacing: -0.5, marginBottom: 12 },
-  searchHeroSub: { fontSize: Math.max(13, width * 0.04), color: COLORS.gray[600], textAlign: 'center', lineHeight: 22, paddingHorizontal: 20, fontWeight: '500' },
+  lanyardHook: { position: 'absolute', top: 40, zIndex: 30, alignItems: 'center', width: 30 },
+  hookBackLoop: { position: 'absolute', top: 12, width: 12, height: 16, backgroundColor: '#374151', borderRadius: 2, zIndex: -1 },
+  hookSwivel: { width: 22, height: 8, borderRadius: 2, overflow: 'hidden', borderWidth: 1, borderColor: '#9CA3AF' },
+  swivelGlint: { position: 'absolute', top: 1, right: 2, width: 4, height: 2, backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: 1 },
+  hookJoint: { width: 14, height: 14, borderRadius: 7, marginTop: -2, overflow: 'hidden', borderWidth: 1, borderColor: '#6B7280', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  jointPin: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: '#374151' },
+  clawBody: { width: 18, height: 30, marginTop: -4, borderRadius: 4, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 10 },
+  clawReflection: { position: 'absolute', top: 0, left: 1, width: 3, height: '100%', backgroundColor: 'rgba(255,255,255,0.3)' },
+  clawGlint: { position: 'absolute', top: 4, right: 2, width: 2, height: 2, backgroundColor: '#FFF', borderRadius: 1, opacity: 0.8 },
 
-  searchForm: { width: '100%', gap: 20 },
-  idInputBox: { backgroundColor: '#FFF', borderRadius: 24, height: 80, borderWidth: 2, borderColor: COLORS.gray[200], justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 15, elevation: 3 },
-  idInput: { fontSize: 32, fontWeight: '900', color: COLORS.black, letterSpacing: 10, textAlign: 'center', width: '100%' },
-  mainSubmitBtnContainer: { width: '100%', height: 68, borderRadius: 24, overflow: 'hidden', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 6 },
-  mainSubmitBtn: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  mainSubmitBtnText: { color: '#FFF', fontSize: 18, fontWeight: '900', letterSpacing: 0.5 },
+  lanyardSlot: { width: 50, height: 14, borderRadius: 7, backgroundColor: '#111', marginBottom: -7, zIndex: 10, borderWidth: 2, borderColor: '#333', overflow: 'hidden' },
+  slotInnerShadow: { ...StyleSheet.absoluteFillObject, borderTopWidth: 2, borderColor: 'rgba(0,0,0,0.5)' },
+  idCard: { 
+    width: SCREEN_WIDTH > 450 ? 380 : SCREEN_WIDTH * 0.88,
+    minHeight: 460, 
+    backgroundColor: '#09090B', 
+    borderRadius: 16, 
+    padding: SCREEN_WIDTH > 360 ? 25 : 18,
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 20 }, 
+    shadowOpacity: 0.3, 
+    shadowRadius: 25, 
+    elevation: 25, 
+    position: 'relative', 
+    overflow: 'hidden', 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.05)' 
+  },
+  cardBg: { ...StyleSheet.absoluteFillObject },
+  idTopRow: { marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  idLogo: { width: 32, height: 32, alignItems: 'flex-start', justifyContent: 'center' },
+  rankBadge: { backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 8, minWidth: 60 },
+  rankBadgeLabel: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 8, color: '#111', fontWeight: '800', letterSpacing: 1 },
+  rankBadgeNumber: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 22, color: '#111', fontWeight: '900', marginTop: -2 },
+  idMainTitle: { 
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+    fontSize: SCREEN_WIDTH > 360 ? 28 : 22, 
+    color: '#FFF', 
+    fontWeight: '800', 
+    letterSpacing: 2, 
+    marginBottom: 25 
+  },
+  idMetaGrid: { flexDirection: 'row', gap: SCREEN_WIDTH > 360 ? 20 : 12, marginBottom: 20 },
+  idMetaCol: { flex: 1 },
+  idMetaLabel: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 8, color: 'rgba(255,255,255,0.4)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 6 },
+  idShopName: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: SCREEN_WIDTH > 360 ? 13 : 11, color: '#FFF', fontWeight: '800', marginBottom: 2 },
+  idShopAddress: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: SCREEN_WIDTH > 360 ? 9 : 8, color: 'rgba(255,255,255,0.6)', fontWeight: '600', lineHeight: 12 },
+  idMetaValue: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: SCREEN_WIDTH > 360 ? 10 : 9, color: '#FFF', fontWeight: '600', lineHeight: 14 },
+  idDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 25 },
+  idHolderBox: { marginBottom: 30 },
+  idHolderName: { 
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+    fontSize: SCREEN_WIDTH > 360 ? 24 : 20, 
+    color: '#FFF', 
+    fontWeight: '800', 
+    letterSpacing: 1 
+  },
+  idFooter: { flexDirection: 'row', gap: SCREEN_WIDTH > 360 ? 35 : 25, alignItems: 'flex-start', marginBottom: 25 },
+  idQrContainer: { 
+    backgroundColor: 'transparent', 
+    width: SCREEN_WIDTH > 360 ? 110 : 90, 
+    height: SCREEN_WIDTH > 360 ? 110 : 90 
+  },
+  realQrImage: { width: '100%', height: '100%', borderRadius: 6 },
+  idBottomMeta: { flex: 1, height: SCREEN_WIDTH > 360 ? 110 : 90, justifyContent: 'space-between' },
+  idBottomMetaRow: {},
+  idBottomValue: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 12, color: '#FFF', fontWeight: '700' },
+  idStudioRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 'auto', paddingTop: 20 },
+  studioIconBox: { width: 22, height: 14, gap: 3 },
+  studioBar1: { height: 3, width: '100%', backgroundColor: '#FFF' },
+  studioBar2: { height: 3, width: '70%', backgroundColor: '#FFF' },
+  studioText: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 8, color: 'rgba(255,255,255,0.3)', fontWeight: '700', letterSpacing: 0.5 },
 
-  errorPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.status.cancelled.text, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16, marginTop: 20, gap: 8 },
-  errorPillText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
+  // --- DASHBOARD SECTIONS ---
+  dashboardSection: { marginBottom: 25 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  sectionTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 16, color: '#111' },
 
-  activeShortcutCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 28, padding: 20, marginTop: 40, borderWidth: 1.5, borderColor: COLORS.gray[100], shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.04, shadowRadius: 20, elevation: 2 },
-  shortcutIconBox: { width: 50, height: 50, borderRadius: 16, overflow: 'hidden', marginRight: 16 },
-  shortcutIconGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  shortcutText: { flex: 1 },
-  shortcutLabel: { fontSize: 10, fontWeight: '900', color: COLORS.primary, letterSpacing: 1.5, marginBottom: 4 },
-  shortcutValue: { fontSize: 17, fontWeight: '1000', color: COLORS.black, tracking: -0.3 },
+  // --- SCHEDULE CARD ---
+  scheduleCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 18, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#F2F4F7' },
+  scheduleItem: { flex: 1, alignItems: 'center' },
+  scheduleLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 10, color: '#999', letterSpacing: 1, marginBottom: 4 },
+  scheduleValue: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 15, color: '#111' },
+  vDivider: { width: 1, height: 30, backgroundColor: '#F2F4F7' },
 
-  trackerContainer: { padding: width * 0.05 },
-  switchButton: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#FFF', alignSelf: 'flex-start', borderRadius: 12, marginBottom: 24, borderWidth: 1, borderColor: COLORS.gray[100], shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.02, shadowRadius: 4, elevation: 1 },
-  switchButtonText: { fontSize: 14, fontWeight: '700', color: COLORS.gray[600] },
+  timelineCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 15, borderWidth: 1, borderColor: '#F2F4F7' },
+  timelineStats: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#F2F4F7' },
+  timelineCountText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 10, color: '#111', letterSpacing: 0.5 },
+  liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00C896' },
+  liveText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 8, color: '#00C896' },
+  emptyQueueBox: { padding: 20, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  emptyQueueText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 10, color: '#94A3B8', letterSpacing: 1 },
+  queueTimelineItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 5 },
+  itemCurrent: { backgroundColor: 'rgba(0,200,150,0.03)', borderRadius: 12 },
+  rankContainer: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
+  rankText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 10, color: '#94A3B8' },
+  rankTextCurrent: { color: '#111' },
+  timelineLeft: { alignItems: 'center', width: 12 },
+  timelineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', zIndex: 2 },
+  dotCurrent: { backgroundColor: '#111', transform: [{ scale: 1.2 }] },
+  dotStarted: { backgroundColor: '#00C896' },
+  timelineLine: { position: 'absolute', top: 10, bottom: -20, width: 2, backgroundColor: '#F1F5F9', zIndex: 1 },
+  timelineContent: { flex: 1, paddingLeft: 5 },
+  contentCurrent: {},
+  timelineHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 },
+  timelineName: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 13, color: '#64748B' },
+  timeStack: { alignItems: 'flex-end' },
+  timelineTime: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 11, color: '#111' },
+  slotLabel: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 7, color: '#94A3B8', letterSpacing: 0.5, marginTop: 1 },
+  textCurrent: { color: '#111' },
+  timelineStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  timelineStatus: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 8, color: '#94A3B8', letterSpacing: 0.5 },
+  livePulseMini: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#00C896' },
+  currentIndicatorBox: { paddingLeft: 10 },
 
-  trackerMainGrid: { gap: 16 },
-  heroCard: { backgroundColor: 'transparent', padding: 0, marginTop: 10, marginBottom: 20 },
-  verticalTicket: { backgroundColor: '#E6D5B8', borderRadius: 4, overflow: 'hidden', width: '100%' },
-  vScallopsTop: { position: 'absolute', top: -12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', zIndex: 10 },
-  vScallopsBottom: { position: 'absolute', bottom: -12, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', zIndex: 10 },
-  vScallopCircle: { width: width * 0.05, height: width * 0.05, borderRadius: width * 0.025, backgroundColor: COLORS.gray[50] },
+  actionDashboard: { gap: 15 },
+  barberMiniCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#F2F4F7' },
+  miniBarberAvatar: { width: 44, height: 44, borderRadius: 22 },
+  miniBarberInfo: { flex: 1 },
+  miniBarberName: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 14, color: '#111' },
+  miniBarberRole: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 11, color: '#999' },
+  miniActionCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F8F9FA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E9ECEF' },
 
-  vStubSection: { padding: width * 0.04, paddingBottom: 0, alignItems: 'center' },
-  vInnerStub: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 2, borderColor: '#5D4037', borderRadius: 16, paddingHorizontal: width * 0.07, paddingVertical: width * 0.05, backgroundColor: 'rgba(93, 64, 55, 0.03)' },
-  vStubLeft: { gap: 5 },
-  vStubLabel: { fontSize: Math.max(11, width * 0.032), fontWeight: '1000', color: '#5D4037', letterSpacing: 1.8 },
-  vStubVal: { fontSize: Math.max(42, width * 0.14), fontWeight: '1000', color: '#5D4037', letterSpacing: -2.5 },
-  vBarcodeContainer: { flexDirection: 'row', alignItems: 'flex-end', height: width * 0.06, marginTop: 4 },
-  vBarcodeLine: { height: '100%', backgroundColor: '#5D4037', marginHorizontal: 1.8, opacity: 0.8 },
-  vStarTL: { position: 'absolute', top: width * 0.02, left: width * 0.02 },
-  vStarTR: { position: 'absolute', top: width * 0.02, right: width * 0.02 },
-  vStarBL: { position: 'absolute', bottom: width * 0.02, left: width * 0.02 },
-  vStarBR: { position: 'absolute', bottom: width * 0.02, right: width * 0.02 },
+  quickActionsGrid: { flexDirection: 'row', gap: 12 },
+  actionTile: { flex: 1, backgroundColor: '#FFF', borderRadius: 20, padding: 15, alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#F2F4F7' },
+  tileIconBox: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#F8F9FA', alignItems: 'center', justifyContent: 'center' },
+  tileText: { fontFamily: 'PlusJakartaSans_700Bold', fontSize: 12, color: '#111' },
 
-  vPerforation: { height: width * 0.07, width: '100%', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  vPerfLine: { height: 1, width: '85%', borderWidth: 1, borderColor: '#5D4037', borderStyle: 'dashed' },
-  vPerfNotchLeft: { position: 'absolute', left: -width * 0.05, width: width * 0.1, height: width * 0.1, borderRadius: width * 0.05, backgroundColor: COLORS.gray[50] },
-  vPerfNotchRight: { position: 'absolute', right: -width * 0.05, width: width * 0.1, height: width * 0.1, borderRadius: width * 0.05, backgroundColor: COLORS.gray[50] },
+  serviceSummaryCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#F2F4F7' },
+  summaryTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 15 },
+  summaryTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 14, color: '#111' },
+  serviceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  serviceName: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 13, color: '#666' },
+  summaryDivider: { height: 1, backgroundColor: '#F2F4F7', marginVertical: 8 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  totalLabel: { fontFamily: 'PlusJakartaSans_600SemiBold', fontSize: 13, color: '#999' },
+  totalValue: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 15, color: '#111' },
 
-  vMainSection: { padding: width * 0.05, paddingTop: 8 },
-  vInnerMain: { width: '100%', borderWidth: 1.5, borderColor: '#5D4037', borderRadius: 12, padding: width * 0.045 },
-  vHeader: { alignItems: 'center', marginBottom: 16 },
-  vShopName: { fontSize: Math.max(18, width * 0.05), fontWeight: '900', color: '#5D4037', textAlign: 'center', letterSpacing: -0.5 },
-  vBarberName: { fontSize: Math.max(10, width * 0.03), fontWeight: '700', color: '#8D6E63', marginTop: 4 },
+  policyCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#F2F4F7' },
+  policyRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  policyDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#111' },
+  policyText: { fontFamily: 'PlusJakartaSans_500Medium', fontSize: 12, color: '#666' },
 
-  vLiveStatusBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(34, 197, 94, 0.1)', paddingVertical: 10, borderRadius: 12, marginBottom: 16 },
-  vLivePulse: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
-  vLiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E' },
-  vLiveRing: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: 'rgba(34, 197, 94, 0.3)' },
-  vLiveText: { fontSize: 10, fontWeight: '900', color: '#166534', letterSpacing: 1 },
-
-  vWaitBox: { alignItems: 'center', backgroundColor: '#5D4037', paddingVertical: 14, borderRadius: 12 },
-  vWaitLabel: { fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.4)', letterSpacing: 2, marginBottom: 3 },
-  vWaitVal: { fontSize: Math.max(26, width * 0.075), fontWeight: '1000', color: '#22C55E' },
-  vWaitUnit: { fontSize: 13, color: 'rgba(255,255,255,0.4)' },
-
-  vProgressBox: { alignItems: 'center', backgroundColor: '#5D4037', paddingVertical: 14, borderRadius: 12 },
-  vProgressLabel: { fontSize: 10, fontWeight: '900', color: '#00BFA5', letterSpacing: 2, marginBottom: 3 },
-  vProgressVal: { fontSize: Math.max(26, width * 0.075), fontWeight: '1000', color: '#FFF' },
-
-
-  detailsCard: { backgroundColor: '#FFF', borderRadius: 32, padding: 28, borderWidth: 1.5, borderColor: COLORS.gray[100] },
-  detailsTitle: { fontSize: 18, fontWeight: '1000', color: COLORS.black, marginBottom: 20, letterSpacing: -0.3 },
-  detailsList: { gap: 14 },
-  detailItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  detailItemLast: { marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: COLORS.gray[50] },
-  detailLabel: { fontSize: 14, color: COLORS.gray[400], fontWeight: '700' },
-  detailValue: { fontSize: 15, fontWeight: '1000', color: COLORS.black },
-  detailValueRight: { fontSize: 15, fontWeight: '1000', color: COLORS.black, textAlign: 'right', flex: 1, marginLeft: 20 },
-  trackingIdBadge: { backgroundColor: 'rgba(76, 118, 59, 0.08)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  trackingIdText: { fontSize: 14, fontWeight: '900', color: COLORS.primary, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
-  statusPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  statusPillText: { fontSize: 11, fontWeight: '1000', letterSpacing: 0.5 },
-
-  liveSyncBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 20, borderWidth: 1, borderColor: COLORS.gray[100] },
-  syncLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  pulseContainer: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
-  pulseDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#22C55E' },
-  pulseRing: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: 'rgba(34, 197, 94, 0.3)' },
-  syncText: { fontSize: 12, fontWeight: '700', color: COLORS.gray[600] },
-  refreshBtnText: { fontSize: 11, fontWeight: '900', color: COLORS.primary, letterSpacing: 1 },
-
-  nowServingText: { textAlign: 'center', fontSize: 12, color: COLORS.gray[400], fontWeight: '700', marginTop: 8 },
-
-  rulesCard: { marginTop: 40, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 40, padding: 32, borderWidth: 1, borderColor: '#FFF' },
-  rulesHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  rulesAccent: { width: 6, height: 24, backgroundColor: COLORS.status.confirmed.text, borderRadius: 3, shadowColor: COLORS.status.confirmed.text, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10 },
-  rulesTitle: { fontSize: 14, fontWeight: '1000', color: COLORS.black, letterSpacing: 2, textTransform: 'uppercase' },
-  ruleItem: { flexDirection: 'row', gap: 16, marginBottom: 16 },
-  ruleNumber: { width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.status.confirmed.text, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  ruleNumberText: { fontSize: 9, fontWeight: '1000', color: '#FFF' },
-  ruleText: { flex: 1, fontSize: 13, color: COLORS.gray[600], fontWeight: '700', lineHeight: 20 },
-  bold: { color: COLORS.black, fontWeight: '1000' },
-  greenBold: { color: '#00BFA5', fontWeight: '1000', textDecorationLine: 'underline' },
-
-  trackerFooter: { marginTop: 60, alignItems: 'center', paddingBottom: 40 },
-  footerBrand: { fontSize: 10, fontWeight: '900', color: COLORS.gray[400], letterSpacing: 3, marginBottom: 16 },
-  footerDots: { flexDirection: 'row', gap: 8 },
-  footerDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.gray[200] },
-
-  cancelledState: { alignItems: 'center', padding: 10 },
-  cancelIconBox: { width: 72, height: 72, borderRadius: 24, backgroundColor: 'rgba(239, 68, 68, 0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  cancelledHeading: { fontSize: 24, fontWeight: '1000', color: '#FFF', letterSpacing: -0.5, marginBottom: 12, textAlign: 'center' },
-  cancelledReason: { fontSize: 18, color: '#FCA5A5', fontStyle: 'italic', marginBottom: 16, textAlign: 'center', fontWeight: '700' },
-  cancelledSubtext: { fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', lineHeight: 22 },
+  assistanceBtn: { backgroundColor: '#FFF', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, borderWidth: 1, borderColor: '#E9ECEF', borderStyle: 'dashed', marginTop: 10 },
+  assistanceText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 14, color: '#111' }
 });
 
 export default TrackQueueScreen;

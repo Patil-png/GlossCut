@@ -36,11 +36,11 @@ import Animated, {
   FadeInDown,
   FadeInRight,
   Layout,
-  onCardPress,
   withSpring
 } from "react-native-reanimated";
 import {
   ArrowLeft,
+  ChevronLeft,
   Star,
   Clock,
   MapPin,
@@ -88,9 +88,10 @@ const ServiceItem = React.memo(
 
     const animatedCardStyle = useAnimatedStyle(() => ({
       transform: [{ scale: scale.value }],
-      borderColor: isSelected ? "#22C55E" : theme.colors.border + "35",
-      backgroundColor: isSelected ? "#F0FDF4" : "#FFFFFF",
-      shadowOpacity: interpolate(glowOpacity.value, [0, 1], [0.03, 0.1], Extrapolate.CLAMP)
+      borderColor: isSelected ? "#1A1A1A" : "#F3F4F6",
+      backgroundColor: "#FFFFFF",
+      borderWidth: isSelected ? 1.5 : 1,
+      shadowOpacity: interpolate(glowOpacity.value, [0, 1], [0.02, 0.08], Extrapolate.CLAMP)
     }));
 
     const handlePress = React.useCallback(() => {
@@ -136,32 +137,44 @@ const ServiceItem = React.memo(
             {/* PIXEL MIRROR: Solid Icon Box */}
             <View style={[
               styles.serviceIconContainerMirror,
-              isSelected ? { backgroundColor: "#22C55E" } : { backgroundColor: "#F3F4F6" }
+              isSelected ? { backgroundColor: "#1A1A1A" } : { backgroundColor: "#F9F9F8" }
             ]}>
               {isSelected ? (
-                <Check size={16} color="#FFF" strokeWidth={3} />
+                <Check size={14} color="#C8FF00" strokeWidth={3.5} />
               ) : (
-                <Text style={{ fontSize: 18 }}>{catMeta?.emoji || "💈"}</Text>
+                <Text style={{ fontSize: 16 }}>{catMeta?.emoji || "💈"}</Text>
               )}
             </View>
 
             <View style={styles.serviceTextStack}>
               <View style={styles.serviceHeaderRowMirror}>
                 <Text
-                  style={[styles.serviceNameMirror, isSelected ? { color: "#14532D" } : { color: "#111827" }]}
+                  style={[styles.serviceNameMirror, { color: "#1A1A1A", fontSize: 16 }]}
                 >
                   {displayName}
                 </Text>
               </View>
 
-              <Text style={styles.serviceDescMirrorFixed}>
+              {serviceData.description ? (
+                <Text style={{
+                  fontSize: 12,
+                  fontFamily: "DMSans_400Regular",
+                  color: "#606058",
+                  marginTop: 4,
+                  lineHeight: 16
+                }} numberOfLines={2}>
+                  {serviceData.description}
+                </Text>
+              ) : null}
+
+              <Text style={[styles.serviceDescMirrorFixed, { marginTop: 6 }]}>
                 {serviceData.time} min
               </Text>
             </View>
           </View>
 
           <View style={styles.serviceRightWrapper}>
-            <Text style={[styles.servicePriceMirrorFixed, isSelected ? { color: "#15803D" } : { color: "#111827" }]}>
+            <Text style={[styles.servicePriceMirrorFixed, { color: "#1A1A1A" }]}>
               ₹{displayPrice}
             </Text>
             <View style={[styles.selectCircleMirror, isSelected && styles.selectCircleMirrorActive]}>
@@ -214,9 +227,9 @@ const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
 
   const getBackgroundColor = () => {
     switch (type) {
-      case "success": return "#10B981";
-      case "error": return "#EF4444";
-      default: return "#1F2937";
+      case "success": return "#1A1A1A";
+      case "error": return "#FF4444";
+      default: return "#1A1A1A";
     }
   };
 
@@ -228,27 +241,30 @@ const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
         {
           position: "absolute",
           top: 0,
-          left: 16,
-          right: 16,
+          left: 20,
+          right: 20,
           zIndex: 9999,
           backgroundColor: getBackgroundColor(),
-          borderRadius: 16,
-          padding: 16,
+          borderRadius: 20,
+          paddingVertical: 12,
+          paddingHorizontal: 16,
           flexDirection: "row",
           alignItems: "center",
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          elevation: 5
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 6,
+          alignSelf: 'center',
+          maxWidth: '90%'
         },
         animatedStyle
       ]}
     >
-      <View style={{ marginRight: 12 }}>
-        {type === "success" ? <CheckCircle2 size={20} color="#FFF" /> : <AlertCircle size={20} color="#FFF" />}
+      <View style={{ marginRight: 10 }}>
+        {type === "success" ? <CheckCircle2 size={18} color="#C8FF00" /> : <AlertCircle size={18} color="#FFF" />}
       </View>
-      <Text style={{ color: "#FFF", fontWeight: "700", fontSize: 14, flex: 1 }}>{message}</Text>
+      <Text style={{ color: "#FFF", fontFamily: "DMSans_700Bold", fontSize: 13, flex: 1 }}>{message}</Text>
     </Animated.View>
   );
 };
@@ -262,7 +278,7 @@ const BookingScreen = ({ route, navigation }) => {
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedGender, setSelectedGender] = useState("male");
+  const [selectedGender, setSelectedGender] = useState("all");
   const [categoriesMetadata, setCategoriesMetadata] = useState([]);
   const [isBooking, setIsBooking] = useState(false);
 
@@ -302,12 +318,46 @@ const BookingScreen = ({ route, navigation }) => {
     if (!provider?.services) return [];
 
     // 1. Gender Filter
-    const genderMatched = provider.services.filter(s => {
+    let genderMatched = provider.services.filter(s => {
+      if (!selectedGender || selectedGender === "all") return true;
       const meta = getCatMeta(s.category);
       // Failsafe: if no meta, show it under unisex
       const serviceGender = (meta?.gender || 'unisex').toLowerCase();
       return serviceGender === 'unisex' || serviceGender === selectedGender.toLowerCase();
     });
+
+    // Sort: If barber has a categoryOrder, sort by categoryOrder first, keeping service order within categories
+    if (provider.categoryOrder && provider.categoryOrder.length > 0) {
+      const orderMap = {};
+      provider.categoryOrder.forEach((cat, index) => {
+        orderMap[cat.toLowerCase().trim()] = index;
+      });
+      genderMatched = [...genderMatched].sort((a, b) => {
+        const catA = (a.category || "General").toLowerCase().trim();
+        const catB = (b.category || "General").toLowerCase().trim();
+        const indexA = orderMap[catA];
+        const indexB = orderMap[catB];
+        if (indexA !== undefined && indexB !== undefined) {
+          if (indexA !== indexB) return indexA - indexB;
+        } else if (indexA !== undefined) {
+          return -1;
+        } else if (indexB !== undefined) {
+          return 1;
+        }
+        // Fallback to original database array index
+        const indexInOrigA = provider.services.findIndex(s => (s.id || s._id) === (a.id || a._id));
+        const indexInOrigB = provider.services.findIndex(s => (s.id || s._id) === (b.id || b._id));
+        return indexInOrigA - indexInOrigB;
+      });
+    } else if (!selectedGender || selectedGender === "all") {
+      // Sort by gender: male first, then female, then unisex
+      genderMatched = [...genderMatched].sort((a, b) => {
+        const genA = (getCatMeta(a.category)?.gender || 'unisex').toLowerCase();
+        const genB = (getCatMeta(b.category)?.gender || 'unisex').toLowerCase();
+        const score = { 'male': 1, 'female': 2, 'unisex': 3 };
+        return (score[genA] || 3) - (score[genB] || 3);
+      });
+    }
 
     // 2. Category Tab Filter
     if (activeCategory === "All") return genderMatched;
@@ -316,7 +366,7 @@ const BookingScreen = ({ route, navigation }) => {
       const aCat = activeCategory.toString().toLowerCase().trim();
       return sCat === aCat;
     });
-  }, [provider?.services, selectedGender, activeCategory, getCatMeta]);
+  }, [provider?.services, provider?.categoryOrder, selectedGender, activeCategory, getCatMeta]);
 
   // Extract unique categories for tabs based on gender
   const availableCategories = useMemo(() => {
@@ -328,9 +378,28 @@ const BookingScreen = ({ route, navigation }) => {
       })
       .map(s => s.category || "General");
 
-    const uniqueCats = [...new Set(cats)].sort();
+    const uniqueCats = [...new Set(cats)];
+
+    // Sort according to categoryOrder if available, otherwise alphabetical
+    if (provider.categoryOrder && provider.categoryOrder.length > 0) {
+      const orderMap = {};
+      provider.categoryOrder.forEach((cat, index) => {
+        orderMap[cat.toLowerCase().trim()] = index;
+      });
+      uniqueCats.sort((a, b) => {
+        const indexA = orderMap[a.toLowerCase().trim()];
+        const indexB = orderMap[b.toLowerCase().trim()];
+        if (indexA !== undefined && indexB !== undefined) return indexA - indexB;
+        if (indexA !== undefined) return -1;
+        if (indexB !== undefined) return 1;
+        return a.localeCompare(b);
+      });
+    } else {
+      uniqueCats.sort();
+    }
+
     return ["All", ...uniqueCats.filter(c => c !== "General")];
-  }, [provider?.services, selectedGender, getCatMeta]);
+  }, [provider?.services, provider?.categoryOrder, selectedGender, getCatMeta]);
 
   // Handle active category reset on gender change
   useEffect(() => {
@@ -350,13 +419,13 @@ const BookingScreen = ({ route, navigation }) => {
       StyleSheet.create({
         container: {
           flex: 1,
-          backgroundColor: theme.colors.background
+          backgroundColor: "#FFFFFF"
         },
         loadingContainer: {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: theme.colors.background
+          backgroundColor: "#FFFFFF"
         },
         heroContainer: {
           height: 320,
@@ -402,17 +471,10 @@ const BookingScreen = ({ route, navigation }) => {
           elevation: 5
         },
         contentSheet: {
-          marginTop: -40,
-          borderTopLeftRadius: 40,
-          borderTopRightRadius: 40,
-          backgroundColor: theme.colors.background,
+          backgroundColor: "#FFFFFF",
           paddingHorizontal: 24,
-          paddingTop: 32,
+          paddingTop: 16,
           paddingBottom: 150,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -10 },
-          shadowOpacity: 0.05,
-          shadowRadius: 20,
         },
         headerRow: {
           flexDirection: "row",
@@ -430,17 +492,18 @@ const BookingScreen = ({ route, navigation }) => {
         verifiedBadge: {
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: "#E3F2FD",
+          backgroundColor: "#1A1A1A",
           paddingHorizontal: 10,
           paddingVertical: 5,
-          borderRadius: 20,
-          marginLeft: 10
+          borderRadius: 8,
+          marginLeft: 0
         },
         verifiedText: {
-          fontSize: 11,
-          fontWeight: "700",
-          color: "#1976D2",
-          marginLeft: 4
+          fontSize: 10,
+          fontFamily: 'DMSans_700Bold',
+          color: "#C8FF00",
+          marginLeft: 4,
+          letterSpacing: 0.5
         },
         metaRow: {
           flexDirection: "row",
@@ -463,12 +526,12 @@ const BookingScreen = ({ route, navigation }) => {
         safetyBanner: {
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: theme.colors.card,
-          padding: 12,
-          borderRadius: 12,
+          backgroundColor: "#F9F9F8",
+          padding: 14,
+          borderRadius: 16,
           borderWidth: 1,
-          borderColor: theme.colors.border,
-          marginBottom: 30
+          borderColor: "#E8E7E2",
+          marginBottom: 24
         },
         safetyTextContainer: {
           marginLeft: 12,
@@ -476,12 +539,13 @@ const BookingScreen = ({ route, navigation }) => {
         },
         safetyTitle: {
           fontSize: 14,
-          fontWeight: "700",
-          color: theme.colors.text
+          fontFamily: "PlusJakartaSans_700Bold",
+          color: "#1A1A1A"
         },
         safetySubtitle: {
           fontSize: 12,
-          color: theme.colors.textSecondary,
+          fontFamily: "DMSans_400Regular",
+          color: "#606058",
           marginTop: 2
         },
         sectionTitle: {
@@ -633,22 +697,22 @@ const BookingScreen = ({ route, navigation }) => {
         glassBar: {
           position: "absolute",
           bottom: Math.max(insets.bottom, 20) + 8,
-          left: 12,
-          right: 12,
-          backgroundColor: "#1D8B1D", // Professional Vibrant Green
-          borderRadius: 18, // Slightly less rounded for a more modern 'App' feel
-          paddingVertical: 12,
-          paddingHorizontal: 16,
+          left: 16,
+          right: 16,
+          backgroundColor: "#1A1A1A",
+          borderRadius: 24,
+          paddingVertical: 14,
+          paddingHorizontal: 20,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
           borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.2)",
+          borderColor: "rgba(255,255,255,0.1)",
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.35,
-          shadowRadius: 18,
-          elevation: 15,
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 10,
           zIndex: 1000,
         },
         barLeft: {
@@ -666,7 +730,7 @@ const BookingScreen = ({ route, navigation }) => {
           height: 42,
           borderRadius: 21,
           borderWidth: 2,
-          borderColor: "#1D8B1D",
+          borderColor: "#C8FF00",
           backgroundColor: "#FFF",
           justifyContent: "center",
           alignItems: "center",
@@ -687,14 +751,14 @@ const BookingScreen = ({ route, navigation }) => {
         },
         viewCartText: {
           color: "#FFFFFF",
-          fontSize: 17,
-          fontWeight: "900",
+          fontSize: 15,
+          fontFamily: "DMSans_700Bold",
           letterSpacing: -0.2
         },
         itemsCount: {
-          color: "rgba(255,255,255,0.9)",
-          fontSize: 12,
-          fontWeight: "700",
+          color: "#A0A09A",
+          fontSize: 11,
+          fontFamily: "DMSans_500Medium",
         },
         barRight: {
           flexDirection: "row",
@@ -702,14 +766,14 @@ const BookingScreen = ({ route, navigation }) => {
           gap: 12,
         },
         barPrice: {
-          color: "#FFFFFF",
-          fontSize: 18,
-          fontWeight: "900",
+          color: "#C8FF00",
+          fontSize: 17,
+          fontFamily: "PlusJakartaSans_700Bold",
         },
         continueText: {
-          color: "#000000",
-          fontWeight: "900",
-          fontSize: 16,
+          color: "#C8FF00",
+          fontFamily: "DMSans_700Bold",
+          fontSize: 14,
           letterSpacing: 0.5,
           textTransform: "uppercase"
         },
@@ -718,19 +782,9 @@ const BookingScreen = ({ route, navigation }) => {
           alignItems: "center",
           gap: 4
         },
-        continueText: {
-          color: "#000000",
-          fontWeight: "900",
-          fontSize: 16,
-          letterSpacing: 1,
-          textTransform: "uppercase"
-        },
         contentSheet: {
           flex: 1,
-          backgroundColor: "#FFFFFF", // Premium Website White
-          borderTopLeftRadius: 40,
-          borderTopRightRadius: 40,
-          marginTop: -40,
+          backgroundColor: "#FFFFFF",
           padding: 24,
           paddingBottom: 120,
         },
@@ -742,16 +796,15 @@ const BookingScreen = ({ route, navigation }) => {
         },
         serviceCard: {
           backgroundColor: "#FFFFFF",
-          borderRadius: 14,
-          marginBottom: 8,
+          borderRadius: 16,
+          marginBottom: 10,
           borderWidth: 1,
           borderColor: "#F3F4F6",
           overflow: "hidden",
-          elevation: 1,
+          elevation: 2,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.03,
-          shadowRadius: 6,
+          shadowRadius: 8,
         },
         serviceContentWrapper: {
           flexDirection: "row",
@@ -836,16 +889,18 @@ const BookingScreen = ({ route, navigation }) => {
           justifyContent: "center",
         },
         selectCircleMirrorActive: {
-          backgroundColor: "#22C55E",
-          borderColor: "#22C55E",
+          backgroundColor: "#1A1A1A",
+          borderColor: "#1A1A1A",
         },
         // WEBSITE SELECTORS
         genderBox: {
           flexDirection: "row",
-          backgroundColor: "rgba(0,0,0,0.03)",
+          backgroundColor: "#F3F2EE",
           padding: 4,
           borderRadius: 14,
-          marginBottom: 16,
+          marginBottom: 4,
+          borderWidth: 1,
+          borderColor: "#E8E7E2"
         },
         genderTab: {
           flex: 1,
@@ -855,21 +910,22 @@ const BookingScreen = ({ route, navigation }) => {
           borderRadius: 10,
         },
         genderTabActive: {
-          backgroundColor: "#FFFFFF",
-          elevation: 2,
+          backgroundColor: "#1A1A1A",
+          elevation: 3,
           shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
+          shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.1,
-          shadowRadius: 4,
+          shadowRadius: 6,
         },
         genderTabText: {
-          fontSize: 11,
-          fontWeight: "900",
-          color: "#9CA3AF",
+          fontSize: 12,
+          fontFamily: "DMSans_700Bold",
+          color: "#606058",
           textTransform: "uppercase",
+          letterSpacing: 0.5
         },
         genderTabTextActive: {
-          color: "#166534",
+          color: "#FFFFFF",
         },
         // CATEGORY TABS MIRROR
         categoryBarContainer: {
@@ -885,27 +941,27 @@ const BookingScreen = ({ route, navigation }) => {
           flexDirection: "row",
           alignItems: "center",
           gap: 6,
-          paddingHorizontal: 12,
-          paddingVertical: 7,
-          borderRadius: 14,
+          paddingHorizontal: 16,
+          paddingVertical: 8,
+          borderRadius: 100,
           backgroundColor: "#FFFFFF",
           borderWidth: 1,
-          borderColor: "#E5E7EB",
+          borderColor: "#E8E7E2",
         },
         categoryTabActive: {
-          backgroundColor: "#111827",
-          borderColor: "#111827",
+          backgroundColor: "#1A1A1A",
+          borderColor: "#1A1A1A",
         },
         categoryTabText: {
-          fontSize: 13,
-          fontWeight: "700",
-          color: "#4B5563",
+          fontSize: 12,
+          fontFamily: "DMSans_700Bold",
+          color: "#606058",
         },
         categoryTabTextActive: {
           color: "#FFFFFF",
         },
         catTabEmoji: {
-          fontSize: 14,
+          fontSize: 13,
         },
         // SECTION TITLES MIRROR
         categorySection: {
@@ -925,14 +981,48 @@ const BookingScreen = ({ route, navigation }) => {
         },
         sectionTitleMirror: {
           fontSize: 18,
-          fontWeight: "900",
-          color: "#111827",
+          fontFamily: "PlusJakartaSans_700Bold",
+          color: "#1A1A1A",
           letterSpacing: -0.5,
         },
         sectionDivider: {
           flex: 1,
           height: 1,
-          backgroundColor: theme.colors.border + "30"
+          backgroundColor: "#D8D7D2"
+        },
+        sectionHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+          marginTop: 10
+        },
+        headerPill: {
+          backgroundColor: '#F8F9FA',
+          paddingHorizontal: 16,
+          paddingVertical: 6,
+          borderRadius: 100,
+          marginRight: 10,
+          borderWidth: 1,
+          borderColor: 'rgba(0, 0, 0, 0.06)',
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+          elevation: 2,
+        },
+        headerPillText: {
+          color: '#1A1A1A',
+          fontSize: 12,
+          fontFamily: "PlusJakartaSans_700Bold",
+          letterSpacing: 0.6,
+          textTransform: 'uppercase'
+        },
+        headerLine: {
+          flex: 1,
+          height: 1.5,
+          backgroundColor: 'rgba(0, 0, 0, 0.08)',
+          borderRadius: 1
         }
       }),
     [theme, insets]
@@ -977,7 +1067,18 @@ const BookingScreen = ({ route, navigation }) => {
               );
               const barberCard = barberRes.data.find(b => b.barberId === barberData.barberId);
               if (barberCard) {
-                services = (barberCard.services || []).map(mapService);
+                const fetchedServices = (barberCard.services || []).map(mapService);
+                if (fetchedServices.length > 0) {
+                  services = fetchedServices;
+                } else if (barberCard.shopId) {
+                  // Fallback: If staff services are empty, find the owner's services (or any card with services) in the same shop
+                  const ownerCard = barberRes.data.find(
+                    b => b.shopId === barberCard.shopId && b.services && b.services.length > 0
+                  );
+                  if (ownerCard) {
+                    services = (ownerCard.services || []).map(mapService);
+                  }
+                }
               }
             } catch (e) {
               console.log("Could not fetch latest barber services");
@@ -994,6 +1095,7 @@ const BookingScreen = ({ route, navigation }) => {
             shopName: barberData.shopName,
             image: barberData.image?.uri,
             location: null, // No location for independent barbers
+            categoryOrder: barberData.categoryOrder || [],
           };
           if (isMounted) setProvider(formattedProvider);
         } else {
@@ -1015,7 +1117,24 @@ const BookingScreen = ({ route, navigation }) => {
           }
 
           if (isMounted && res?.data) {
-            setProvider(res.data);
+            let data = res.data;
+            if (data.barberId && (!data.services || data.services.length === 0) && data.shopId) {
+              try {
+                const barberRes = await api.get(`/api/barber-card/all`);
+                const ownerCard = barberRes.data.find(
+                  b => b.shopId === data.shopId && b.services && b.services.length > 0
+                );
+                if (ownerCard) {
+                  data = {
+                    ...data,
+                    services: ownerCard.services
+                  };
+                }
+              } catch (e) {
+                console.log("Could not fetch owner fallback services for deep linked barber card:", e);
+              }
+            }
+            setProvider(data);
           } else {
             throw new Error("Provider not found");
           }
@@ -1194,23 +1313,49 @@ const BookingScreen = ({ route, navigation }) => {
     Linking.openURL(url).catch(() => showToast("Could not open maps application", "error"));
   }, [provider]);
 
+  const barberImageSource = useMemo(() => {
+    if (!provider) return require("../assets/GlossCut.png");
+    const img = provider.owner?.profilePicture || provider.image;
+    if (!img) return require("../assets/GlossCut.png");
+    if (typeof img === 'number') return img;
+    if (typeof img === 'string') {
+      if (img.includes("placeholder") || img.trim() === "") {
+        return require("../assets/GlossCut.png");
+      }
+      return { uri: img };
+    }
+    if (img.uri) {
+      if (img.uri.includes("placeholder") || img.uri.trim() === "") {
+        return require("../assets/GlossCut.png");
+      }
+      return img;
+    }
+    return require("../assets/GlossCut.png");
+  }, [provider]);
+
   const handleShare = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const shareUrl = `https://glosscut.com/book/${provider.id || provider._id}`;
-      const result = await Share.share({
-        message: `Book a professional grooming session with ${provider.name} on GlossCut!\n\n${shareUrl}`,
-        url: shareUrl,
-        title: `Book ${provider.name} - GlossCut`
-      });
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // shared with activity type of result.activityType
-        } else {
-          // shared
-        }
-      } else if (result.action === Share.dismissedAction) {
-        // dismissed
+      
+      const providerId = provider.id || provider._id;
+      const shareUrl = `https://glosscut.com/book/${providerId}`;
+      const playStoreUrl = `https://play.google.com/store/apps/details?id=com.glosscut.app`;
+      const appStoreUrl = `https://apps.apple.com/app/glosscut/id123456789`;
+
+      const message = `*GlossCut Booking* 💈\n\nBook a professional grooming session with *${provider.name}*!\n\nClick link to book directly:\n👉 ${shareUrl}\n\nDon't have the GlossCut app yet? Download it here:\nAndroid: ${playStoreUrl}\niOS: ${appStoreUrl}`;
+
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `whatsapp://send?text=${encodedMessage}`;
+
+      const supported = await Linking.canOpenURL(whatsappUrl);
+      if (supported) {
+        await Linking.openURL(whatsappUrl);
+      } else {
+        await Share.share({
+          message: message,
+          url: shareUrl,
+          title: `Book ${provider.name} - GlossCut`
+        });
       }
     } catch (error) {
       showToast(error.message, "error");
@@ -1230,6 +1375,19 @@ const BookingScreen = ({ route, navigation }) => {
       }, 0);
   }, [selectedServices, provider]);
 
+  const overallAverageTime = useMemo(() => {
+    if (!provider || !provider.services || provider.services.length === 0) {
+      return "30 min";
+    }
+    const total = provider.services.reduce((sum, service) => {
+      const timeStr = service.time ? service.time.toString().toLowerCase().replace("min", "").replace("m", "").trim() : "30";
+      const timeVal = parseInt(timeStr, 10);
+      return sum + (isNaN(timeVal) ? 30 : timeVal);
+    }, 0);
+    const avg = Math.round(total / provider.services.length);
+    return `${avg} min`;
+  }, [provider]);
+
   const headerTitleStyle = useAnimatedStyle(() => {
     const opacity = interpolate(scrollY.value, [HERO_HEIGHT - 150, HERO_HEIGHT - 100], [0, 1], Extrapolate.CLAMP);
     return { opacity };
@@ -1244,7 +1402,7 @@ const BookingScreen = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color="#1A1A1A" />
       </View>
     );
   }
@@ -1252,9 +1410,9 @@ const BookingScreen = ({ route, navigation }) => {
   if (!provider) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: theme.colors.text }}>Provider not found.</Text>
+        <Text style={{ color: "#1A1A1A", fontFamily: "DMSans_700Bold" }}>Provider not found.</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20, padding: 10 }}>
-          <Text style={{ color: theme.colors.primary }}>Go Back</Text>
+          <Text style={{ color: "#1A1A1A", fontFamily: "DMSans_700Bold" }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -1273,35 +1431,71 @@ const BookingScreen = ({ route, navigation }) => {
         topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
       />
 
-      {/* STICKY HEADER FADE-IN */}
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: insets.top + 64,
-            backgroundColor: theme.colors.background,
-            zIndex: 100,
-            flexDirection: "row",
-            alignItems: "center",
-            paddingTop: insets.top,
-            paddingHorizontal: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.colors.border + "40"
-          },
-          headerTitleStyle
-        ]}
+      {/* STATIC TOP HEADER BAR */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingTop: Math.max(insets.top, 8) + 12,
+          paddingBottom: 12,
+          paddingHorizontal: 16,
+          backgroundColor: "#FFFFFF",
+          borderBottomWidth: 1,
+          borderBottomColor: "#F3F4F6"
+        }}
       >
-        <TouchableOpacity onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          navigation.goBack();
-        }}>
-          <ArrowLeft size={20} color={theme.colors.text} />
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            navigation.goBack();
+          }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            backgroundColor: '#F9FAFB',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: '#F3F4F6'
+          }}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <ChevronLeft size={22} color="#111" />
         </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: "800", color: theme.colors.text, marginLeft: 16 }}>{provider.name}</Text>
-      </Animated.View>
+
+        <View style={{ alignItems: 'center' }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '700',
+              fontFamily: "PlusJakartaSans_700Bold",
+              color: '#111827',
+              letterSpacing: -0.3
+            }}
+          >
+            {provider.name}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={handleShare}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            backgroundColor: '#F9FAFB',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: '#F3F4F6'
+          }}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Share2 size={18} color="#111" />
+        </TouchableOpacity>
+      </View>
 
       <Animated.ScrollView
         onScroll={scrollHandler}
@@ -1309,105 +1503,175 @@ const BookingScreen = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
         bounces={true}
       >
-        {/* HERO IMAGE SECTION */}
-        <View style={{ height: HERO_HEIGHT, overflow: "hidden" }}>
-          <Animated.Image
-            source={{ uri: provider.owner?.profilePicture || provider.image }}
-            style={[{ width: "100%", height: "100%", resizeMode: "cover" }, heroStyle]}
-          />
-          <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.5)", "#000"]}
-            style={[styles.gradientOverlay, { height: 250, position: 'absolute', bottom: 0, left: 0, right: 0 }]}
-          />
-
-          <View style={styles.headerNav}>
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                navigation.goBack();
-              }}
-              style={styles.glassButton}
-            >
-              <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-              <ArrowLeft size={20} color="#000" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.glassButton} onPress={handleShare}>
-              <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-              <Share2 size={20} color="#000" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ position: "absolute", bottom: 60, left: 24, right: 24 }}>
-            <Text style={[styles.providerName, { color: "#FFF", fontSize: 32, textShadowColor: "rgba(0,0,0,0.3)", textShadowRadius: 10, textShadowOffset: { width: 0, height: 2 } }]}>
-              {provider.name}
-            </Text>
-          </View>
-        </View>
-
         {/* CONTENT SHEET */}
         <View style={[
           styles.contentSheet,
           isTablet && {
             paddingHorizontal: width * 0.15,
-            borderTopLeftRadius: 60,
-            borderTopRightRadius: 60,
           }
         ]}>
-          <View style={styles.headerRow}>
-            <View style={styles.verifiedBadge}>
-              <ShieldCheck size={14} color="#1976D2" />
-              <Text style={styles.verifiedText}>PREMIUM PARTNER</Text>
+          {/* PROFILE CARD WRAPPER */}
+          <View style={{
+            borderWidth: 1,
+            borderColor: "#E8E7E2",
+            borderRadius: 24,
+            backgroundColor: "#FDFDFD",
+            padding: 20,
+            marginBottom: 24,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.02,
+            shadowRadius: 10,
+            elevation: 2,
+            marginTop: 10
+          }}>
+            {/* PROFILE AVATAR & EXP ROW */}
+            <View style={{
+              flexDirection: "row",
+              alignItems: "flex-end",
+              marginBottom: 20,
+            }}>
+              {/* Circular Avatar */}
+              <View style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                borderWidth: 1,
+                borderColor: "#E8E7E2",
+                overflow: "hidden",
+                backgroundColor: "#EBEBEA",
+              }}>
+                <Image
+                  source={barberImageSource}
+                  style={{ width: "100%", height: "100%", resizeMode: "cover" }}
+                />
+              </View>
+
+              {/* Right Information Column */}
+              <View style={{
+                flex: 1,
+                marginLeft: 16,
+                paddingBottom: 2,
+                justifyContent: "flex-end",
+              }}>
+                {/* Name */}
+                <Text style={{
+                  fontSize: 22,
+                  fontFamily: "PlusJakartaSans_800ExtraBold",
+                  color: "#1A1A1A",
+                  marginBottom: 2,
+                  letterSpacing: -0.5
+                }}>
+                  {provider.name}
+                </Text>
+
+                {/* Shop Name */}
+                <Text style={{
+                  fontSize: 12,
+                  fontFamily: "DMSans_700Bold",
+                  color: "#A0A09A",
+                  marginBottom: 4,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5
+                }}>
+                  {provider.shopName || "GlossCut Studio Partner"}
+                </Text>
+
+                {/* Address */}
+                <View style={{ flexDirection: "row", alignItems: "flex-start", opacity: 0.9, marginBottom: 6 }}>
+                  <MapPin size={12} color="#606058" style={{ marginTop: 2, marginRight: 4 }} />
+                  <Text style={{
+                    fontFamily: "DMSans_500Medium",
+                    fontSize: 12,
+                    color: "#606058",
+                    flex: 1,
+                    lineHeight: 15
+                  }}>
+                    {provider.address || "Verified Studio"}
+                  </Text>
+                </View>
+
+
+              </View>
+            </View>
+
+            {/* THREE-COLUMN HORIZONTAL DIVIDED METRICS SECTION */}
+            <View style={{
+              flexDirection: "row",
+              borderTopWidth: 1,
+              borderColor: "#E8E7E2",
+              paddingTop: 16,
+              alignItems: "center",
+              justifyContent: "space-between"
+            }}>
+              {/* Column 1: Rating */}
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
+                  <Star size={14} color="#FBC02D" fill="#FBC02D" style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 16, fontFamily: "PlusJakartaSans_800ExtraBold", color: "#1A1A1A" }}>
+                    {provider.rating ? Number(provider.rating).toFixed(1) : "New"}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 10, fontFamily: "DMSans_500Medium", color: "#A0A09A" }}>Rating</Text>
+              </View>
+
+              {/* Separator 1 */}
+              <View style={{ width: 1, height: 24, backgroundColor: "#E8E7E2" }} />
+
+              {/* Column 2: Reviews */}
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <Text style={{ fontSize: 16, fontFamily: "PlusJakartaSans_800ExtraBold", color: "#1A1A1A", marginBottom: 2 }}>
+                  {provider.reviews || 0}
+                </Text>
+                <Text style={{ fontSize: 10, fontFamily: "DMSans_500Medium", color: "#A0A09A" }}>Reviews</Text>
+              </View>
+
+              {/* Separator 2 */}
+              <View style={{ width: 1, height: 24, backgroundColor: "#E8E7E2" }} />
+
+              {/* Column 3: Avg Duration */}
+              <View style={{ flex: 1, alignItems: "center" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
+                  <Clock size={14} color="#606058" style={{ marginRight: 4 }} />
+                  <Text style={{ fontSize: 16, fontFamily: "PlusJakartaSans_800ExtraBold", color: "#1A1A1A" }}>
+                    {overallAverageTime}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 10, fontFamily: "DMSans_500Medium", color: "#A0A09A" }}>Avg. Time</Text>
+              </View>
             </View>
           </View>
 
-          <Animated.View entering={FadeInRight.delay(200).springify()} style={styles.metaRow}>
-            <Star size={18} color="#FBC02D" fill="#FBC02D" />
-            <Text style={[styles.metaText, { color: theme.colors.text, fontWeight: "800", fontSize: 16 }]}>
-              {provider.rating ? Number(provider.rating).toFixed(1) : "New"}
-            </Text>
-            <Text style={[styles.metaText, { marginLeft: 4 }]}>({provider.reviews || 0} reviews)</Text>
-            <View style={[styles.dotSeparator, { marginLeft: 16 }]} />
-            <Clock size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.metaText}>{provider.avgAppointmentTime || "30m"}</Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInRight.delay(300).springify()} style={[styles.metaRow, { marginTop: -12 }]}>
-            <MapPin size={18} color={theme.colors.textSecondary} />
-            <Text style={styles.metaText}>{provider.address}</Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.safetyBanner}>
-            <View style={{ backgroundColor: theme.colors.primary + "15", padding: 10, borderRadius: 14 }}>
-              <ShieldCheck size={26} color={theme.colors.primary} />
+          {/* GENDER SELECTOR */}
+          <View style={{ marginBottom: 4 }}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.headerPill}>
+                <Text style={styles.headerPillText}>Select Preference</Text>
+              </View>
+              <View style={styles.headerLine} />
             </View>
-            <View style={styles.safetyTextContainer}>
-              <Text style={styles.safetyTitle}>GlossCut Secure</Text>
-              <Text style={styles.safetySubtitle}>Verified professional with strict hygiene protocols.</Text>
+            <View style={styles.genderBox}>
+              {['all', 'male', 'female'].map(gen => (
+                <TouchableOpacity
+                  key={gen}
+                  onPress={() => {
+                    setSelectedGender(gen);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={[
+                    styles.genderTab,
+                    selectedGender === gen && styles.genderTabActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.genderTabText,
+                    selectedGender === gen && styles.genderTabTextActive
+                  ]}>
+                    {gen === 'all' ? 'All' : gen === 'male' ? 'Men' : 'Women'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          </Animated.View>
-
-          {/* WEBSITE MIRROR: GENDER SELECTOR */}
-          <View style={styles.genderBox}>
-            {['male', 'female', 'unisex'].map(gen => (
-              <TouchableOpacity
-                key={gen}
-                onPress={() => {
-                  setSelectedGender(gen);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                style={[
-                  styles.genderTab,
-                  selectedGender === gen && styles.genderTabActive
-                ]}
-              >
-                <Text style={[
-                  styles.genderTabText,
-                  selectedGender === gen && styles.genderTabTextActive
-                ]}>
-                  {gen === 'male' ? '♂ Men' : gen === 'female' ? '♀ Women' : '✨ Unisex'}
-                </Text>
-              </TouchableOpacity>
-            ))}
           </View>
 
           {/* Category Navigation Bar */}
@@ -1454,8 +1718,8 @@ const BookingScreen = ({ route, navigation }) => {
           ]}>
             {filteredServices.length === 0 ? (
               <View style={{ padding: 40, alignItems: "center", width: '100%' }}>
-                <Scissors size={40} color={theme.colors.border} />
-                <Text style={{ marginTop: 12, color: theme.colors.textSecondary, fontWeight: "600" }}>No services found</Text>
+                <Scissors size={40} color="#E8E7E2" />
+                <Text style={{ marginTop: 12, color: "#606058", fontWeight: "600" }}>No services found</Text>
               </View>
             ) : (
               filteredServices.map((service, index) => {
@@ -1486,7 +1750,13 @@ const BookingScreen = ({ route, navigation }) => {
       {selectedServices.length > 0 && (
         <Animated.View
           entering={FadeInDown.springify().damping(15)}
-          style={styles.glassBar}
+          style={[
+            styles.glassBar,
+            isTablet && {
+              left: width * 0.15 + 16,
+              right: width * 0.15 + 16,
+            }
+          ]}
         >
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center', flex: 1, justifyContent: 'space-between' }}
@@ -1499,7 +1769,7 @@ const BookingScreen = ({ route, navigation }) => {
               <View style={styles.thumbContainer}>
                 <View style={styles.thumbCircle}>
                   <Image
-                    source={{ uri: provider.owner?.profilePicture || provider.image }}
+                    source={barberImageSource}
                     style={styles.thumbImage}
                   />
                 </View>
@@ -1515,7 +1785,7 @@ const BookingScreen = ({ route, navigation }) => {
               </View>
 
               <View style={styles.textContainer}>
-                <Text style={styles.viewCartText}>{isBooking ? "Booking..." : "View cart"}</Text>
+                <Text style={styles.viewCartText}>{isBooking ? "Booking..." : "Review Selected"}</Text>
                 <Text style={styles.itemsCount}>{selectedServices.length} Services</Text>
               </View>
             </View>
@@ -1525,8 +1795,8 @@ const BookingScreen = ({ route, navigation }) => {
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
                 <>
-                  <Text style={styles.barPrice}>₹{totalPrice.toFixed(0)}</Text>
-                  <ChevronRight size={20} color="#FFFFFF" strokeWidth={4} />
+                  <Text style={styles.continueText}>Continue</Text>
+                  <ChevronRight size={18} color="#C8FF00" strokeWidth={3.5} />
                 </>
               )}
             </View>

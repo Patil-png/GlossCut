@@ -1,11 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  useMemo,
-  memo
-} from "react";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import {
   View,
   Text,
@@ -17,25 +10,17 @@ import {
   Dimensions,
   Image,
   Platform,
-  ActivityIndicator,
-  UIManager
+  Easing,
+  ImageBackground,
+  Alert,
+  TextInput
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import AnimatedReanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  FadeInDown,
-  runOnJS
-} from "react-native-reanimated";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import * as Network from "expo-network";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import api, { API_URL } from "../utils/api";
+import api from "../utils/api";
 import {
   ChevronLeft,
   ChevronRight,
@@ -43,647 +28,645 @@ import {
   User,
   Mail,
   Phone,
-  VenetianMask,
-  Languages,
   ShieldCheck,
-  Calendar,
   CheckCircle2,
-  AlertCircle,
-  Crown,
-  Fingerprint,
-  RefreshCw
+  AlertCircle
 } from "lucide-react-native";
 
-const { width } = Dimensions.get("window");
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+// Cap the scale factor to prevent elements from becoming massive on tablets
+const scale = Math.min(SCREEN_WIDTH / 375, 1.25);
 
-if (
-  Platform.OS === "android" &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+const normalize = (size) => {
+  const newSize = size * scale;
+  return Platform.OS === 'ios' ? Math.round(newSize) : Math.round(newSize) - 1;
+};
 
-// --- OPTIMIZED SUB-COMPONENTS (MEMOIZED) ---
-
-const CustomAlert = memo(
-  ({ visible, message, type = "success", onHide, theme, insets }) => {
-    const translateY = useSharedValue(-120);
-    const opacity = useSharedValue(0);
-
-    useEffect(() => {
-      if (visible) {
-        if (type === "success")
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-        translateY.value = withSpring(insets.top + 10, { damping: 15, stiffness: 120 });
-        opacity.value = withTiming(1, { duration: 300 });
-
-        const timer = setTimeout(() => hideAlert(), 3500);
-        return () => clearTimeout(timer);
-      }
-    }, [visible]);
-
-    const hideAlert = useCallback(() => {
-      translateY.value = withTiming(-120, { duration: 300 });
-      opacity.value = withTiming(0, { duration: 300 }, () => {
-        if (onHide) runOnJS(onHide)();
-      });
-    }, [onHide]);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: translateY.value }],
-      opacity: opacity.value
-    }));
-
-    const config = useMemo(
-      () =>
-        type === "error"
-          ? { icon: AlertCircle, color: "#FF3B30" }
-          : { icon: CheckCircle2, color: "#10b981" },
-      [type]
-    );
-
-    if (!visible && opacity.value === 0) return null;
-
-    return (
-      <AnimatedReanimated.View style={[styles.alertWrapper, animatedStyle]}>
-        <View
-          style={[
-            styles.alertContainer,
-            {
-              backgroundColor: theme.colors.card,
-              borderColor: config.color + "30"
-            },
-          ]}
-        >
-          <View
-            style={[styles.alertSideAccent, { backgroundColor: config.color }]}
-          />
-          <config.icon size={20} color={config.color} strokeWidth={2.5} />
-          <Text style={[styles.alertText, { color: theme.colors.text }]}>
-            {message}
-          </Text>
-        </View>
-      </AnimatedReanimated.View>
-    );
-  }
-);
-
-const PremiumScaleButton = memo(
-  ({ onPress, style, children, activeScale = 0.97, disabled = false }) => {
-    const scaleValue = useRef(new Animated.Value(1)).current;
-
-    const handlePressIn = useCallback(() => {
-      if (!disabled) {
-        Animated.spring(scaleValue, {
-          toValue: activeScale,
-          useNativeDriver: true,
-          tension: 40,
-          friction: 7
-        }).start();
-      }
-    }, [disabled, activeScale]);
-
-    const handlePressOut = useCallback(() => {
-      Animated.spring(scaleValue, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 40,
-        friction: 7
-      }).start();
-    }, []);
-
-    return (
-      <TouchableOpacity
-        activeOpacity={1}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={onPress}
-        disabled={disabled}
-      >
-        <Animated.View
-          style={[
-            style,
-            { transform: [{ scale: scaleValue }], opacity: disabled ? 0.6 : 1 },
-          ]}
-        >
-          {children}
-        </Animated.View>
-      </TouchableOpacity>
-    );
-  }
-);
-
-const ElegantStats = memo(({ theme, user }) => {
-  const balance = user?.setkarCoins || 0;
-  const joinedYear = useMemo(
-    () => (user?.createdAt ? new Date(user.createdAt).getFullYear() : "2025"),
-    [user?.createdAt]
-  );
-
+// --- OPTIMIZED SUB-COMPONENTS ---
+const CustomToast = memo(({ visible, message, type, animatedValue }) => {
+  if (!visible) return null;
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-100, 0],
+  });
+  const isSuccess = type === "success";
+  const iconColor = isSuccess ? "#10B981" : "#EF4444";
   return (
-    <AnimatedReanimated.View
-      entering={FadeInDown.delay(400)}
-      style={styles.statsContainer}
-    >
-      <View
-        style={[
-          styles.statCard,
-          {
-            backgroundColor: theme.colors.card,
-            borderColor: theme.colors.border + "40"
-          },
-        ]}
-      >
-        <View
-          style={[styles.statIconWrapper, { backgroundColor: "#3b82f615" }]}
-        >
-          <Calendar size={18} color="#3b82f6" />
-        </View>
-        <View>
-          <Text
-            style={[styles.statLabel, { color: theme.colors.textSecondary }]}
-          >
-            Member
-          </Text>
-          <Text style={[styles.statValue, { color: theme.colors.text }]}>
-            {joinedYear}
-          </Text>
+    <Animated.View style={[styles.toastContainer, { transform: [{ translateY }] }]} accessibilityLiveRegion="polite">
+      <View style={[styles.toastContent, { borderLeftColor: iconColor }]}>
+        {isSuccess ? <CheckCircle2 size={20} color={iconColor} /> : <AlertCircle size={20} color={iconColor} />}
+        <View style={styles.toastTextContainer}>
+          <Text style={styles.toastMessage}>{message}</Text>
         </View>
       </View>
-      <View
-        style={[
-          styles.statCard,
-          {
-            backgroundColor: theme.colors.card,
-            borderColor: theme.colors.border + "40"
-          },
-        ]}
-      >
-        <View
-          style={[styles.statIconWrapper, { backgroundColor: "#fbbf2415" }]}
-        >
-          <Crown size={18} color="#fbbf24" />
-        </View>
-        <View>
-          <Text
-            style={[styles.statLabel, { color: theme.colors.textSecondary }]}
-          >
-            Coins
-          </Text>
-          <Text style={[styles.statValue, { color: "#fbbf24" }]}>
-            {balance}
-          </Text>
-        </View>
-      </View>
-    </AnimatedReanimated.View>
+    </Animated.View>
   );
 });
 
-const LuxuryTile = memo(
-  ({ icon: Icon, label, value, theme, onPress, tintColor, delay = 0 }) => (
-    <AnimatedReanimated.View entering={FadeInDown.delay(delay)}>
-      <PremiumScaleButton
-        onPress={onPress}
-        style={[styles.luxuryTile, { backgroundColor: theme.colors.card }]}
-      >
-        <View
-          style={[styles.luxuryIconBox, { backgroundColor: tintColor + "10" }]}
-        >
-          <Icon size={20} color={tintColor} strokeWidth={2} />
-        </View>
-        <View style={styles.luxuryContent}>
-          <Text
-            style={[styles.luxuryLabel, { color: theme.colors.textSecondary }]}
-          >
-            {label}
-          </Text>
-          <Text
-            style={[styles.luxuryValue, { color: theme.colors.text }]}
-            numberOfLines={1}
-          >
-            {value || "Not Set"}
-          </Text>
-        </View>
-        <ChevronRight size={16} color={theme.colors.border} />
-      </PremiumScaleButton>
-    </AnimatedReanimated.View>
-  )
-);
-
 const PersonalInfoScreen = ({ navigation }) => {
-  const { theme, isDark } = useTheme();
-  const { user, setUser } = useAuth();
+  const { theme } = useTheme();
+  const { user, logout, fetchUser } = useAuth();
   const insets = useSafeAreaInsets();
+  const primaryColor = theme?.colors?.primary || "#000000";
+
   const [image, setImage] = useState(user?.profilePicture || null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [alert, setAlert] = useState({
-    visible: false,
-    message: "",
-    type: "success"
-  });
+  const [toast, setToast] = useState({ visible: false, message: "", type: "info" });
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
-  // Memoized alert handler
-  const onHideAlert = useCallback(
-    () => setAlert((p) => ({ ...p, visible: false })),
-    []
-  );
+  // Animation Refs
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const itemAnims = useRef([...Array(8)].map(() => new Animated.Value(30))).current;
+  const itemFades = useRef([...Array(8)].map(() => new Animated.Value(0))).current;
+  const timerRef = useRef(null);
 
-  // --- OPTIMIZED ACTION HANDLER ---
-  const executeSafeAction = useCallback(async (actionFn, successMessage) => {
-    try {
-      const net = await Network.getNetworkStateAsync();
-      if (!net.isConnected) throw new Error("No Internet connection");
-
-      await actionFn();
-      if (successMessage)
-        setAlert({ visible: true, message: successMessage, type: "success" });
-    } catch (error) {
-      setAlert({
-        visible: true,
-        message: error.message || "Something went wrong",
-        type: "error"
-      });
-    }
+  useEffect(() => {
+    const animations = itemAnims.map((anim, i) =>
+      Animated.parallel([
+        Animated.timing(anim, { toValue: 0, duration: 600, useNativeDriver: true, easing: Easing.out(Easing.cubic) }),
+        Animated.timing(itemFades[i], { toValue: 1, duration: 500, useNativeDriver: true })
+      ])
+    );
+    Animated.stagger(100, animations).start();
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
 
-  const pickImage = useCallback(() => {
-    executeSafeAction(async () => {
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted")
-        throw new Error("Permission to gallery is required");
+  const showToast = useCallback((message, type = "info") => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ visible: true, message, type });
+    if (type === "success") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    else if (type === "error") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+    Animated.spring(toastAnim, { toValue: 1, useNativeDriver: true }).start();
+    timerRef.current = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setToast(p => ({ ...p, visible: false })));
+    }, 3000);
+  }, [toastAnim]);
+
+  const pickImage = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        showToast("Gallery permission is required.", "error");
+        return;
+      }
 
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7, // Optimized quality for better balance
+        quality: 0.7,
       });
 
       if (!result.canceled) {
+        setIsSyncing(true);
         const selectedImage = result.assets[0];
-
-        // Create FormData for upload
         const formData = new FormData();
         formData.append('profilePicture', {
           uri: selectedImage.uri,
-          type: 'image/jpeg', // or get from selectedImage.type
+          type: 'image/jpeg',
           name: 'profile-picture.jpg'
         });
 
-        // Upload image to backend
         const uploadResponse = await api.post('/api/auth/upload-picture', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        // Use the Cloudflare URL directly (no local/R2 logic needed)
         const { imageUrl } = uploadResponse.data;
-
-        console.log('🖼️ Customer Profile Picture Upload: Stored on Cloudflare:', imageUrl);
-        console.log('🔥 FREE IMAGE FETCH (Customer App): Profile picture ready for display:', imageUrl);
-
-        // Update user profile with the Cloudflare URL
         await api.put('/api/auth/user', { profilePicture: imageUrl });
 
-        // Update local state and context
         setImage(imageUrl);
-        setUser(prev => ({ ...prev, profilePicture: imageUrl }));
-
-        console.log('✅ Customer Profile: Updated with FREE Cloudflare URL');
+        await fetchUser(); // Refresh user data from server
+        showToast("Profile picture updated!", "success");
       }
-    }, "Profile picture updated successfully");
-  }, [executeSafeAction, api, setUser]);
+    } catch (error) {
+      showToast("Upload failed. Try again.", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [fetchUser, showToast]);
 
-  const handleSyncProfile = useCallback(() => {
-    setIsSyncing(true);
-    executeSafeAction(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      if (!user?.email) throw new Error("Email is required to sync account");
-    }, "Profile synced successfully").finally(() => setIsSyncing(false));
-  }, [executeSafeAction, user?.email]);
+  const handleTerminateAccount = useCallback(() => {
+    if (!isConfirmingDelete) {
+      setIsConfirmingDelete(true);
+      return;
+    }
+    
+    if (confirmText.trim().toUpperCase() !== "DELETE") {
+      showToast("Please type DELETE to confirm.", "error");
+      return;
+    }
+
+    Alert.alert(
+      "Are you absolutely sure?",
+      "This will remove your personal data and you won't be able to log in until you create a new account.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Terminate", style: "destructive", onPress: processTermination }
+      ]
+    );
+  }, [isConfirmingDelete, confirmText, processTermination, showToast]);
+
+  const processTermination = useCallback(async () => {
+    try {
+      setIsSyncing(true);
+      await api.post('/api/auth/terminate-account');
+      await logout(); // Use the proper logout function to clear everything
+      showToast("Account terminated successfully.", "success");
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
+      }, 1500);
+    } catch (error) {
+      const errorMsg = error.response?.data?.error || error.message || "Failed to terminate account.";
+      showToast(errorMsg, "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [navigation, showToast]);
+
+  const animatedStyle = (index) => ({
+    opacity: itemFades[index],
+    transform: [{ translateY: itemAnims[index] }]
+  });
+
+  const renderIdentityTile = (Icon, label, value, onPress, isLast) => (
+    <>
+      <TouchableOpacity style={styles.usageItem} onPress={onPress} activeOpacity={0.7}>
+        <View style={styles.iconCircle}>
+          <Icon size={normalize(16)} color={primaryColor} />
+        </View>
+        <View style={styles.usageTextContent}>
+          <Text style={styles.usageTitle}>{label}</Text>
+          <Text style={styles.usageDesc} numberOfLines={1}>{value || "Not Set"}</Text>
+        </View>
+        <ChevronRight size={normalize(20)} color="#CBD5E1" strokeWidth={2.5} />
+      </TouchableOpacity>
+      {!isLast && <View style={styles.divider} />}
+    </>
+  );
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      <CustomAlert
-        visible={alert.visible}
-        message={alert.message}
-        type={alert.type}
-        theme={theme}
-        onHide={onHideAlert}
-        insets={insets}
-      />
-
-      <View style={styles.safeArea}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={[
-              styles.backBtn,
-              {
-                backgroundColor: theme.colors.card,
-                borderColor: theme.colors.border + "50"
-              },
-            ]}
-          >
-            <ChevronLeft
-              size={22}
-              color={theme.colors.text}
-              strokeWidth={2.5}
-            />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-            Personal Details
-          </Text>
-          <Fingerprint
-            size={20}
-            color={theme.colors.textSecondary}
-            opacity={0.3}
-          />
-        </View>
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          removeClippedSubviews={true} // Optimization for long lists
-        >
-          <View style={styles.heroContainer}>
-            <PremiumScaleButton onPress={pickImage}>
-              <View
-                style={[
-                  styles.avatarRing,
-                  { borderColor: theme.colors.primary + "30" },
-                ]}
-              >
-                <Image
-                  source={
-                    image ? { uri: image } : require("../assets/GlossCut.png")
-                  }
-                  style={styles.avatarImage}
-                />
-                <LinearGradient
-                  colors={[theme.colors.primary, theme.colors.primary + "DD"]}
-                  style={styles.cameraBadge}
-                >
-                  <Camera size={14} color="#FFF" />
-                </LinearGradient>
-              </View>
-            </PremiumScaleButton>
-            <Text style={[styles.userName, { color: theme.colors.text }]}>
-              {user?.name || "GlossCut User"}
-            </Text>
-          </View>
-
-          <View style={styles.mainPadding}>
-            <ElegantStats theme={theme} user={user} />
-
-            <Text
-              style={[
-                styles.sectionHeader,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Security & Identity
-            </Text>
-            <View
-              style={[
-                styles.groupContainer,
-                { backgroundColor: theme.colors.card },
-              ]}
-            >
-              <LuxuryTile
-                icon={User}
-                label="Full Name"
-                value={user?.name}
-                theme={theme}
-                tintColor="#3b82f6"
-                onPress={() => navigation.navigate("EditName")}
-                delay={100}
-              />
-              <View style={styles.separator} />
-              <LuxuryTile
-                icon={Mail}
-                label="Email Address"
-                value={user?.email}
-                theme={theme}
-                tintColor="#f59e0b"
-                onPress={() => navigation.navigate("EditEmail")}
-                delay={200}
-              />
-            </View>
-
-            <Text
-              style={[
-                styles.sectionHeader,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Connectivity
-            </Text>
-            <View
-              style={[
-                styles.groupContainer,
-                { backgroundColor: theme.colors.card },
-              ]}
-            >
-              <LuxuryTile
-                icon={Phone}
-                label="Phone Number"
-                value={user?.phone}
-                theme={theme}
-                tintColor="#10b981"
-                onPress={() => navigation.navigate("EditPhoneNumber")}
-                delay={300}
-              />
-            </View>
-
-            <PremiumScaleButton
-              disabled={isSyncing}
-              onPress={handleSyncProfile}
-              style={[
-                styles.syncButton,
-                { backgroundColor: theme.colors.primary },
-              ]}
-            >
-              {isSyncing ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <View style={styles.syncContent}>
-                  <RefreshCw size={18} color="#FFF" style={styles.syncIcon} />
-                  <Text style={styles.syncButtonText}>Sync Changes</Text>
-                </View>
-              )}
-            </PremiumScaleButton>
-
-            <View style={styles.secureLine}>
-              <ShieldCheck size={14} color="#10b981" />
-              <Text
-                style={[
-                  styles.footerText,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Secured by AES-256 Encryption
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
+      <View style={[styles.toastWrapper, { top: insets.top + 10 }]}>
+        <CustomToast visible={toast.visible} message={toast.message} type={toast.type} animatedValue={toastAnim} />
       </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]} bounces={false}>
+        <View style={styles.centeredContentWrapper}>
+          {/* 1. Cover Image Section */}
+          <ImageBackground source={require("../assets/profile_cover_cartoon.png")} style={styles.coverImage} resizeMode="cover">
+            <View style={[styles.headerActions, { paddingTop: Math.max(insets.top, 16) }]}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <ChevronLeft size={normalize(22)} color="#1E293B" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </ImageBackground>
+
+          {/* 2. Main Profile Section */}
+          <View style={styles.mainProfileCard}>
+            <Animated.View style={[styles.avatarCenterWrapper, animatedStyle(0)]}>
+              <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
+                <Image source={image ? { uri: image } : require("../assets/GlossCut.png")} style={styles.avatar} />
+                <View style={styles.avatarOverlay}>
+                  <Camera size={20} color="#FFF" />
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View style={[styles.profileTextInfo, animatedStyle(1)]}>
+              <View style={styles.nameRow}>
+                <Text style={styles.userName}>{user?.name || "Glosscut User"}</Text>
+                <CheckCircle2 size={normalize(20)} color="#3b82f6" fill="#3b82f630" />
+              </View>
+              <Text style={styles.userBio}>Premium verified identity within the GLOSSCUT ecosystem.</Text>
+            </Animated.View>
+
+            {/* 3. Stats Row */}
+            <Animated.View style={[styles.statsContainer, animatedStyle(2)]}>
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{user?.createdAt ? new Date(user.createdAt).getFullYear() : "2024"}</Text>
+                <Text style={styles.statLabel}>Member Since</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{user?.setkarCoins || 0}</Text>
+                <Text style={styles.statLabel}>GlossCut Coins</Text>
+              </View>
+            </Animated.View>
+
+            {/* 4. Settings Items (Unified Container) */}
+            <Animated.View style={[styles.usageContainer, animatedStyle(3)]}>
+              {renderIdentityTile(User, "Display Name", user?.name, () => navigation.navigate("EditName"), false)}
+              {renderIdentityTile(Mail, "Email Address", user?.email, () => navigation.navigate("EditEmail"), false)}
+              {renderIdentityTile(Phone, "Phone Number", user?.phone, () => navigation.navigate("EditPhoneNumber"), true)}
+            </Animated.View>
+
+            {/* 6. Terminate Account Button */}
+            <Animated.View style={[styles.terminateSection, animatedStyle(5)]}>
+              {isConfirmingDelete ? (
+                <View style={styles.confirmDeleteWrapper}>
+                  <Text style={styles.confirmDeleteLabel}>Type 'DELETE' to confirm:</Text>
+                  <TextInput
+                    style={styles.confirmDeleteInput}
+                    value={confirmText}
+                    onChangeText={setConfirmText}
+                    placeholder="DELETE"
+                    placeholderTextColor="#A0AEC0"
+                    autoCapitalize="characters"
+                  />
+                  <View style={styles.confirmDeleteActions}>
+                    <TouchableOpacity 
+                      style={[
+                        confirmText.trim().toUpperCase() === "DELETE" ? styles.confirmBtnActive : styles.confirmBtnInactive
+                      ]}
+                      onPress={handleTerminateAccount}
+                      disabled={confirmText.trim().toUpperCase() !== "DELETE"}
+                    >
+                      <Text style={confirmText.trim().toUpperCase() === "DELETE" ? styles.confirmBtnTextActive : styles.confirmBtnTextInactive}>Confirm</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.cancelDeleteBtn}
+                      onPress={() => { setIsConfirmingDelete(false); setConfirmText(""); }}
+                    >
+                      <Text style={styles.cancelDeleteBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity 
+                  style={styles.terminateBtn}
+                  onPress={handleTerminateAccount}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.terminateBtnText}>Delete Account & Data</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={styles.terminateNote}>
+                This will remove your personal data from the active database but keep your booking history and reviews intact.
+              </Text>
+            </Animated.View>
+
+          </View>
+        </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  safeArea: { flex: 1 },
-  mainPadding: { paddingHorizontal: 20 },
-  scrollContent: { paddingBottom: 40 },
-  alertWrapper: {
-    position: "absolute",
-    left: 20,
-    right: 20,
-    zIndex: 9999,
-    alignItems: "center"
-  },
-  alertContainer: {
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  scrollContent: { backgroundColor: "#FFFFFF" },
+  centeredContentWrapper: {
+    maxWidth: 500,
     width: "100%",
+    alignSelf: "center"
+  },
+  coverImage: {
+    width: "100%",
+    height: normalize(240),
+    justifyContent: "flex-start"
+  },
+  headerActions: {
     flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 20,
+    paddingHorizontal: normalize(16)
+  },
+  backBtn: {
+    padding: normalize(8),
+    borderRadius: normalize(12),
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    gap: 12,
-    elevation: 10,
+    borderColor: "#F1F5F9",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 }
+    elevation: 3,
+    alignSelf: "flex-start"
   },
-  alertSideAccent: {
+  mainProfileCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    marginTop: normalize(-30),
+    borderTopLeftRadius: normalize(32),
+    borderTopRightRadius: normalize(32),
+    paddingHorizontal: normalize(24),
+    paddingTop: 0,
+    zIndex: 1,
+    elevation: 1,
+    overflow: "visible"
+  },
+  avatarCenterWrapper: {
+    alignItems: "center",
+    marginTop: normalize(-50),
+    marginBottom: normalize(16),
+    zIndex: 10,
+    elevation: 10,
+    overflow: "visible"
+  },
+  avatarContainer: {
+    width: normalize(100),
+    height: normalize(100),
+    borderRadius: normalize(50),
+    borderWidth: 4,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+    position: "relative",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8
+  },
+  avatar: { width: "100%", height: "100%" },
+  avatarOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  profileTextInfo: {
+    alignItems: "center",
+    marginBottom: normalize(24)
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: normalize(6),
+    marginBottom: normalize(4)
+  },
+  userName: {
+    fontSize: normalize(22),
+    fontWeight: "900",
+    color: "#0F172A",
+    letterSpacing: -0.5
+  },
+  userHandle: {
+    fontSize: normalize(14),
+    color: "#64748B",
+    fontWeight: "600",
+    marginBottom: normalize(8)
+  },
+  userBio: {
+    fontSize: normalize(13),
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: normalize(20),
+    fontWeight: "500",
+    paddingHorizontal: normalize(20)
+  },
+  statsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: normalize(16),
+    paddingVertical: normalize(16),
+    marginBottom: normalize(30),
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  statBox: {
+    flex: 1,
+    alignItems: "center"
+  },
+  statDivider: {
+    width: 1,
+    height: "100%",
+    backgroundColor: "#E2E8F0"
+  },
+  statValue: {
+    fontSize: normalize(18),
+    fontWeight: "900",
+    color: "#0F172A",
+    marginBottom: normalize(4)
+  },
+  statLabel: {
+    fontSize: normalize(11),
+    color: "#64748B",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5
+  },
+  usageContainer: {
+    width: "100%",
+    backgroundColor: "#F8FAFC",
+    borderRadius: normalize(20),
+    padding: normalize(20),
+    marginBottom: normalize(30),
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  usageItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: normalize(14)
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginVertical: normalize(16)
+  },
+  iconCircle: {
+    width: normalize(36),
+    height: normalize(36),
+    borderRadius: normalize(18),
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  usageTextContent: { flex: 1 },
+  usageTitle: {
+    fontSize: normalize(14),
+    color: "#0F172A",
+    fontWeight: "800",
+    marginBottom: normalize(4)
+  },
+  usageDesc: {
+    fontSize: normalize(12),
+    color: "#64748B",
+    fontWeight: "600"
+  },
+  noteContainer: {
+    width: "100%",
+    padding: normalize(18),
+    backgroundColor: "#F0FDF4",
+    borderRadius: normalize(16),
+    borderWidth: 1,
+    borderColor: "#DCFCE7",
+    marginBottom: normalize(20)
+  },
+  noteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: normalize(8),
+    marginBottom: normalize(8)
+  },
+  noteTitle: {
+    fontSize: normalize(11),
+    fontWeight: "900",
+    color: "#166534",
+    letterSpacing: 1
+  },
+  noteText: {
+    fontSize: normalize(11),
+    color: "#166534",
+    lineHeight: normalize(18),
+    fontWeight: "500"
+  },
+  terminateSection: {
+    width: "100%",
+    alignItems: "center",
+    marginTop: normalize(10),
+    marginBottom: normalize(20)
+  },
+  terminateBtn: {
+    width: "100%",
+    height: normalize(52),
+    borderRadius: normalize(12),
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#EF4444",
+    shadowColor: "#EF4444",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 1
+  },
+  terminateBtnText: {
+    fontSize: normalize(14),
+    fontWeight: "800",
+    color: "#EF4444",
+    letterSpacing: -0.2
+  },
+  terminateNote: {
+    fontSize: normalize(11),
+    color: "#64748B",
+    textAlign: "center",
+    marginTop: normalize(12),
+    paddingHorizontal: normalize(20),
+    fontWeight: "500",
+    lineHeight: normalize(16)
+  },
+  confirmDeleteWrapper: {
+    width: "100%",
+    backgroundColor: "#FEF2F2",
+    borderRadius: normalize(16),
+    padding: normalize(20),
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+    marginBottom: normalize(10)
+  },
+  confirmDeleteLabel: {
+    fontSize: normalize(13),
+    fontWeight: "800",
+    color: "#991B1B",
+    marginBottom: normalize(10)
+  },
+  confirmDeleteInput: {
+    height: normalize(46),
+    backgroundColor: "#FFFFFF",
+    borderRadius: normalize(10),
+    borderWidth: 1.5,
+    borderColor: "#FCA5A5",
+    paddingHorizontal: normalize(14),
+    fontSize: normalize(15),
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: normalize(14)
+  },
+  confirmDeleteActions: {
+    flexDirection: "row",
+    gap: normalize(10)
+  },
+  confirmBtnActive: {
+    flex: 1,
+    height: normalize(48),
+    borderRadius: normalize(10),
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#EF4444",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 }
+  },
+  confirmBtnInactive: {
+    flex: 1,
+    height: normalize(48),
+    borderRadius: normalize(10),
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB"
+  },
+  confirmBtnTextActive: {
+    fontSize: normalize(14),
+    fontWeight: "800",
+    color: "#FFFFFF"
+  },
+  confirmBtnTextInactive: {
+    fontSize: normalize(14),
+    fontWeight: "700",
+    color: "#9CA3AF"
+  },
+  cancelDeleteBtn: {
+    flex: 1,
+    height: normalize(48),
+    borderRadius: normalize(10),
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#D1D5DB"
+  },
+  cancelDeleteBtnText: {
+    fontSize: normalize(14),
+    fontWeight: "700",
+    color: "#4B5563"
+  },
+  toastWrapper: {
     position: "absolute",
     left: 0,
-    top: 15,
-    bottom: 15,
-    width: 4,
-    borderRadius: 2
+    right: 0,
+    zIndex: 2000,
+    alignItems: "center"
   },
-  alertText: { fontSize: 14, fontWeight: "700" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 15
-  },
-  headerTitle: { fontSize: 18, fontWeight: "800" },
-  backBtn: {
-    width: 42,
-    height: 42,
+  toastContainer: {
+    width: '90%',
+    maxWidth: 450,
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1
-  },
-  heroContainer: { alignItems: "center", marginVertical: 20 },
-  avatarRing: {
-    padding: 5,
-    borderWidth: 2,
-    borderRadius: 100,
-    borderStyle: "dashed"
-  },
-  avatarImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#f1f5f9"
-  },
-  cameraBadge: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#FFF"
-  },
-  userName: { fontSize: 24, fontWeight: "900", marginTop: 10 },
-  statsContainer: { flexDirection: "row", gap: 12, marginBottom: 25 },
-  statCard: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 24,
-    borderWidth: 1
-  },
-  statIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12
-  },
-  statLabel: { fontSize: 10, fontWeight: "700", textTransform: "uppercase" },
-  statValue: { fontSize: 16, fontWeight: "800" },
-  sectionHeader: {
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 10,
-    marginTop: 10,
-    opacity: 0.6
-  },
-  groupContainer: {
-    borderRadius: 24,
-    overflow: "hidden",
-    marginBottom: 20,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)"
+    borderColor: "#F1F5F9"
   },
-  luxuryTile: { flexDirection: "row", alignItems: "center", padding: 18 },
-  luxuryIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15
-  },
-  luxuryContent: { flex: 1 },
-  luxuryLabel: { fontSize: 11, fontWeight: "600", marginBottom: 2 },
-  luxuryValue: { fontSize: 15, fontWeight: "700" },
-  separator: { height: 1, marginLeft: 70, backgroundColor: "rgba(0,0,0,0.03)" },
-  syncButton: {
-    height: 58,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10
-  },
-  syncContent: { flexDirection: "row", alignItems: "center" },
-  syncIcon: { marginRight: 8 },
-  syncButtonText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
-  secureLine: {
+  toastContent: {
+    padding: 16,
+    borderLeftWidth: 4,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 25,
-    opacity: 0.6
+    gap: 12
   },
-  footerText: { fontSize: 11, fontWeight: "700" }
+  toastTextContainer: { flex: 1 },
+  toastMessage: {
+    fontSize: 14,
+    color: "#0F172A",
+    fontWeight: "600"
+  }
 });
 
 export default memo(PersonalInfoScreen);

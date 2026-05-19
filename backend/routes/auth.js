@@ -10,6 +10,8 @@ const { isAuthenticated, optionalAuth, isAdmin } = require('../middleware/auth')
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
 const multer = require('multer');
 const crypto = require('crypto');
 const { uploadToR2WithCleanup } = require('../utils/r2Storage');
@@ -43,7 +45,7 @@ router.get('/check-exists', async (req, res) => {
     if (phone) {
       const normalized = normalizePhone(phone);
       const phoneHash = createHMAC(normalized);
-      
+
       // 1. Check if it exists as a User's phone
       const existingPhone = await User.findOne({ phoneHash });
       if (existingPhone) {
@@ -380,7 +382,7 @@ router.post('/register', validate(schemas.register), async (req, res) => {
             const addrObj = typeof shopAddress === 'string' ? JSON.parse(shopAddress) : shopAddress;
             const lat = parseFloat(addrObj.latitude || req.body.latitude);
             const lng = parseFloat(addrObj.longitude || req.body.longitude);
-            
+
             if (!isNaN(lat) && !isNaN(lng)) {
               parsedLocation = { type: 'Point', coordinates: [lng, lat] };
               computedH3Index = h3.latLngToCell(lat, lng, 9);
@@ -538,23 +540,166 @@ router.post(['/login', '/barber/login'], validate(schemas.login), async (req, re
       userAgent: req.get('User-Agent')
     });
 
-    // 6. Generate JWT (For Mobile)
+    // 6. Check for 2FA Requirement
+    if (user.twoFactorEnabled) {
+      const { otp } = req.body;
+
+      if (otp) {
+        // Verify OTP
+        console.log(`[2FA Debug] DB OTP: "${user.twoFactorOtp}", Input OTP: "${otp}"`);
+        console.log(`[2FA Debug] Expires: ${user.twoFactorOtpExpires}, Now: ${Date.now()}, Valid: ${user.twoFactorOtpExpires > Date.now()}`);
+
+        if (user.twoFactorOtp && String(user.twoFactorOtp) === String(otp) && user.twoFactorOtpExpires > Date.now()) {
+          console.log(`🔓 2FA verified for user: ${user.email}`);
+          // Consume OTP
+          user.twoFactorOtp = undefined;
+          user.twoFactorOtpExpires = undefined;
+          await user.save();
+          // Proceed to generate token
+        } else {
+          return res.status(400).json({ msg: 'Invalid or expired verification code' });
+        }
+      } else {
+        console.log(`🔒 2FA required for user: ${user.email}`);
+
+        // Generate 6-digit OTP
+        const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.twoFactorOtp = generatedOtp;
+        user.twoFactorOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
+
+        // Send Email
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL,
+            pass: process.env.PASSWORD,
+          },
+        });
+
+        const userEmail = decrypt(user.email);
+
+        const logoPath = path.join(__dirname, '../../customer-app/assets/GlossCut.png');
+        let logoSrc = '';
+        try {
+          const base64Logo = fs.readFileSync(logoPath, { encoding: 'base64' });
+          logoSrc = `data:image/png;base64,${base64Logo}`;
+        } catch (e) {
+          console.error('Error reading logo file:', e.message);
+        }
+
+        const mailOptions = {
+          from: `GlossCut Security <${process.env.EMAIL}>`,
+          to: userEmail,
+          subject: 'Login Verification Code - GlossCut',
+          text: `Your security verification code is: ${generatedOtp}. It expires in 10 minutes.`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                @media only screen and (max-width: 480px) {
+                  .card {
+                    padding: 20px !important;
+                    border-radius: 20px !important;
+                  }
+                  .header-text {
+                    font-size: 32px !important;
+                  }
+                  .outer-container {
+                    padding: 30px 10px !important;
+                  }
+                }
+              </style>
+            </head>
+            <body style="margin: 0; padding: 0;">
+              <div class="outer-container" style="background-color: #FCEBD8; padding: 60px 20px; font-family: 'Arial', sans-serif; text-align: center;">
+                <div class="card" style="max-width: 450px; width: 100%; margin: 0 auto; background-color: #FFFFFF; border-radius: 32px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; position: relative; box-sizing: border-box;">
+                  
+                  <!-- Close Button (Visual Only) -->
+                  <div style="position: absolute; top: 20px; right: 20px; width: 30px; height: 30px; background-color: #E2E8F0; border-radius: 15px; line-height: 30px; color: #718096; font-size: 16px; font-weight: bold; cursor: pointer;">✕</div>
+                  
+                  <!-- Rocket Illustration -->
+                  <div style="margin-bottom: 20px; font-size: 80px;">
+                    🚀
+                  </div>
+                  
+                  <!-- Header -->
+                  <h1 class="header-text" style="font-size: 38px; font-weight: 900; color: #000000; margin: 0 0 10px 0; font-family: 'Arial Black', sans-serif; letter-spacing: -1px;">VERIFY IT'S YOU!</h1>
+                  
+                  <!-- Subtitle -->
+                  <p style="font-size: 15px; color: #000000; font-weight: 700; margin: 0 0 30px 0; line-height: 1.4; padding: 0 20px;">
+                    You are attempting to log in to your Glosscut account. Use the security code below to proceed.
+                  </p>
+                  
+                  <!-- OTP Box (Styled like the black button) -->
+                  <div style="background-color: #000000; color: #FFFFFF; border-radius: 12px; padding: 16px; width: 100%; max-width: 320px; margin: 0 auto 10px auto; box-sizing: border-box;">
+                    <p style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 6px; user-select: all; -webkit-user-select: all;">${generatedOtp}</p>
+                  </div>
+                  <p style="font-size: 11px; color: #718096; font-weight: 700; margin: 0 0 20px 0;">💡 Tap the code to auto-select and copy</p>
+
+                  <!-- Informative Content Section -->
+                  <div style="text-align: left; margin-top: 30px; padding: 20px; background-color: #F8FAFC; border-radius: 12px; margin-bottom: 20px;">
+                    <h3 style="font-size: 14px; font-weight: 700; color: #1E293B; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">🔒 Security Information</h3>
+                    <p style="font-size: 13px; color: #64748B; margin: 0 0 15px 0; line-height: 1.5;">
+                      This code is valid for 10 minutes. Glosscut employees will never call or message you to ask for this code. If you did not attempt to log in, please secure your account immediately.
+                    </p>
+                    
+                    <h3 style="font-size: 14px; font-weight: 700; color: #1E293B; margin: 15px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">✨ About Glosscut</h3>
+                    <p style="font-size: 13px; color: #64748B; margin: 0; line-height: 1.5;">
+                      Glosscut is your premium salon discovery platform. We provide you with the best information, reviews, and services of top salons in your area to help you find your perfect style.
+                    </p>
+                  </div>
+                  
+                  <!-- Footer Link -->
+                  <p style="font-size: 12px; color: #94A3B8; font-weight: 700; margin: 0;">Code expires in 10 minutes.</p>
+                  
+                </div>
+                
+                <!-- Brand Logo at the bottom -->
+                <div style="margin-top: 30px; display: inline-block;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    ${logoSrc ? `<img src="${logoSrc}" style="height: 32px; width: auto;" alt="Logo" />` : `<div style="width: 32px; height: 32px; background-color: #3B82F6; border-radius: 16px; line-height: 32px; color: #FFFFFF; font-weight: bold; font-size: 18px;">G</div>`}
+                    <span style="font-size: 20px; font-weight: 900; color: #000000;">Glosscut</span>
+                  </div>
+                </div>
+              </div>
+            </body>
+            </html>
+          `,
+        };
+
+        try {
+          await transporter.sendMail(mailOptions);
+          console.log(`📧 2FA OTP sent to ${userEmail}`);
+        } catch (mailErr) {
+          console.error('Failed to send 2FA login email:', mailErr);
+        }
+
+        return res.json({
+          twoFactorRequired: true,
+          email: user.email,
+          message: 'Verification required'
+        });
+      }
+    }
+
+    // 7. Generate JWT (For Mobile)
     const token = jwt.sign(
       { user: { id: user.id } },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '7d' }
     );
 
-    // 7. Establish Session (For Web)
+    // 8. Establish Session (For Web)
     req.login(user, (err) => {
       if (err) {
         console.error('Session login error:', err);
-        // We still return token if session fails, or fail completely. 
-        // Let's fail safe.
         return res.status(500).json({ error: 'Session creation failed' });
       }
 
-      // 8. Return Hybrid Response
+      // 9. Return Hybrid Response
       res.json({
         message: 'Login successful',
         token, // Used by Mobile
@@ -744,6 +889,82 @@ router.put(['/profile', '/user'], optionalAuth, async (req, res) => {
   }
 });
 
+// @route   POST /auth/terminate-account
+// @desc    Terminate user data but keep history, archive personal data for marketing
+// @access  Private (Hybrid)
+router.post('/terminate-account', optionalAuth, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (user.isTerminated) {
+      return res.status(400).json({ error: 'Account already terminated' });
+    }
+
+    // 1. Copy data to a separate collection (Marketing Archive)
+    // Using direct MongoDB collection to avoid new model file
+    const db = User.db;
+    await db.collection('terminated_users').insertOne({
+      userId: user._id,
+      originalName: user._doc.name, // Save raw encrypted object { iv, content }
+      originalEmail: user._doc.email,
+      originalPhone: user._doc.phone,
+      terminatedAt: new Date(),
+      // 30-day retention (Industry standard/safe period)
+      retentionExpires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    });
+
+    // Ensure TTL index exists for automatic deletion after retention period
+    await db.collection('terminated_users').createIndex({ retentionExpires: 1 }, { expireAfterSeconds: 0 });
+
+    // 2. Anonymize the active user document
+    user.name = "GlossCut Member";
+    
+    // Set dummy email to avoid unique index conflict but fulfill required: true
+    const dummyEmail = `terminated_${user._id}@deleted.gloss.cut`;
+    user.email = dummyEmail;
+    user.emailHash = createHMAC(dummyEmail); // Update hash so it's unique
+    
+    // Create a unique numeric string for phone to avoid hook collision on empty string
+    const uniqueDigits = Date.now().toString().slice(-6) + Math.floor(1000 + Math.random() * 9000).toString();
+    user.phone = `+1${uniqueDigits}`;
+    // The pre-save hook will automatically hash this unique phone number!
+    
+    user.password = undefined; // Remove password
+    user.expoPushToken = null; // Clear push token
+    user.isTerminated = true;
+
+    await user.save();
+
+    // 3. Clear cache
+    cache.del(`user_${user._id}`);
+
+    // 4. Audit
+    await AuditLogger.log({
+      userId: user._id,
+      action: 'UPDATE',
+      entity: 'User',
+      entityId: user._id,
+      changes: { method: 'account_termination' },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    // 5. Logout the user
+    req.logout((err) => {
+      res.json({ message: 'Account terminated successfully' });
+    });
+
+  } catch (error) {
+    console.error('Account termination error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // @route   POST api/auth/upload-picture
 router.post('/upload-picture', auth, upload.single('profilePicture'), async (req, res) => {
   try {
@@ -868,7 +1089,7 @@ router.post('/forgot-password', async (req, res) => {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${ process.env.EMAIL_PASS } `,
+            'Authorization': `Bearer ${process.env.EMAIL_PASS} `,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -880,7 +1101,7 @@ router.post('/forgot-password', async (req, res) => {
         });
 
         if (resendResponse.ok) {
-          console.log(`OTP email sent to: ${ user.email } `);
+          console.log(`OTP email sent to: ${user.email} `);
         } else {
           const errorData = await resendResponse.json();
           console.error('Resend API error:', errorData);
@@ -990,11 +1211,96 @@ router.post('/2fa/send-otp', optionalAuth, async (req, res) => {
     });
 
     const userEmail = decrypt(user.email);
+
+    const logoPath = path.join(__dirname, '../../customer-app/assets/GlossCut.png');
+    let logoSrc = '';
+    try {
+      const base64Logo = fs.readFileSync(logoPath, { encoding: 'base64' });
+      logoSrc = `data:image/png;base64,${base64Logo}`;
+    } catch (e) {
+      console.error('Error reading logo file:', e.message);
+    }
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: userEmail,
-      subject: 'Verification Code - SetKarr',
-      text: `Your verification code is: ${ otp }. It expires in 10 minutes.`,
+      subject: 'Verification Code - GlossCut',
+      text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            @media only screen and (max-width: 480px) {
+              .card {
+                padding: 20px !important;
+                border-radius: 20px !important;
+              }
+              .header-text {
+                font-size: 32px !important;
+              }
+              .outer-container {
+                padding: 30px 10px !important;
+              }
+            }
+          </style>
+        </head>
+        <body style="margin: 0; padding: 0;">
+          <div class="outer-container" style="background-color: #FCEBD8; padding: 60px 20px; font-family: 'Arial', sans-serif; text-align: center;">
+            <div class="card" style="max-width: 450px; width: 100%; margin: 0 auto; background-color: #FFFFFF; border-radius: 32px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; position: relative; box-sizing: border-box;">
+              
+              <!-- Close Button (Visual Only) -->
+              <div style="position: absolute; top: 20px; right: 20px; width: 30px; height: 30px; background-color: #E2E8F0; border-radius: 15px; line-height: 30px; color: #718096; font-size: 16px; font-weight: bold; cursor: pointer;">✕</div>
+              
+              <!-- Rocket Illustration -->
+              <div style="margin-bottom: 20px; font-size: 80px;">
+                🚀
+              </div>
+              
+              <!-- Header -->
+              <h1 class="header-text" style="font-size: 38px; font-weight: 900; color: #000000; margin: 0 0 10px 0; font-family: 'Arial Black', sans-serif; letter-spacing: -1px;">VERIFY IT'S YOU!</h1>
+              
+              <!-- Subtitle -->
+              <p style="font-size: 15px; color: #000000; font-weight: 700; margin: 0 0 30px 0; line-height: 1.4; padding: 0 20px;">
+                You are setting up or verifying Two-Factor Authentication. Use the security code below to proceed.
+              </p>
+              
+              <!-- OTP Box (Styled like the black button) -->
+              <div style="background-color: #000000; color: #FFFFFF; border-radius: 12px; padding: 16px; width: 100%; max-width: 320px; margin: 0 auto 10px auto; box-sizing: border-box;">
+                <p style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 6px; user-select: all; -webkit-user-select: all;">${otp}</p>
+              </div>
+              <p style="font-size: 11px; color: #718096; font-weight: 700; margin: 0 0 20px 0;">💡 Tap the code to auto-select and copy</p>
+
+              <!-- Informative Content Section -->
+              <div style="text-align: left; margin-top: 30px; padding: 20px; background-color: #F8FAFC; border-radius: 12px; margin-bottom: 20px;">
+                <h3 style="font-size: 14px; font-weight: 700; color: #1E293B; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">🔒 Security Information</h3>
+                <p style="font-size: 13px; color: #64748B; margin: 0 0 15px 0; line-height: 1.5;">
+                  This code is valid for 10 minutes. Glosscut employees will never call or message you to ask for this code. If you did not request this, please ignore this email.
+                </p>
+                
+                <h3 style="font-size: 14px; font-weight: 700; color: #1E293B; margin: 15px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">✨ About Glosscut</h3>
+                <p style="font-size: 13px; color: #64748B; margin: 0; line-height: 1.5;">
+                  Glosscut is your premium salon discovery platform. We provide you with the best information, reviews, and services of top salons in your area to help you find your perfect style.
+                </p>
+              </div>
+              
+              <!-- Footer Link -->
+              <p style="font-size: 12px; color: #94A3B8; font-weight: 700; margin: 0;">Code expires in 10 minutes.</p>
+              
+            </div>
+            
+            <!-- Brand Logo at the bottom -->
+            <div style="margin-top: 30px; display: inline-block;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                ${logoSrc ? `<img src="${logoSrc}" style="height: 32px; width: auto;" alt="Logo" />` : `<div style="width: 32px; height: 32px; background-color: #3B82F6; border-radius: 16px; line-height: 32px; color: #FFFFFF; font-weight: bold; font-size: 18px;">G</div>`}
+                <span style="font-size: 20px; font-weight: 900; color: #000000;">Glosscut</span>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
     };
 
     transporter.sendMail(mailOptions, (err, info) => {
@@ -1049,6 +1355,17 @@ router.post('/2fa/verify', optionalAuth, async (req, res) => {
     } else {
       res.status(400).json({ msg: 'Invalid or expired code' });
     }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/auth/2fa/disable
+router.post('/2fa/disable', auth, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { twoFactorEnabled: false, twoFactorSecret: undefined, twoFactorOtp: undefined, twoFactorOtpExpires: undefined });
+    res.json({ msg: 'Two-Factor Authentication disabled successfully' });
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
@@ -1249,8 +1566,8 @@ router.post('/whatsapp/send-otp', whatsappLimiter, async (req, res) => {
   try {
     const existingUser = await User.findOne({ phoneHash });
     if (existingUser) {
-      return res.status(400).json({ 
-        error: 'This phone number is already registered with an account. Please log in instead.' 
+      return res.status(400).json({
+        error: 'This phone number is already registered with an account. Please log in instead.'
       });
     }
 
@@ -1260,14 +1577,22 @@ router.post('/whatsapp/send-otp', whatsappLimiter, async (req, res) => {
     // Store in cache for 5 minutes
     cache.put(`whatsapp_otp_${phone}`, otp, 5 * 60 * 1000);
 
-    // Send via WhatsApp (Safety measures internal to service)
-    const result = await whatsappService.sendSafeOTP(phone, otp);
-
-    if (result.success) {
-      res.json({ message: 'OTP sent successfully to WhatsApp' });
-    } else {
-      res.status(500).json({ error: result.error || 'Failed to send WhatsApp OTP' });
+    if (!whatsappService.isReady) {
+      return res.status(503).json({ error: 'WhatsApp service is temporarily unavailable. Please try again in a few seconds.' });
     }
+
+    // Send via WhatsApp in background to prevent request timeout on client
+    whatsappService.sendSafeOTP(phone, otp)
+      .then(result => {
+        if (result && !result.success) {
+          console.error(`Background WhatsApp OTP sending failed for ${phone}:`, result.error);
+        }
+      })
+      .catch(error => {
+        console.error(`Background WhatsApp OTP sending threw error for ${phone}:`, error);
+      });
+
+    res.json({ message: 'OTP sent successfully to WhatsApp' });
   } catch (error) {
     console.error('WhatsApp OTP Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -1304,13 +1629,22 @@ router.post('/whatsapp/send-booking-otp', whatsappLimiter, async (req, res) => {
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     cache.put(`booking_whatsapp_otp_${phone}`, otp, 5 * 60 * 1000);
-    const result = await whatsappService.sendSafeOTP(phone, otp);
-
-    if (result.success) {
-      res.json({ message: 'Booking OTP sent successfully to WhatsApp' });
-    } else {
-      res.status(500).json({ error: result.error || 'Failed to send WhatsApp OTP' });
+    if (!whatsappService.isReady) {
+      return res.status(503).json({ error: 'WhatsApp service is temporarily unavailable. Please try again in a few seconds.' });
     }
+
+    // Send via WhatsApp in background to prevent request timeout on client
+    whatsappService.sendSafeOTP(phone, otp)
+      .then(result => {
+        if (result && !result.success) {
+          console.error(`Background WhatsApp Booking OTP sending failed for ${phone}:`, result.error);
+        }
+      })
+      .catch(error => {
+        console.error(`Background WhatsApp Booking OTP sending threw error for ${phone}:`, error);
+      });
+
+    res.json({ message: 'Booking OTP sent successfully to WhatsApp' });
   } catch (error) {
     console.error('WhatsApp Booking OTP Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });

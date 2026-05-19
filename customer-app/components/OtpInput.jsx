@@ -57,7 +57,9 @@ const OtpInput = ({ length = 6, onComplete }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-between'},
+    justifyContent: 'center',
+    gap: 10
+  },
   input: {
     width: isTablet ? 56 : 48,
     height: isTablet ? 56 : 48,

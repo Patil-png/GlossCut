@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
+const fs = require('fs');
+const path = require('path');
 // 1. Import encryption helpers
 const { createHMAC, decrypt } = require('../utils/EncryptionService');
 const validate = require('../middleware/validate');
@@ -45,11 +47,93 @@ router.post('/forgot', validate(schemas.forgotPassword), async (req, res) => {
     // 3. SAFE DECRYPTION: Ensure we send to a string, not an object
     const userEmail = decrypt(user.email);
 
+    const logoPath = path.join(__dirname, '../../customer-app/assets/GlossCut.png');
+    let logoSrc = '';
+    try {
+      const base64Logo = fs.readFileSync(logoPath, { encoding: 'base64' });
+      logoSrc = `data:image/png;base64,${base64Logo}`;
+    } catch (e) {
+      console.error('Error reading logo file:', e.message);
+    }
+
     const mailOptions = {
       from: process.env.EMAIL,
       to: userEmail,
       subject: 'Password Reset OTP',
       text: `Your OTP for password reset is ${otp}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            @media only screen and (max-width: 480px) {
+              .card {
+                padding: 20px !important;
+                border-radius: 20px !important;
+              }
+              .header-text {
+                font-size: 32px !important;
+              }
+              .outer-container {
+                padding: 30px 10px !important;
+              }
+            }
+          </style>
+        </head>
+        <body style="margin: 0; padding: 0;">
+          <div class="outer-container" style="background-color: #FCEBD8; padding: 60px 20px; font-family: 'Arial', sans-serif; text-align: center;">
+            <div class="card" style="max-width: 450px; width: 100%; margin: 0 auto; background-color: #FFFFFF; border-radius: 32px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; position: relative; box-sizing: border-box;">
+            
+            <!-- Close Button (Visual Only) -->
+            <div style="position: absolute; top: 20px; right: 20px; width: 30px; height: 30px; background-color: #E2E8F0; border-radius: 15px; line-height: 30px; color: #718096; font-size: 16px; font-weight: bold; cursor: pointer;">✕</div>
+            
+            <!-- Rocket Illustration -->
+            <div style="margin-bottom: 20px; font-size: 80px;">
+              🚀
+            </div>
+            
+            <!-- Header -->
+            <h1 class="header-text" style="font-size: 38px; font-weight: 900; color: #000000; margin: 0 0 10px 0; font-family: 'Arial Black', sans-serif; letter-spacing: -1px;">HEY YOU!</h1>
+            
+            <!-- Subtitle -->
+            <p style="font-size: 15px; color: #000000; font-weight: 700; margin: 0 0 30px 0; line-height: 1.4; padding: 0 20px;">
+              Use the security code below to reset your account password.
+            </p>
+            
+            <!-- OTP Box (Styled like the black button) -->
+            <div style="background-color: #000000; color: #FFFFFF; border-radius: 12px; padding: 16px; width: 100%; max-width: 320px; margin: 0 auto 10px auto; box-sizing: border-box;">
+              <p style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 6px; user-select: all; -webkit-user-select: all;">${otp}</p>
+            </div>
+            <p style="font-size: 11px; color: #718096; font-weight: 700; margin: 0 0 20px 0;">💡 Tap the code to auto-select and copy</p>
+
+            <!-- Informative Content Section -->
+            <div style="text-align: left; margin-top: 30px; padding: 20px; background-color: #F8FAFC; border-radius: 12px; margin-bottom: 20px;">
+              <h3 style="font-size: 14px; font-weight: 700; color: #1E293B; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">🔒 Security Information</h3>
+              <p style="font-size: 13px; color: #64748B; margin: 0 0 15px 0; line-height: 1.5;">
+                This code is valid for 1 hour. Glosscut employees will never call or message you to ask for this code. If you did not request a password reset, please secure your account immediately or ignore this email.
+              </p>
+              
+              <h3 style="font-size: 14px; font-weight: 700; color: #1E293B; margin: 15px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">✨ About Glosscut</h3>
+              <p style="font-size: 13px; color: #64748B; margin: 0; line-height: 1.5;">
+                Glosscut is your premium salon discovery platform. We provide you with the best information, reviews, and services of top salons in your area to help you find your perfect style.
+              </p>
+            </div>
+            
+            <!-- Footer Link -->
+            <p style="font-size: 12px; color: #94A3B8; font-weight: 700; margin: 0;">Code expires in 15 minutes.</p>
+            
+          </div>
+          
+          <!-- Brand Logo at the bottom -->
+          <div style="margin-top: 30px; display: inline-block;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+              ${logoSrc ? `<img src="${logoSrc}" style="height: 32px; width: auto;" alt="Logo" />` : `<div style="width: 32px; height: 32px; background-color: #3B82F6; border-radius: 16px; line-height: 32px; color: #FFFFFF; font-weight: bold; font-size: 18px;">G</div>`}
+              <span style="font-size: 20px; font-weight: 900; color: #000000;">Glosscut</span>
+            </div>
+          </div>
+        </div>
+      `,
     };
 
     transporter.sendMail(mailOptions, (err, response) => {
@@ -75,7 +159,7 @@ router.post('/verify', validate(schemas.verifyOtp), async (req, res) => {
     const emailHash = createHMAC(email);
     const user = await User.findOne({
       emailHash,
-      resetPasswordOtp: otp,
+      resetPasswordOtp: Number(otp),
       resetPasswordExpires: { $gt: Date.now() },
     });
 
@@ -100,7 +184,7 @@ router.post('/reset', validate(schemas.resetPassword), async (req, res) => {
     const emailHash = createHMAC(email);
     const user = await User.findOne({
       emailHash,
-      resetPasswordOtp: otp,
+      resetPasswordOtp: Number(otp),
       resetPasswordExpires: { $gt: Date.now() },
     });
 

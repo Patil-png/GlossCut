@@ -27,7 +27,7 @@ import { Image as ExpoImage } from "expo-image";
 import { FlashList } from "@shopify/flash-list";
 import {
   Clock,
-  Navigation,
+  Navigation as NavigationIcon,
   Smartphone,
   Heart,
   X,
@@ -36,7 +36,10 @@ import {
   Star as StarIcon,
   MapPin,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Sparkles,
+  Check as CheckIcon,
+  Scissors
 } from "lucide-react-native";
 import * as Location from "expo-location";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
@@ -49,6 +52,18 @@ import BarberCard from "../src/components/BarberCard";
 
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const CARD_HEIGHT = 280;
+
+const getImageUrl = (image) => {
+  if (!image) return null;
+  if (typeof image === 'object' && image.uri) return image;
+  if (typeof image === 'string') {
+    if (image.startsWith('http') || image.startsWith('data:')) return { uri: image };
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://192.168.29.243:5000';
+    return { uri: `${baseUrl}${image.startsWith('/') ? '' : '/'}${image}` };
+  }
+  return image;
+};
 
 // --- OPTIMIZED SUB-COMPONENTS ---
 
@@ -125,8 +140,8 @@ const AnimatedLoadingBar = ({ theme }) => {
       style={[
         styles.routeLoadingBar,
         {
-          backgroundColor: '#f59e0b',
-          shadowColor: '#f59e0b',
+          backgroundColor: '#3b82f6',
+          shadowColor: '#3b82f6',
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.8,
           shadowRadius: 10,
@@ -144,30 +159,25 @@ const AnimatedLoadingBar = ({ theme }) => {
 
 const ShopMarker = memo(
   ({ barber, onPress, isSelected }) => {
-    const [tracksViewChanges, setTracksViewChanges] = useState(true);
+
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const floatAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(0)).current;
 
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        setTracksViewChanges(false);
-      }, 800);
-      return () => clearTimeout(timer);
-    }, []);
 
+    // Floating animation (featured only)
     useEffect(() => {
-      // Bobbing animation for Featured/Priority shops
       if (barber.isPriority) {
         Animated.loop(
           Animated.sequence([
             Animated.timing(floatAnim, {
               toValue: -6,
-              duration: 1500,
+              duration: 1200,
               useNativeDriver: true,
             }),
             Animated.timing(floatAnim, {
               toValue: 0,
-              duration: 1500,
+              duration: 1200,
               useNativeDriver: true,
             }),
           ])
@@ -175,77 +185,120 @@ const ShopMarker = memo(
       }
     }, [barber.isPriority]);
 
+    // Scale animation on select
     useEffect(() => {
       Animated.spring(scaleAnim, {
-        toValue: isSelected ? 1.25 : 1,
-        tension: 60,
-        friction: 5,
-        useNativeDriver: true
+        toValue: isSelected ? 1.2 : 1,
+        tension: 80,
+        friction: 6,
+        useNativeDriver: true,
       }).start();
     }, [isSelected]);
 
-    const shopImageSource = useMemo(() => {
-      if (barber.image) {
-        return {
-          uri: barber.image.startsWith("http")
-            ? barber.image
-            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`
-        };
+    // Pulse glow when selected
+    useEffect(() => {
+      if (isSelected) {
+        Animated.loop(
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1200,
+            useNativeDriver: true,
+          })
+        ).start();
+      } else {
+        pulseAnim.setValue(0);
       }
-      return require("../assets/GlossCut.png");
-    }, [barber.image]);
+    }, [isSelected]);
+
+    const pulseScale = pulseAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 1.6],
+    });
+
+    const pulseOpacity = pulseAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.4, 0],
+    });
+
+    const shopImageSource = useMemo(
+      () => getImageUrl(barber.image),
+      [barber.image]
+    );
 
     return (
       <Marker
         coordinate={{
           latitude: parseFloat(barber.location.coordinates[1]),
-          longitude: parseFloat(barber.location.coordinates[0])
+          longitude: parseFloat(barber.location.coordinates[0]),
         }}
         anchor={{ x: 0.5, y: 1 }}
         onPress={() => onPress(barber)}
-        tracksViewChanges={true} // Essential for Android custom markers with dynamic images
+        tracksViewChanges={true} // Forced true to fix visibility stability issues
         zIndex={isSelected ? 1000 : 1}
       >
-        <Animated.View style={[
-          styles.markerWrapper,
-          {
-            transform: [
-              { scale: scaleAnim },
-              { translateY: floatAnim }
-            ]
-          }
-        ]}>
-          {/* Badge Pill - Natural flow */}
-          {barber.isPriority ? (
-            <View style={[styles.insaneBadge, styles.featuredInsaneBadge]}>
-                <Text style={styles.insaneBadgeEmoji}>👑</Text>
-                <Text style={[styles.insaneBadgeText, styles.featuredInsaneBadgeText]}>FEATURED</Text>
-            </View>
-          ) : barber.rating === 0 && (
-            <View style={[styles.insaneBadge, styles.newInsaneBadge]}>
-                <Text style={styles.insaneBadgeEmoji}>✨</Text>
-                <Text style={styles.insaneBadgeText}>NEW</Text>
+        <Animated.View
+          collapsable={false}
+          style={[
+            styles.markerWrapper,
+            {
+              transform: [
+                { scale: scaleAnim },
+                { translateY: floatAnim },
+              ],
+            },
+          ]}
+        >
+          {/* 🔥 Ground Pulse Shadow */}
+          {isSelected && (
+            <Animated.View
+              style={[
+                styles.groundPulse,
+                {
+                  transform: [{ scale: pulseScale }],
+                  opacity: pulseOpacity,
+                },
+              ]}
+            >
+               <View style={styles.groundPulseInner} />
+            </Animated.View>
+          )}
+
+          {/* 🏷 FEATURED BADGE (Pixel Perfect) */}
+          {barber.isPriority && (
+            <View style={styles.premiumBadgeContainer}>
+              <View style={styles.premiumBadge}>
+                <Text style={styles.badgeEmoji}>👑</Text>
+                <Text style={styles.badgeText}>FEATURED</Text>
+              </View>
+              <View style={styles.badgePointer} />
             </View>
           )}
 
-          {/* Premium Multi-Layer Marker Core */}
-          <View style={[styles.insaneMarkerCore, isSelected && styles.insaneMarkerSelected]}>
-            <View style={styles.insaneMarkerImageContainer}>
-              <RNImage
-                source={shopImageSource}
-                style={styles.insaneMarkerImage}
-                resizeMode="cover"
-              />
-            </View>
+          {/* 🎯 MAIN PIN (Double Border & Glow) */}
+          <View style={[styles.mainPinContainer, isSelected && styles.pinGlow]}>
+             <View style={styles.redOuterBorder}>
+                <View style={styles.whiteInnerBorder}>
+                   {shopImageSource?.uri ? (
+                     <RNImage
+                       source={shopImageSource}
+                       style={styles.pinImage}
+                     />
+                   ) : (
+                     <View style={styles.pinFallback}>
+                       <Scissors size={22} color="#ef4444" />
+                     </View>
+                   )}
+                </View>
+             </View>
+             {/* Integrated Pointed Tip */}
+             <View style={styles.pinTipOuter}>
+                <View style={styles.pinTipInner} />
+             </View>
           </View>
-
-          {/* Pointer Arrow */}
-          <View style={[styles.insanePointer, isSelected && styles.insanePointerSelected]} />
         </Animated.View>
       </Marker>
     );
-  },
-  (prev, next) => prev.barber.uniqueId === next.barber.uniqueId && prev.isSelected === next.isSelected
+  }
 );
 
 // Internal ExpertItem removed in favor of src/components/BarberCard.jsx
@@ -307,7 +360,7 @@ const RatingBar = memo(({ rating, count, percentage, theme }) => (
         style={[
           styles.ratingBarFill,
           {
-            width: `${percentage * 100}%`,
+            width: `${Math.max(0, Math.min(1, percentage)) * 100}%`,
             backgroundColor: theme.colors.primary
           },
         ]}
@@ -331,6 +384,7 @@ const MapScreen = ({ navigation }) => {
   const [barbers, setBarbers] = useState([]);
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedShop, setSelectedShop] = useState(null);
+  const [selectedShopId, setSelectedShopId] = useState(null); // Stable ID for selection
   const [shopBarbers, setShopBarbers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -359,6 +413,7 @@ const MapScreen = ({ navigation }) => {
   // Handlers
   const resetToDefault = useCallback(() => {
     setSelectedShop(null);
+    setSelectedShopId(null);
     setSelectedBarber(null);
     Animated.spring(bottomSheetHeight, {
       toValue: screenHeight * 0.25,
@@ -370,6 +425,7 @@ const MapScreen = ({ navigation }) => {
 
   const handleMarkerPress = useCallback((shop) => {
     setSelectedShop(shop);
+    setSelectedShopId(shop._id);
     setShopBarbers(shop.barbers || []);
     Animated.spring(bottomSheetHeight, {
       toValue: screenHeight * 0.75,
@@ -724,7 +780,7 @@ const MapScreen = ({ navigation }) => {
               key={barber.uniqueId}
               barber={barber}
               onPress={handleMarkerPress}
-              isSelected={selectedShop?._id === barber._id}
+              isSelected={selectedShopId === barber._id}
             />
           );
         }
@@ -771,22 +827,28 @@ const MapScreen = ({ navigation }) => {
           <UserLocationMarker location={location} theme={theme} />
           {routeCoords.length > 0 && (
             <>
-              {/* Background Glow */}
+              {/* Solid Logistics Route Line */}
               <Polyline
                 coordinates={routeCoords}
-                strokeWidth={8}
-                strokeColor="#ef444433"
+                strokeWidth={5}
+                strokeColor="#2563eb"
                 lineCap="round"
                 lineJoin="round"
               />
-              {/* Main Road Line */}
-              <Polyline
-                coordinates={routeCoords}
-                strokeWidth={4}
-                strokeColor="#ef4444"
-                lineCap="round"
-                lineJoin="round"
-              />
+
+              {/* Destination Point Marker (House Icon style) */}
+              <Marker
+                coordinate={routeCoords[routeCoords.length - 1]}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <View style={styles.destinationMarkerOuter}>
+                  <View style={styles.destinationMarkerInner}>
+                    {/* Using a small View to simulate the house shape since it's a marker */}
+                    <View style={styles.houseTop} />
+                    <View style={styles.houseBody} />
+                  </View>
+                </View>
+              </Marker>
             </>
           )}
           {markers}
@@ -816,7 +878,7 @@ const MapScreen = ({ navigation }) => {
             onPress={handleLocateMe}
             activeOpacity={0.8}
           >
-            <Navigation size={24} color="#0f172a" />
+            <NavigationIcon size={24} color="#0f172a" />
           </TouchableOpacity>
         )}
 
@@ -913,14 +975,14 @@ const DefaultSheetContent = memo(({ theme }) => (
     <View style={styles.defaultSheetContent}>
       <View style={[styles.defaultSheetIcon, { backgroundColor: '#f8fafc' }]}>
         <View style={styles.pulseContainer}>
-            <View style={styles.pulseInner} />
-            <Search size={28} color="#ef4444" />
+          <View style={styles.pulseInner} />
+          <Search size={28} color="#ef4444" />
         </View>
       </View>
       <View style={styles.defaultSheetText}>
         <Text style={styles.defaultTitleText}>Find Your Perfect Style</Text>
         <Text style={styles.defaultSubtitleText}>
-           Explore elite grooming networks near you. Real-time availability at your fingertips.
+          Explore elite grooming networks near you. Real-time availability at your fingertips.
         </Text>
       </View>
     </View>
@@ -928,17 +990,12 @@ const DefaultSheetContent = memo(({ theme }) => (
 ));
 
 const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation, roadDistance }) => {
-  const shopImageSource = useMemo(
-    () => shop.image
-        ? { uri: shop.image.startsWith("http") ? shop.image : `${process.env.EXPO_PUBLIC_API_URL}${shop.image}` }
-        : require("../assets/GlossCut.png"),
-    [shop]
-  );
+  const shopImageSource = useMemo(() => getImageUrl(shop.image), [shop.image]);
 
   const handleServices = useCallback(() => {
     navigation.navigate("BarberSearch", {
-        selectedShop: shop,
-        fromHomeScreen: true
+      selectedShop: shop,
+      fromHomeScreen: true
     });
   }, [navigation, shop]);
 
@@ -963,19 +1020,19 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation, roadDi
         <View style={styles.webStyleInfo}>
           <View style={styles.webStyleBadgeRow}>
             {shop.isPriority ? (
-                <View style={styles.webFeaturedBadge}>
-                    <StarIcon size={8} color="#fff" fill="#fff" />
-                    <Text style={styles.webFeaturedBadgeText}>FEATURED</Text>
-                </View>
+              <View style={styles.webFeaturedBadge}>
+                <StarIcon size={8} color="#fff" fill="#fff" />
+                <Text style={styles.webFeaturedBadgeText}>FEATURED</Text>
+              </View>
             ) : (
-                <View style={styles.webPremiumBadge}>
-                    <Sparkles size={8} color="#f59e0b" />
-                    <Text style={styles.webPremiumBadgeText}>Premium</Text>
-                </View>
+              <View style={styles.webPremiumBadge}>
+                <Sparkles size={8} color="#f59e0b" />
+                <Text style={styles.webPremiumBadgeText}>Premium</Text>
+              </View>
             )}
             <View style={styles.webVerifiedBadge}>
-                <CheckIcon size={8} color="#3b82f6" />
-                <Text style={styles.webVerifiedBadgeText}>Verified</Text>
+              <CheckIcon size={8} color="#3b82f6" />
+              <Text style={styles.webVerifiedBadgeText}>Verified</Text>
             </View>
           </View>
 
@@ -991,31 +1048,31 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation, roadDi
           </View>
 
           <View style={styles.webActionRow}>
-             {roadDistance && (
-               <View style={styles.webDistancePill}>
-                 <NavigationIcon size={10} color="#f59e0b" style={{ marginRight: 4 }} />
-                 <Text style={styles.webDistanceText}>{roadDistance} km</Text>
-               </View>
-             )}
+            {roadDistance && (
+              <View style={styles.webDistancePill}>
+                <NavigationIcon size={10} color="#f59e0b" style={{ marginRight: 4 }} />
+                <Text style={styles.webDistanceText}>{roadDistance} km</Text>
+              </View>
+            )}
 
-             <View style={styles.webButtonsContainer}>
-                <TouchableOpacity
-                    onPress={handleServices}
-                    style={styles.webServicesBtn}
-                    activeOpacity={0.8}
-                >
-                    <Text style={styles.webServicesBtnText}>CHECK QUEUE</Text>
-                    <ChevronRight size={14} color="#fff" />
-                </TouchableOpacity>
+            <View style={styles.webButtonsContainer}>
+              <TouchableOpacity
+                onPress={handleServices}
+                style={styles.webServicesBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.webServicesBtnText}>CHECK QUEUE</Text>
+                <ChevronRight size={14} color="#fff" />
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                    onPress={onClose}
-                    style={styles.webCloseBtn}
-                    activeOpacity={0.7}
-                >
-                    <X size={16} color="#94a3b8" />
-                </TouchableOpacity>
-             </View>
+              <TouchableOpacity
+                onPress={onClose}
+                style={styles.webCloseBtn}
+                activeOpacity={0.7}
+              >
+                <X size={16} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
@@ -1024,18 +1081,8 @@ const ShopDetailCard = memo(({ shop, barbers, onClose, theme, navigation, roadDi
 });
 const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
   const displayShopName = barber.shopName || "Unknown Shop";
-  const shopImageSource = useMemo(
-    () =>
-      barber.image
-        ? {
-          uri: barber.image.startsWith("http")
-            ? barber.image
-            : `${process.env.EXPO_PUBLIC_API_URL}${barber.image}`
-        }
-        : require("../assets/GlossCut.png"),
-    [barber]
-  );
-  const displayRating = barber.rating ? barber.rating.toFixed(1) : "N/A";
+  const shopImageSource = useMemo(() => getImageUrl(barber.image), [barber.image]);
+  const displayRating = barber.rating ? Number(barber.rating).toFixed(1) : "N/A";
   const serviceProviderType = barber.category || "General";
 
   const { likedProviders, likeProvider, unlikeProvider } = useAuth();
@@ -1264,7 +1311,7 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
                   { backgroundColor: theme.colors.primary + "10" },
                 ]}
               >
-                <Navigation size={20} color={theme.colors.primary} />
+                <NavigationIcon size={20} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -1423,34 +1470,29 @@ const BarberDetailCard = memo(({ barber, onClose, theme, navigation }) => {
 
 // --- STYLES ---
 const mapStyle = [
-  { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+  { elementType: "geometry", stylers: [{ color: "#eef2f6" }] },
   { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#748895" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#eef2f6" }] },
   {
     featureType: "administrative.land_parcel",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#bdbdbd" }]
+    stylers: [{ color: "#adb5bd" }]
   },
   {
     featureType: "poi",
     elementType: "geometry",
-    stylers: [{ color: "#eeeeee" }]
+    stylers: [{ color: "#e1e8ed" }]
   },
   {
     featureType: "poi",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#757575" }]
+    stylers: [{ color: "#748895" }]
   },
   {
     featureType: "poi.park",
     elementType: "geometry",
-    stylers: [{ color: "#e5e5e5" }]
-  },
-  {
-    featureType: "poi.park",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#9e9e9e" }]
+    stylers: [{ color: "#cbd5e0" }]
   },
   {
     featureType: "road",
@@ -1458,45 +1500,20 @@ const mapStyle = [
     stylers: [{ color: "#ffffff" }]
   },
   {
-    featureType: "road.arterial",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#757575" }]
-  },
-  {
     featureType: "road.highway",
     elementType: "geometry",
-    stylers: [{ color: "#dadada" }]
+    stylers: [{ color: "#ffffff" }]
   },
   {
     featureType: "road.highway",
     elementType: "labels.text.fill",
-    stylers: [{ color: "#616161" }]
-  },
-  {
-    featureType: "road.local",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#9e9e9e" }]
-  },
-  {
-    featureType: "transit.line",
-    elementType: "geometry",
-    stylers: [{ color: "#e5e5e5" }]
-  },
-  {
-    featureType: "transit.station",
-    elementType: "geometry",
-    stylers: [{ color: "#eeeeee" }]
+    stylers: [{ color: "#748895" }]
   },
   {
     featureType: "water",
     elementType: "geometry",
-    stylers: [{ color: "#c9c9c9" }]
-  },
-  {
-    featureType: "water",
-    elementType: "labels.text.fill",
-    stylers: [{ color: "#9e9e9e" }]
-  },
+    stylers: [{ color: "#9cd3ff" }]
+  }
 ];
 
 const styles = StyleSheet.create({
@@ -2231,101 +2248,129 @@ const styles = StyleSheet.create({
   // --- INSANE REDESIGNED MARKER STYLES ---
   markerWrapper: {
     width: 100,
-    height: 100,
-    alignItems: 'center',
-    justifyContent: 'flex-end', // Design grows from bottom up
-    paddingBottom: 2, // Tiny buffer for the pointer tip
-    overflow: 'visible',
+    height: 120,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingBottom: 15,
   },
-  insaneMarkerCore: {
-    width: 44,
-    height: 44,
-    backgroundColor: 'white',
+  mainPinContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pinGlow: {
+    shadowColor: "#ef4444",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  redOuterBorder: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#ef4444",
+    padding: 2.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  whiteInnerBorder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    padding: 1.5,
+    overflow: "hidden",
+  },
+  pinImage: {
+    width: "100%",
+    height: "100%",
     borderRadius: 22,
-    padding: 2,
-    borderWidth: 2,
-    borderColor: '#ef4444',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-    zIndex: 5,
   },
-  insaneMarkerSelected: {
-    borderColor: '#ef4444',
-    transform: [{ scale: 1.15 }],
+  pinFallback: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
   },
-  insaneMarkerImageContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: '#f1f5f9',
-  },
-  insaneMarkerImage: {
-    width: 40,
-    height: 40,
-  },
-  insanePointer: {
-    width: 14,
-    height: 14,
-    backgroundColor: 'white',
-    borderBottomWidth: 2.5,
-    borderRightWidth: 2.5,
-    borderColor: '#ef4444',
-    transform: [{ rotate: '45deg' }],
-    marginTop: -8, // Perfectly links with the circle
-    marginBottom: 4, // Ensures the tip is captured
-    zIndex: 4,
-  },
-  insanePointerSelected: {
-    backgroundColor: '#ef4444',
-  },
-  insaneBadge: {
-    backgroundColor: 'white',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    marginBottom: -5, // Sits slightly on top of the circle
-  },
-  featuredInsaneBadge: {
-    backgroundColor: '#ef4444',
-    borderColor: '#ef4444',
-  },
-  newInsaneBadge: {
-    backgroundColor: '#7e22ce',
-    borderColor: '#7e22ce',
-  },
-  insaneBadgeEmoji: {
-    fontSize: 10,
-    marginRight: 3,
-  },
-  insaneBadgeText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#1a1a1a',
-  },
-  featuredInsaneBadgeText: {
-    color: 'white',
-  },
-  insaneContactShadow: {
+  pinTipOuter: {
     width: 18,
-    height: 3,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    height: 18,
+    backgroundColor: "#ef4444",
+    transform: [{ rotate: "45deg" }],
+    marginTop: -14,
+    zIndex: -1,
+    borderBottomRightRadius: 3,
+  },
+  pinTipInner: {
+    width: 10,
+    height: 10,
+    backgroundColor: "#fff",
+    position: "absolute",
+    right: 2.5,
+    bottom: 2.5,
+    borderBottomRightRadius: 1.5,
+  },
+  premiumBadgeContainer: {
+    position: "absolute",
+    top: 15,
+    alignItems: "center",
+    zIndex: 20,
+  },
+  premiumBadge: {
+    backgroundColor: "#ef4444",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  badgeEmoji: {
+    fontSize: 12,
+    marginRight: 4,
+    color: "#fff",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.4,
+  },
+  badgePointer: {
+    width: 0,
+    height: 0,
+    backgroundColor: "transparent",
+    borderStyle: "solid",
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderTopWidth: 5,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: "#ef4444",
+    marginTop: -1,
+  },
+  groundPulse: {
+    position: "absolute",
+    bottom: 8,
+    width: 44,
+    height: 22,
+    borderRadius: 20,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: -2,
+  },
+  groundPulseInner: {
+    width: 22,
+    height: 11,
     borderRadius: 10,
-    transform: [{ scaleX: 1.8 }],
-    marginBottom: 2,
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
   },
 
   // --- USER LOCATION PULSE ---
@@ -2361,9 +2406,47 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#fff",
   },
-
+  destinationMarkerOuter: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: "#000",
+  },
+  destinationMarkerInner: {
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  houseTop: {
+    width: 0,
+    height: 0,
+    backgroundColor: "transparent",
+    borderStyle: "solid",
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderBottomColor: "#f59e0b",
+  },
+  houseBody: {
+    width: 10,
+    height: 8,
+    backgroundColor: "#f59e0b",
+    marginTop: -1,
+  },
   // --- LOCATE ME BUTTON ---
   locateMeBtn: {
     position: 'absolute',

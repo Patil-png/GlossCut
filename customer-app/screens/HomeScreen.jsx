@@ -13,6 +13,7 @@ import {
   Image,
   Dimensions
 } from "react-native";
+import Svg, { Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { StatusBar } from "expo-status-bar";
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,6 +62,8 @@ import PromoCard from '../src/components/PromoCard';
 import PromoCarousel from '../src/components/PromoCarousel';
 import ServiceChip from '../src/components/ServiceChip';
 import SalonCard from '../src/components/SalonCard';
+import ActiveAppointmentBanner from '../src/components/ActiveAppointmentBanner';
+import { isToday } from 'date-fns';
 
 
 const BlobDecoration = ({ style }) => (
@@ -161,7 +164,70 @@ const HomeScreen = ({ navigation }) => {
   const [loadingShops, setLoadingShops] = useState(true);
   const [locationName, setLocationName] = useState('Detecting location...');
   const [isOffline, setIsOffline] = useState(false);
+  const [activeAppointment, setActiveAppointment] = useState(null);
   const styles = useMemo(() => getStyles(theme), [theme]);
+
+  const fetchActiveAppointment = async (coords = userCoords) => {
+    try {
+      const res = await api.get('/api/booking/history');
+      if (res.data && Array.isArray(res.data)) {
+        // Find first confirmed/started appointment for TODAY
+        const todayApp = res.data.find(app => 
+          isToday(new Date(app.date)) && 
+          ['confirmed', 'started', 'pending'].includes(app.status)
+        );
+        
+        if (todayApp) {
+          const shopLat = todayApp.barberId?.location?.coordinates?.[1];
+          const shopLng = todayApp.barberId?.location?.coordinates?.[0];
+          let distanceStr = '...';
+
+          if (coords && shopLat && shopLng) {
+            const distMeters = getDistance(coords.latitude, coords.longitude, shopLat, shopLng);
+            distanceStr = distMeters > 1000 
+              ? `${(distMeters / 1000).toFixed(1)} km` 
+              : `${Math.round(distMeters)} Metres`;
+          }
+
+          const trackId = todayApp.queueTrackingId || todayApp._id;
+
+          setActiveAppointment({
+            trackingId: trackId,
+            shopName: todayApp.barberId?.shopName || 'Studio',
+            shopAddress: todayApp.barberId?.address || todayApp.barberId?.shopAddress || 'Mumbai',
+            time: todayApp.time, // Fallback
+            otp: todayApp.otp || '----', // Added OTP
+            shopImage: todayApp.barberId?.shopImage ? `${API_URL}/${todayApp.barberId.shopImage}` : null,
+            distance: distanceStr
+          });
+
+          // --- FETCH LIVE ESTIMATED START TIME ---
+          try {
+            const trackRes = await api.get(`/api/booking/track/${trackId}`);
+            if (trackRes.data && trackRes.data.success) {
+              const queueData = trackRes.data.data;
+              const userQueueEntry = queueData.queueList?.find(item => 
+                item.id === todayApp._id || item.isTarget
+              );
+              
+              if (userQueueEntry && userQueueEntry.estArrival) {
+                setActiveAppointment(prev => ({
+                  ...prev,
+                  time: userQueueEntry.estArrival,
+                  otp: queueData.otp || prev.otp, // Ensure we get latest OTP
+                  queuePosition: queueData.queuePosition || 0 // EXTRACT REAL QUEUE POSITION
+                }));
+              }
+            }
+          } catch (trackErr) {
+            console.warn("Could not fetch live tracking for banner:", trackErr.message);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Error fetching today's appointment:", e);
+    }
+  };
 
   // --- 100% BEST PRACTICE CACHING CONSTANTS ---
   const CACHE_KEY_SHOPS = 'cached_nearby_shops';
@@ -171,10 +237,11 @@ const HomeScreen = ({ navigation }) => {
   const quickActions = [
     { id: 'Search', title: 'Search', Icon: Search, PremiumIcon: PremiumSearchIcon, variant: 'search', route: 'BarberSearch' },
     { id: 'TrackQueue', title: 'Track', Icon: Clock, PremiumIcon: PremiumHistoryIcon, variant: 'lime', route: 'TrackQueue' },
-    { id: 'Map', title: 'Shop Map', Icon: MapPin, PremiumIcon: PremiumMapIcon, variant: 'green', route: 'MapScreen' },
-    { id: 'FaceAI', title: 'Face AI', Icon: Bot, PremiumIcon: PremiumFaceIcon, variant: 'blue', route: 'FaceSuggestor' },
+    { id: 'Map', title: 'Shop Map', Icon: MapPin, PremiumIcon: PremiumMapIcon, variant: 'green', route: 'ShopMapScreen' },
     { id: 'History', title: 'History', Icon: Calendar, PremiumIcon: PremiumHistoryIcon, variant: 'black', route: 'History' },
-    { id: 'Liked', title: 'Liked', Icon: Heart, PremiumIcon: PremiumHeartIcon, variant: 'orange', route: 'LikedBarbers' },
+    { id: 'Coins', title: 'Coins', Icon: Zap, PremiumIcon: PremiumCoinIcon, variant: 'lime', route: 'SetkarCoins' },
+    { id: 'Notifications', title: 'Updates', Icon: Bell, PremiumIcon: PremiumBellIcon, variant: 'blue', route: 'Notifications' },
+    { id: 'Profile', title: 'Profile', Icon: User, PremiumIcon: null, variant: 'orange', route: 'Profile' },
   ];
 
   // Logic from old HomeScreen kept for data fetching
@@ -257,6 +324,11 @@ const HomeScreen = ({ navigation }) => {
         setUserCoords({ latitude: cachedLoc.lat, longitude: cachedLoc.lng });
       }
 
+      const cachedName = await AsyncStorage.getItem('cached_location_name');
+      if (cachedName) {
+        setLocationName(cachedName);
+      }
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         setLocationName('Amravati, MH');
@@ -264,12 +336,18 @@ const HomeScreen = ({ navigation }) => {
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced
-      });
+      // Fast location retrieval: Try last known position first (instant lookup)
+      let location = await Location.getLastKnownPositionAsync();
+      if (!location) {
+        // Fallback to active GPS querying if last known is not available
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced
+        });
+      }
 
       const { latitude, longitude } = location.coords;
       setUserCoords({ latitude, longitude });
+      fetchActiveAppointment({ latitude, longitude });
 
       // 2. LOCATION GUARD: Check if we moved enough to justify a server call
       if (cachedLocString && cachedShops) {
@@ -287,7 +365,9 @@ const HomeScreen = ({ navigation }) => {
       const reverseGeocode = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (reverseGeocode && reverseGeocode.length > 0) {
         const place = reverseGeocode[0];
-        setLocationName(`${place.district || place.city || place.name || 'Nearby'}, ${place.region || ''}`);
+        const resolvedName = `${place.district || place.city || place.name || 'Nearby'}, ${place.region || ''}`;
+        setLocationName(resolvedName);
+        await AsyncStorage.setItem('cached_location_name', resolvedName);
       }
 
       fetchNearbyShops(latitude, longitude, !!cachedShops);
@@ -307,7 +387,26 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     getUserLocation();
+    fetchActiveAppointment();
   }, []);
+
+  // Polling for live time updates every 1 minute
+  useEffect(() => {
+    let interval;
+    if (activeAppointment) {
+      interval = setInterval(() => {
+        fetchActiveAppointment();
+      }, 60000);
+    }
+    return () => clearInterval(interval);
+  }, [activeAppointment?.trackingId]);
+
+  // Recalculate distance when coords are updated
+  useEffect(() => {
+    if (userCoords && activeAppointment) {
+      fetchActiveAppointment(userCoords);
+    }
+  }, [userCoords]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -322,51 +421,28 @@ const HomeScreen = ({ navigation }) => {
       {/* SPACER FOR STICKY HEADER (approx height) */}
       <View style={{ height: insets.top + 140 }} />
 
-      {/* ── QUICK ACTIONS CARD SECTION ── */}
+
+
+      {/* --- ACTIVE APPOINTMENT BANNER (Shown if appointment exists today) --- */}
+      {activeAppointment && (
+        <ActiveAppointmentBanner appointment={activeAppointment} />
+      )}
 
       {/* ── QUICK ACTIONS CARD SECTION ── */}
-      <View style={[styles.quickActionsCard, { marginTop: 8 }]}>
-        <View style={styles.sectionHeader}>
-          <View style={styles.headerPill}>
-            <Text style={styles.headerPillText}>Quick Actions</Text>
-          </View>
-          <View style={styles.headerLine} />
+      {/* PROMO SECTION HEADER */}
+      <View style={[styles.sectionHeader, { marginBottom: 2, marginTop: 8, paddingHorizontal: Layout.screenPadding }]}>
+        <View style={styles.headerPill}>
+          <Text style={styles.headerPillText}>Featured Offers</Text>
         </View>
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={quickActions}
-          keyExtractor={item => item.id}
-          style={{ overflow: 'visible' }} // Allow shadows to bleed out
-          contentContainerStyle={{ paddingLeft: Layout.screenPadding, paddingRight: 8, paddingBottom: 14 }} // Fine-tuned from 16 to 14
-          renderItem={({ item, index }) => (
-            <ServiceChip
-              title={item.title}
-              Icon={item.Icon}
-              PremiumIcon={item.PremiumIcon}
-              active={false}
-              autoAnimate={false}
-              onPress={() => {
-                if (item.id === 'History') {
-                  triggerHistoryTransition();
-                } else if (item.action) {
-                  item.action();
-                } else {
-                  navigation.navigate(item.route);
-                }
-              }}
-              colorVariant={item.variant}
-            />
-          )}
-        />
+        <View style={styles.headerLine} />
       </View>
 
       {/* PROMO SECTION */}
       <View style={{
-        marginTop: 0, marginBottom: 4 // Back to 0 from -8
+        marginTop: 0, marginBottom: 8
       }}>
         {/* ── PROMO CAROUSEL SECTION ── */}
-        <PromoCarousel />
+        <PromoCarousel navigation={navigation} />
       </View>
 
       {/* TOP RATED SECTION TITLE */}
@@ -395,7 +471,7 @@ const HomeScreen = ({ navigation }) => {
       <BlobDecoration style={{ bottom: 100, right: -100, opacity: 0.03 }} />
 
       {/* STICKY NAVBAR */}
-      <View style={styles.topSection}>
+      <View style={styles.topSection} pointerEvents="box-none">
         <View style={[styles.locationRow, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity onPress={() => navigation.navigate("Profile")} style={styles.backButton}>
             <View style={styles.avatar}>
@@ -405,7 +481,7 @@ const HomeScreen = ({ navigation }) => {
 
           <View style={styles.locationTextContainer}>
             <Text style={styles.locationLabel}>{getGreeting()} 👋</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("MapScreen")}>
+            <TouchableOpacity onPress={() => navigation.navigate("ShopMapScreen")}>
               <Text style={styles.locationValue} numberOfLines={1}>{locationName} • Now ▾</Text>
             </TouchableOpacity>
           </View>
@@ -444,7 +520,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
             <TouchableOpacity
               style={styles.searchDivider}
-              onPress={() => navigation.navigate("MapScreen")}
+              onPress={() => navigation.navigate("ShopMapScreen")}
             >
               <MapPin size={18} color="rgba(255, 255, 255, 0.4)" />
             </TouchableOpacity>
@@ -473,7 +549,14 @@ const HomeScreen = ({ navigation }) => {
                 (getDistance(userCoords.latitude, userCoords.longitude, item.location.coordinates[1], item.location.coordinates[0]) / 1000).toFixed(1) + " km"
                 : null
               }
-              onPress={() => navigation.navigate("Booking", { barberData: item })}
+              onPress={() => {
+                const routeName = item.category === "Pet Care" ? "PetCareSearch" :
+                                 item.category === "Women's Salon" ? "WomenSalonSearch" : "BarberSearch";
+                navigation.navigate(routeName, {
+                  selectedShopId: item._id || item.id,
+                  fromHomeScreen: true
+                });
+              }}
             />
           </View>
         )}
@@ -693,12 +776,11 @@ const getStyles = (theme) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderRadius: 1
   },
-  quickActionsCard: {
-    backgroundColor: 'transparent', // Let it float on page background
-    paddingTop: 8,
-    paddingBottom: 0, // Reduced since FlatList handles inner padding
-    marginBottom: 0, // Gap reduction
-    overflow: 'visible', // Ensure no clipping
+  headerLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    borderRadius: 1
   }
 });
 

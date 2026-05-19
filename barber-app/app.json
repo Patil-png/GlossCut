@@ -17,7 +17,7 @@
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Allow SetKarr to use FaceID to unlock the app.",
+        "NSFaceIDUsageDescription": "Allow GlossCut Partner to use FaceID to unlock the app.",
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Allow GlossCut Partner to access your camera to take profile and shop photos.",
         "NSPhotoLibraryUsageDescription": "Allow GlossCut Partner to access your photos to upload profile and shop images.",

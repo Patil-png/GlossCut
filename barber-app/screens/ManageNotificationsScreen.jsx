@@ -342,7 +342,7 @@ export default function ManageNotificationsScreen({ navigation }) {
             <InfoCard
               icon={Bell}
               title="Payment Updates"
-              desc="Notifications about payment confirmations and SetKarr Coin rewards."
+              desc="Notifications about payment confirmations and GlossCut rewards."
               theme={theme}
               isDark={isDark}
             />

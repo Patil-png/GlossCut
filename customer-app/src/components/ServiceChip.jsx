@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Typography } from '../theme/typography';
 import { Layout } from '../theme/layout';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const ServiceChip = ({ title, Icon, active, onPress, colorVariant = 'white', PremiumIcon, autoAnimate, entranceDelay = 0 }) => {
   const iconRef = React.useRef(null);
@@ -26,91 +27,120 @@ const ServiceChip = ({ title, Icon, active, onPress, colorVariant = 'white', Pre
 
   const isAI = title === 'AI Style' || title === 'Face AI';
 
+  // Dynamic light effect colors based on variant
+  const getGlowColor = () => {
+    switch (colorVariant) {
+      case 'lime': return '#C8FF00';
+      case 'green': return '#2ECC71';
+      case 'blue': return '#3498DB';
+      case 'orange': return '#E67E22';
+      case 'search': return '#FFFFFF';
+      default: return '#FFFFFF';
+    }
+  };
+
+  const glowColor = getGlowColor();
+
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress} activeOpacity={0.85}>
-      <LinearGradient
-        colors={['#FFFFFF', '#F9FAFB']}
-        style={styles.cardGradient}
-      >
-        <View
-          style={[
-            styles.iconBox,
-            active && styles.iconBoxActive,
-          ]}
+      <View style={[styles.glowLayer, { shadowColor: glowColor }]} />
+      <BlurView intensity={Platform.OS === 'ios' ? 40 : 100} tint="light" style={styles.blurContainer}>
+        <LinearGradient
+          colors={['rgba(255, 255, 255, 0.95)', 'rgba(249, 250, 251, 0.85)']}
+          style={styles.cardGradient}
         >
-          {PremiumIcon ? (
-            <PremiumIcon ref={iconRef} active={active} />
-          ) : (
-            Icon && (
-              <Icon
-                size={22}
-                color={active ? Colors.TEXT_ON_DARK : Colors.TEXT_PRIMARY}
-                strokeWidth={2}
-              />
-            )
-          )}
+          <View
+            style={[
+              styles.iconBox,
+              active && styles.iconBoxActive,
+            ]}
+          >
+            {PremiumIcon ? (
+              <PremiumIcon ref={iconRef} active={active} />
+            ) : (
+              Icon && (
+                <Icon
+                  size={24}
+                  color={active ? Colors.TEXT_ON_DARK : Colors.TEXT_PRIMARY}
+                  strokeWidth={2}
+                />
+              )
+            )}
 
-          {isAI && (
-            <View style={styles.aiBadge}>
-              <Text style={styles.aiText}>AI</Text>
-            </View>
-          )}
-        </View>
-        <Text
-          style={[
-            Typography.TAG_BADGE,
-            styles.label,
-            { color: active ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY },
-          ]}
-        >
-          {title}
-        </Text>
-      </LinearGradient>
+            {isAI && (
+              <View style={styles.aiBadge}>
+                <Text style={styles.aiText}>AI</Text>
+              </View>
+            )}
+          </View>
+          <Text
+            style={[
+              styles.label,
+              { color: active ? Colors.TEXT_PRIMARY : Colors.TEXT_SECONDARY },
+            ]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+        </LinearGradient>
+      </BlurView>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginRight: 14,
-    width: 88,
-    height: 88,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    // Multi-layered professional shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+    marginHorizontal: 4,
+    position: 'relative',
+  },
+  glowLayer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    bottom: 0,
+    borderRadius: 24,
+    backgroundColor: 'transparent',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  blurContainer: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   cardGradient: {
     flex: 1,
-    paddingTop: 8, // Reduced from 12 for better centering in square
-    borderRadius: 22,
+    paddingTop: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.03)',
   },
   iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
     position: 'relative',
   },
   iconBoxActive: {
-    backgroundColor: Colors.CTA_BUTTON + '15', // Subtle tint for active
+    backgroundColor: 'rgba(200, 255, 0, 0.15)',
   },
   label: {
-    marginTop: 6,
-    fontSize: 11,
+    marginTop: 4,
+    fontSize: 10,
     fontFamily: 'DMSans_700Bold',
     textAlign: 'center',
-    letterSpacing: -0.2,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
     paddingHorizontal: 4
   },
   aiBadge: {

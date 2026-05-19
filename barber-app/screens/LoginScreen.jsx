@@ -298,7 +298,7 @@ const LoginScreen = () => {
             if (success) {
                 // Clear any OAuth error state when user signs in normally
                 try { setOauthError && setOauthError(null); } catch (e) { }
-                showAlert("Success", "Welcome back to SetKarr!", "success");
+                showAlert("Success", "Welcome back to GlossCut!", "success");
                 setTimeout(() => {
                     // Changed: Replace with Home instead of Onboarding
                     navigation.replace("Home");

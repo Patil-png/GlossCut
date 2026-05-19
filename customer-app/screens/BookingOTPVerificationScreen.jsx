@@ -1,9 +1,20 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo, memo, forwardRef } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, Animated,
-  Platform, ScrollView, StatusBar, KeyboardAvoidingView
+  Platform, ScrollView, StatusBar, KeyboardAvoidingView, Dimensions
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const scale = Math.min(SCREEN_WIDTH / 375, 1.25);
+const normalize = (size) => {
+  const newSize = size * scale;
+  if (Platform.OS === 'ios') {
+    return Math.round(newSize);
+  } else {
+    return Math.round(newSize) - 1;
+  }
+};
 import { Feather as Icon } from "@expo/vector-icons";
 import { ShieldCheck, Calendar, Copy, FileText, MapPin, User as UserIcon, CheckCircle2 } from "lucide-react-native";
 import api from "../utils/api";
@@ -87,6 +98,12 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
   };
 
   const [phone, setPhone] = useState(cleanPhone(user?.phone));
+  const formattedPhone = useMemo(() => {
+    if (phone && phone.length === 10) {
+      return `${phone.slice(0, 5)} ${phone.slice(5)}`;
+    }
+    return phone;
+  }, [phone]);
   const [phoneSubmitted, setPhoneSubmitted] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -395,7 +412,7 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
         </View>
 
         {/* Sender Details (Mapped to Customer Details) */}
-        <View style={[styles.card, { marginBottom: 40 }]}>
+        <View style={[styles.card, { marginBottom: 16 }]}>
           <View style={styles.cardHeader}>
             <UserIcon size={16} color="#555" />
             <Text style={styles.cardTitle}>Customer details</Text>
@@ -421,32 +438,75 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* WhatsApp Phone Input Section (styled like EditPhoneNumberScreen) */}
+        {!phoneSubmitted && (
+          <View style={[styles.card, { marginBottom: 40 }]}>
+            <View style={styles.cardHeader}>
+              <Icon name="phone" size={16} color="#FF4B2B" />
+              <Text style={styles.cardTitle}>Verification Number</Text>
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <View style={styles.inputOutline}>
+                <View style={styles.labelBackground}>
+                  <Text style={styles.inputLabel}>WHATSAPP MOBILE</Text>
+                </View>
+                <View style={styles.inputContent}>
+                  <Text style={styles.countryCode}>🇮🇳 +91</Text>
+                  <View style={styles.verticalDivider} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={phone}
+                    onChangeText={(text) => {
+                      const cleaned = text.replace(/[^0-9]/g, "");
+                      setPhone(cleaned.slice(0, 10));
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={10}
+                    placeholder="Enter phone number"
+                    placeholderTextColor="#94A3B8"
+                    accessibilityLabel="WhatsApp phone number"
+                  />
+                  {phone.length === 10 && <CheckCircle2 size={18} color="#10B981" />}
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
       </ScrollView>
 
       {/* Sticky Verification Footer */}
-      <View style={[styles.footerContainer, { paddingBottom: keyboardVisible ? 12 : Math.max(insets.bottom, 12) }]}>
+      <View
+        style={[
+          styles.footerContainer,
+          {
+            height: phoneSubmitted
+              ? (keyboardVisible ? 172 : 172 + insets.bottom)
+              : (keyboardVisible ? 60 : 62 + insets.bottom),
+            paddingBottom: keyboardVisible ? 4 : insets.bottom,
+            paddingTop: 10,
+            justifyContent: 'flex-start'
+          }
+        ]}
+      >
         {!phoneSubmitted ? (
-          <View style={styles.footerRow}>
-            <View style={styles.phonePill}>
-              <View style={styles.pillIconBox}>
-                <Icon name="shield" size={14} color="#FF4B2B" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.pillLabel}>WhatsApp Number</Text>
-                <Text style={styles.phonePillText}>+91 {phone || "---"}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.compactBtn} onPress={handleSendOTP} disabled={loading}>
-              <Text style={styles.compactBtnText}>{loading ? "..." : "Get OTP"}</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.giantButton, { backgroundColor: '#FF4B2B' }]}
+            onPress={handleSendOTP}
+            disabled={loading || phone.length !== 10}
+          >
+            <Text style={styles.giantButtonText}>
+              {loading ? "Processing..." : "Get OTP via WhatsApp"}
+            </Text>
+          </TouchableOpacity>
         ) : (
           // OTP entry state
           <View style={{ width: '100%' }}>
             <View style={[styles.otpHeader, { justifyContent: 'center' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={styles.liveIndicator} />
-                <Text style={styles.otpStatusText}>OTP sent to +91 {phone}</Text>
+                <Text style={styles.otpStatusText}>We sent a code to +91 {formattedPhone}</Text>
               </View>
             </View>
 
@@ -455,25 +515,23 @@ const BookingOTPVerificationScreen = ({ route, navigation }) => {
                 <DigitInput key={i} index={i} digit={d} loading={loading} onChangeText={handleChange} onKeyPress={handleKeyPress} ref={el => inputs.current[i] = el} />
               ))}
             </View>
+
+            <TouchableOpacity
+              style={styles.giantButton}
+              onPress={handleVerifyAndBook}
+              disabled={loading}
+            >
+              <Text style={styles.giantButtonText}>
+                {loading ? "Processing..." : "Confirm & Book"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={!loading ? handleSendOTP : null} style={styles.resendBtn}>
+              <Text style={styles.resendText}>
+                Didn't receive code? <Text style={{ color: '#FF4B2B', fontWeight: '800' }}>Resend</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        {phoneSubmitted && (
-          <TouchableOpacity
-            style={styles.giantButton}
-            onPress={handleVerifyAndBook}
-            disabled={loading}
-          >
-            <Text style={styles.giantButtonText}>
-              {loading ? "Processing..." : "Confirm & Book"}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {phoneSubmitted && (
-          <TouchableOpacity onPress={!loading ? handleSendOTP : null} style={styles.resendBtn}>
-            <Text style={styles.resendText}>Didn't receive code? <Text style={{ color: '#FF4B2B' }}>Resend</Text></Text>
-          </TouchableOpacity>
         )}
       </View>
     </KeyboardAvoidingView>
@@ -538,7 +596,6 @@ const styles = StyleSheet.create({
   // Sticky Footer
   footerContainer: {
     paddingHorizontal: 20,
-    paddingTop: 10, // Increased height
     backgroundColor: '#0F172A', // Premium Dark Navy
     borderTopLeftRadius: 30, // More rounded for premium look
     borderTopRightRadius: 30,
@@ -606,17 +663,17 @@ const styles = StyleSheet.create({
   inputSection: { marginBottom: 12 },
   simpleInput: { backgroundColor: '#1E293B', height: 50, borderRadius: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: '#334155', color: '#FFFFFF' },
 
-  otpHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 },
-  otpStatusText: { fontSize: 11, color: '#94A3B8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  otpHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingHorizontal: 4 },
+  otpStatusText: { fontSize: 13, color: '#94A3B8', fontWeight: '600', letterSpacing: 0.2 },
   liveIndicator: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#2ECC71' },
 
-  otpGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, paddingHorizontal: 2 },
+  otpGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 2 },
   otpInput: { width: 44, height: 50, borderRadius: 14, backgroundColor: '#1E293B', borderWidth: 1.5, borderColor: '#334155', fontSize: 24, fontWeight: '800', textAlign: 'center', color: '#FFFFFF' },
 
-  giantButton: { backgroundColor: '#FF4B2B', height: 45, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10, shadowColor: '#FF4B2B', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
+  giantButton: { backgroundColor: '#FF4B2B', height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 8, shadowColor: '#FF4B2B', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 10 },
   giantButtonText: { color: '#FFF', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
   resendBtn: { alignItems: 'center', paddingVertical: 2 },
-  resendText: { color: '#94A3B8', fontSize: 14, fontWeight: '600' },
+  resendText: { color: '#94A3B8', fontSize: 13, fontWeight: '500' },
 
   // Timeline Progress
   timelineWrapper: {
@@ -745,7 +802,61 @@ const styles = StyleSheet.create({
   customerName: { fontSize: 16, fontWeight: '800', color: '#111827' },
   customerSub: { fontSize: 13, color: '#6B7280', marginTop: 2, fontWeight: '500' },
   safeBadge: { backgroundColor: '#D1FAE5', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, flexDirection: 'row', alignItems: 'center' },
-  safeBadgeText: { color: '#059669', fontSize: 11, fontWeight: '800' }
+  safeBadgeText: { color: '#059669', fontSize: 11, fontWeight: '800' },
+
+  // Input Section Styles (like EditPhoneNumberScreen)
+  inputWrapper: {
+    width: "100%",
+    marginTop: normalize(12)
+  },
+  inputOutline: {
+    height: normalize(52),
+    borderWidth: 1.5,
+    borderColor: "#F1F5F9",
+    borderRadius: normalize(12),
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: normalize(16),
+    backgroundColor: "#F8FAFC"
+  },
+  labelBackground: {
+    position: "absolute",
+    top: normalize(-8),
+    left: normalize(12),
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: normalize(4),
+    zIndex: 1
+  },
+  inputLabel: {
+    fontSize: normalize(9),
+    color: "#94A3B8",
+    fontWeight: "800",
+    letterSpacing: 0.8
+  },
+  inputContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1
+  },
+  countryCode: {
+    fontSize: normalize(15),
+    color: "#0F172A",
+    fontWeight: "800"
+  },
+  verticalDivider: {
+    width: 2,
+    height: normalize(24),
+    backgroundColor: "#E2E8F0",
+    marginHorizontal: normalize(16),
+    borderRadius: 1
+  },
+  textInput: {
+    flex: 1,
+    fontSize: normalize(16),
+    color: "#0F172A",
+    fontWeight: "800",
+    letterSpacing: 1
+  }
 });
 
 export default BookingOTPVerificationScreen;

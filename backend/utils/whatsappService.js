@@ -117,9 +117,9 @@ ${selectedFooter}
     }
 
     /**
-     * Send OTP safely with randomized delays
+     * Send OTP safely with randomized delays and retry logic
      */
-    async sendSafeOTP(phone, otp) {
+    async sendSafeOTP(phone, otp, retries = 2) {
         if (!this.isReady) {
             console.warn('⚠️ WhatsApp client is not ready yet. Cannot send OTP.');
             return { success: false, error: 'WhatsApp client not ready' };
@@ -133,24 +133,52 @@ ${selectedFooter}
             }
             const chatId = `${formattedPhone}@c.us`;
 
-            // Randomized delay between 5 to 15 seconds
-            const randomDelay = Math.floor(Math.random() * (15000 - 5000 + 1) + 5000);
+            // Minimal randomized delay for instant delivery (200-500ms)
+            const randomDelay = Math.floor(Math.random() * (500 - 200 + 1) + 200);
             console.log(`⏳ Waiting ${randomDelay}ms before sending OTP to ${formattedPhone}...`);
             await this.sleep(randomDelay);
 
-            // Simulate "Typing" state to look more human
-            const chat = await this.client.getChatById(chatId);
-            await chat.sendStateTyping();
-            await this.sleep(3000); // "Type" for 3 seconds
+            // Attempt to send with retry logic for Puppeteer stability
+            return await this._executeWithRetry(async () => {
+                try {
+                    // Try to simulate "Typing" state to look more human, but without blocking sleep
+                    const chat = await this.client.getChatById(chatId);
+                    await chat.sendStateTyping();
+                } catch (typingError) {
+                    console.warn('⚠️ Typing simulation failed, falling back to direct send:', typingError.message);
+                }
 
-            const message = this.generateMessage(otp);
-            await this.client.sendMessage(chatId, message);
-            
-            console.log(`✅ WhatsApp OTP sent to ${formattedPhone}`);
-            return { success: true };
+                // Main send action - this is more robust in wwebjs
+                const message = this.generateMessage(otp);
+                await this.client.sendMessage(chatId, message);
+                
+                console.log(`✅ WhatsApp OTP sent to ${formattedPhone}`);
+                return { success: true };
+            }, retries);
+
         } catch (error) {
-            console.error('❌ Error sending WhatsApp OTP:', error);
+            console.error('❌ Final WhatsApp OTP Failure:', error);
             return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Internal helper to execute wwebjs commands with retries for "detached frame" errors
+     */
+    async _executeWithRetry(fn, retries) {
+        try {
+            return await fn();
+        } catch (error) {
+            const isDetached = error.message.includes('detached Frame') || 
+                               error.message.includes('Execution context was destroyed') ||
+                               error.message.includes('Target closed');
+            
+            if (isDetached && retries > 0) {
+                console.warn(`⚠️ WhatsApp stability issue detected. Retrying... (${retries} left)`);
+                await this.sleep(4000); // Increased wait for browser to stabilize
+                return await this._executeWithRetry(fn, retries - 1);
+            }
+            throw error;
         }
     }
 }

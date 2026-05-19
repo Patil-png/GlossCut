@@ -9,22 +9,7 @@ import PromoCard from './PromoCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// PRESET DATA - Consolidating into one section to avoid confusion
 const PROMO_DATA = [
-  {
-    id: '1',
-    title: 'Live Slot Visibility',
-    subtext: 'No more calling! See our digital "Live Board" of available times instantly.',
-    badgeText: 'LIVE BOARD',
-    buttonText: 'View Board'
-  },
-  {
-    id: '2',
-    title: 'Frictionless Booking',
-    subtext: 'Booking a haircut is now as easy as ordering food on Zomato.',
-    badgeText: 'ZOMATO-EASY',
-    buttonText: 'Check Live Queue'
-  },
   {
     id: '3',
     title: 'Book From Anywhere',
@@ -57,8 +42,35 @@ const PROMO_DATA = [
 
 const AUTO_SCROLL_INTERVAL = 4000;
 
-const PromoCarousel = () => {
+const PromoCarousel = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handlePromoPress = (item) => {
+    if (!navigation) return;
+    switch (item.id) {
+      case '1': // Live Slot Visibility -> ShopMapScreen
+        navigation.navigate("ShopMapScreen");
+        break;
+      case '2': // Frictionless Booking -> TrackQueue
+        navigation.navigate("TrackQueue");
+        break;
+      case '3': // Book From Anywhere -> BarberSearch
+        navigation.navigate("BarberSearch");
+        break;
+      case '4': // Complete Shop Info -> ShopMapScreen
+        navigation.navigate("ShopMapScreen");
+        break;
+      case '5': // Track Appointment -> TrackQueue
+        navigation.navigate("TrackQueue");
+        break;
+      case '6': // Automated Reminders -> ManageNotifications
+        navigation.navigate("ManageNotifications");
+        break;
+      default:
+        navigation.navigate("BarberSearch");
+        break;
+    }
+  };
   const flatListRef = useRef(null);
   const scrollValue = useRef(new Animated.Value(0)).current;
   const timerRef = useRef(null);
@@ -131,7 +143,7 @@ const PromoCarousel = () => {
               subtext={item.subtext}
               badgeText={item.badgeText}
               buttonText={item.buttonText}
-              onClaim={() => { }}
+              onClaim={() => handlePromoPress(item)}
               isFullWidth={true}
             />
           </View>

@@ -8,6 +8,7 @@ const BarberCardDeleteRequest = require('../models/BarberCardDeleteRequest');
 const Shop = require('../models/Shop');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const { decrypt } = require('../utils/EncryptionService');
 const Service = require('../models/Service');
 const Booking = require('../models/Booking');
 const multer = require('multer');
@@ -455,7 +456,7 @@ router.get('/all', redisCache(600), async (req, res) => {
     // 2. Fetch Cards with Pagination
     console.log('Fetching barber cards with filter:', filter);
     let query = BarberCard.find(filter)
-      .select('name image services specialties avgAppointmentTime isAvailable barberId shopId approvalStatus') // Slim selection
+      .select('name image services specialties avgAppointmentTime isAvailable barberId shopId approvalStatus categoryOrder') // Slim selection
       .populate('barberId', 'name profilePicture rating reviews maxAppointmentsPerDay todaysBookings isAvailable')
       .populate('shopId', 'name address category tag isAvailable services operatingHours')
       .sort({ createdAt: -1 });
@@ -493,8 +494,16 @@ router.get('/all', redisCache(600), async (req, res) => {
 
     await Review.populate(reviewsAggregation, { path: 'reviews.userId', select: 'name' });
 
+    // Manually decrypt review comments since aggregation bypassed mongoose getters
     const reviewsMap = new Map();
     reviewsAggregation.forEach(item => {
+      if (Array.isArray(item.reviews)) {
+        item.reviews.forEach(rev => {
+          if (rev.comment) {
+            rev.comment = decrypt(rev.comment);
+          }
+        });
+      }
       reviewsMap.set(item._id.toString(), item);
     });
 
@@ -585,11 +594,13 @@ router.get('/all', redisCache(600), async (req, res) => {
         isAvailable: card.barberId.isAvailable,
         todaysBookings: currentBookings,
         isFullyBooked: isFullyBooked,
+        shopId: card.shopId ? (card.shopId._id || card.shopId) : null,
         shopName: card.shopId ? card.shopId.name : 'Independent',
         operatingHours: card.shopId ? card.shopId.operatingHours : null,
         listingTier: 'Basic',
         reviews,
         approvalStatus: card.approvalStatus, // Include approval status for UI indicators
+        categoryOrder: card.categoryOrder || [],
       };
     });
 
@@ -879,6 +890,15 @@ router.get('/:id', async (req, res) => {
 
     await Review.populate(reviewsAggregation, { path: 'reviews.userId', select: 'name' });
 
+    // Manually decrypt review comments since aggregation bypassed mongoose getters
+    if (reviewsAggregation.length > 0 && Array.isArray(reviewsAggregation[0].reviews)) {
+      reviewsAggregation[0].reviews.forEach(rev => {
+        if (rev.comment) {
+          rev.comment = decrypt(rev.comment);
+        }
+      });
+    }
+
     const reviewData = reviewsAggregation[0] || { reviews: [], count: 0, avgRating: 0 };
 
     // Construct the response similar to the /all route
@@ -902,6 +922,7 @@ router.get('/:id', async (req, res) => {
       listingTier: 'Basic',
       reviews: reviewData.reviews,
       approvalStatus: barberCard.approvalStatus,
+      categoryOrder: barberCard.categoryOrder || [],
     };
 
     // --- Dynamic Service Sync & Hydration ---

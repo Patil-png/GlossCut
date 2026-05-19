@@ -232,19 +232,27 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, otp = null) => {
     try {
-      const res = await api.post('/api/auth/login', { email, password });
+      const payload = { email, password };
+      if (otp) payload.otp = otp;
+      const res = await api.post('/api/auth/login', payload);
+      
+      // Check if 2FA is required
+      if (res.data.twoFactorRequired) {
+        return { twoFactorRequired: true, email: res.data.email };
+      }
+
       setToken(res.data.token);
       await SecureStore.setItemAsync('token', res.data.token);
       const userRes = await api.get('/api/auth/user');
       setIsNewLogin(true);
       setUser(userRes.data);
       await loadLikedProviders();
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Login error:', err);
-      return false;
+      return { success: false, error: err.response?.data?.msg || 'Login failed' };
     }
   };
 
@@ -273,9 +281,21 @@ export const AuthProvider = ({ children }) => {
   const verifyTwoFactorOtp = async (email, otp) => {
     try {
       await api.post('/api/auth/2fa/verify', { token: otp });
+      await fetchUser(); // Sync state to show "Active" immediately
       return true;
     } catch (err) {
       console.error('2FA verification error:', err);
+      return false;
+    }
+  };
+
+  const disableTwoFactor = async () => {
+    try {
+      await api.post('/api/auth/2fa/disable');
+      await fetchUser();
+      return true;
+    } catch (err) {
+      console.error('Disable 2FA error:', err);
       return false;
     }
   };
@@ -386,6 +406,7 @@ export const AuthProvider = ({ children }) => {
       checkIsLiked,
       loadLikedProviders,
       fetchUser,
+      disableTwoFactor,
       // OAuth error state and helpers
       oauthError,
       setOauthError,

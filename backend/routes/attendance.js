@@ -208,8 +208,9 @@ router.get('/stats/:shopId', auth, async (req, res) => {
 
         // Subscription Gating for stats
         const sub = await checkEffectiveSubscription(req.user.id);
-        if (!sub.isActive) {
-            return res.status(403).json({ msg: 'Attendance dashboard requires an active Premium subscription.' });
+        if (!sub.isActive) {if (!sub.isActive) {
+            return res.status(403).json({msg : ' Attendence dashboard requiores an active Premium subscription.' });
+        }
         }
 
         const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));

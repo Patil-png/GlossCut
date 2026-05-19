@@ -22,13 +22,14 @@ import {
   Send,
   ArrowLeft,
   CheckCircle,
-  XCircle,
   ShieldCheck,
   Info,
   MoreVertical,
   Zap,
   Command,
-  Headphones
+  Headphones,
+  User,
+  Sparkles
 } from "lucide-react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,6 +45,13 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 const { width } = Dimensions.get("window");
 
+// Helper for responsive sizing
+const normalize = (size) => {
+  const scale = Math.min(width / 375, 1.25);
+  const newSize = size * scale;
+  return Math.round(Platform.OS === 'ios' ? newSize : newSize - 1);
+};
+
 // --- COMPONENT: Architectural Message Bubble ---
 const MessageItem = memo(
   ({ item, userId }) => {
@@ -57,55 +65,58 @@ const MessageItem = memo(
     if (item.type === 'date_separator') {
       return (
         <View style={styles.dateSeparatorContainer}>
+          <View style={styles.dateSeparatorLine} />
           <Text style={styles.dateSeparatorText}>{item.message}</Text>
+          <View style={styles.dateSeparatorLine} />
         </View>
       );
     }
 
     const { isFirstInGroup, isLastInGroup, isConsecutive } = item;
 
-    // Architectural Radii Logic
+    // Architectural Radii Logic (Softer and more premium)
     const radii = isMyMessage ? {
-      borderTopRightRadius: isFirstInGroup ? 16 : 4,
-      borderBottomRightRadius: isLastInGroup ? 16 : 4,
-      borderTopLeftRadius: 16,
-      borderBottomLeftRadius: 16,
+      borderTopRightRadius: isFirstInGroup ? 20 : 6,
+      borderBottomRightRadius: isLastInGroup ? 20 : 6,
+      borderTopLeftRadius: 20,
+      borderBottomLeftRadius: 20,
     } : {
-      borderTopLeftRadius: isFirstInGroup ? 16 : 4,
-      borderBottomLeftRadius: isLastInGroup ? 16 : 4,
-      borderTopRightRadius: 16,
-      borderBottomRightRadius: 16,
+      borderTopLeftRadius: isFirstInGroup ? 20 : 6,
+      borderBottomLeftRadius: isLastInGroup ? 20 : 6,
+      borderTopRightRadius: 20,
+      borderBottomRightRadius: 20,
     };
 
     return (
-      <View style={{ marginBottom: isConsecutive ? 4 : 16 }}>
+      <View style={{ marginBottom: isConsecutive ? 2 : 8 }}>
         {!isMyMessage && isFirstInGroup && (
           <View style={styles.supportLabelContainer}>
-            <Headphones size={10} color="#9CA3AF" />
+            <Headphones size={12} color="#E21D25" strokeWidth={2.5} />
             <Text style={styles.supportLabelText}>GLOSSCUT CONCIERGE</Text>
           </View>
         )}
 
-        <Animated.View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myMessage : styles.otherMessage,
-            radii,
-            { opacity: fadeAnim }
-          ]}
-        >
-          <Text style={[styles.messageText, { color: isMyMessage ? "#FFF" : "#000" }]}>
-            {item.message}
-          </Text>
-
-          {isLastInGroup && (
-            <View style={styles.metaContainer}>
-              <Text style={[styles.timestamp, { color: isMyMessage ? "rgba(255,255,255,0.5)" : "#9CA3AF" }]}>
-                {format(new Date(item.timestamp), 'h:mm a')}
+        <Animated.View style={[{ opacity: fadeAnim, alignSelf: isMyMessage ? 'flex-end' : 'flex-start' }]}>
+          {isMyMessage ? (
+            <LinearGradient
+              colors={['#E21D25', '#991B1B']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.messageBubble, styles.myMessage, radii]}
+            >
+              <Text style={[styles.messageText, { color: "#FFF" }]}>
+                {item.message}
               </Text>
-              {isMyMessage && (
-                <CheckCircle size={10} color="rgba(255,255,255,0.4)" style={{ marginLeft: 4 }} />
-              )}
+
+
+            </LinearGradient>
+          ) : (
+            <View style={[styles.messageBubble, styles.otherMessage, radii]}>
+              <Text style={[styles.messageText, { color: "#0F172A" }]}>
+                {item.message}
+              </Text>
+
+
             </View>
           )}
         </Animated.View>
@@ -118,9 +129,12 @@ const MessageItem = memo(
 // --- COMPONENT: Editorial Intro ---
 const EditorialIntro = memo(() => (
   <View style={styles.introContainer}>
-    <View style={styles.introIconCircle}>
-      <Command size={20} color="#000" />
-    </View>
+    <LinearGradient
+      colors={['#FEE2E2', '#FFF1F2']}
+      style={styles.introIconCircle}
+    >
+      <Sparkles size={22} color="#E21D25" strokeWidth={2} />
+    </LinearGradient>
     <Text style={styles.introTitle}>GlossCut Concierge</Text>
     <Text style={styles.introSubtitle}>
       Welcome to your private channel. Our elite support specialists are ready to assist with any request to ensure your journey is seamless.
@@ -235,7 +249,26 @@ export default function ChatScreen({ navigation }) {
   const processedMessages = useMemo(() => {
     const results = [];
     let lastDate = null;
-    messages.forEach((msg, index) => {
+
+    // Fallback messages if empty to ensure the page looks "full" and professional
+    const activeMessages = messages.length > 0 ? messages : [
+      {
+        _id: 'fallback-1',
+        sender: adminId || 'concierge',
+        receiver: user._id,
+        message: "Hello! Welcome to GlossCut Concierge. How can I assist you today?",
+        timestamp: new Date().toISOString(),
+      },
+      {
+        _id: 'fallback-2',
+        sender: adminId || 'concierge',
+        receiver: user._id,
+        message: "You can ask me about your appointments, payments, or any issues you are facing.",
+        timestamp: new Date().toISOString(),
+      }
+    ];
+
+    activeMessages.forEach((msg, index) => {
       const msgDate = new Date(msg.timestamp);
       const dateStr = isToday(msgDate) ? 'TODAY' : isYesterday(msgDate) ? 'YESTERDAY' : format(msgDate, 'MMM d, yyyy').toUpperCase();
       if (dateStr !== lastDate) {
@@ -243,8 +276,8 @@ export default function ChatScreen({ navigation }) {
         lastDate = dateStr;
       }
 
-      const prevMsg = messages[index - 1];
-      const nextMsg = messages[index + 1];
+      const prevMsg = activeMessages[index - 1];
+      const nextMsg = activeMessages[index + 1];
       const isFirstInGroup = !prevMsg || prevMsg.sender !== msg.sender || (new Date(msg.timestamp) - new Date(prevMsg.timestamp)) > 300000;
       const isLastInGroup = !nextMsg || nextMsg.sender !== msg.sender || (new Date(nextMsg.timestamp) - new Date(msg.timestamp)) > 300000;
       const isConsecutive = nextMsg && nextMsg.sender === msg.sender && (new Date(nextMsg.timestamp) - new Date(msg.timestamp)) <= 300000;
@@ -252,27 +285,29 @@ export default function ChatScreen({ navigation }) {
       results.push({ ...msg, isFirstInGroup, isLastInGroup, isConsecutive });
     });
     return results;
-  }, [messages]);
+  }, [messages, adminId, user._id]);
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ToastNotification notification={notification} />
 
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      {/* Premium Glassmorphic Header */}
+      <BlurView tint="light" intensity={90} style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerInner}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <ArrowLeft size={20} color="#000" strokeWidth={2.5} />
+            <ArrowLeft size={22} color="#0F172A" strokeWidth={2.5} />
           </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerMainTitle}>GlossCut</Text>
-            <Text style={styles.headerSubTitle}>CONCIERGE</Text>
+
+          <View style={styles.headerCenter}>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerMainTitle}>GLOSSCUT CONCIERGE</Text>
+            </View>
           </View>
-          <TouchableOpacity style={styles.moreButton}>
-            <MoreVertical size={20} color="#000" />
-          </TouchableOpacity>
+
+          <View style={{ width: normalize(36) }} />
         </View>
-      </View>
+      </BlurView>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
         <View style={{ flex: 1 }}>
@@ -284,20 +319,29 @@ export default function ChatScreen({ navigation }) {
             contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
             ListHeaderComponent={<EditorialIntro />}
             showsVerticalScrollIndicator={false}
+            style={{ maxWidth: 500, width: '100%', alignSelf: 'center' }}
           />
 
+          {/* Floating Input Area */}
           <BlurView tint="light" intensity={80} style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <View style={styles.inputInner}>
               <TextInput
                 style={styles.textInput}
-                placeholder="Message concierge..."
-                placeholderTextColor="#9CA3AF"
+                placeholder="Type a message..."
+                placeholderTextColor="#94A3B8"
                 value={newMessage}
                 onChangeText={setNewMessage}
                 multiline
               />
-              <TouchableOpacity onPress={handleSendMessage} disabled={!newMessage.trim()} style={[styles.sendButton, { opacity: newMessage.trim() ? 1 : 0.3 }]}>
-                <Send size={20} color="#000" strokeWidth={2.5} />
+              <TouchableOpacity
+                onPress={handleSendMessage}
+                disabled={!newMessage.trim()}
+                style={[
+                  styles.sendButton,
+                  { backgroundColor: newMessage.trim() ? '#E21D25' : '#F1F5F9' }
+                ]}
+              >
+                <Send size={16} color={newMessage.trim() ? "#FFF" : "#94A3B8"} strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
           </BlurView>
@@ -308,37 +352,152 @@ export default function ChatScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FDFCFB' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   keyboardView: { flex: 1 },
-  header: { backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#1A1A1A08', zIndex: 100 },
-  headerInner: { height: 64, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, justifyContent: 'space-between' },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  moreButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitleContainer: { alignItems: 'center' },
-  headerMainTitle: { fontSize: 20, fontWeight: '900', color: '#000', letterSpacing: -1 },
-  headerSubTitle: { fontSize: 8, fontWeight: '900', color: '#9CA3AF', letterSpacing: 2, marginTop: -2 },
-  listContent: { paddingHorizontal: 20, paddingTop: 30 },
-  introContainer: { alignItems: 'center', marginBottom: 40, marginTop: 10 },
-  introIconCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  introTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 12, letterSpacing: -1 },
-  introSubtitle: { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 20, paddingHorizontal: 20, fontWeight: '500' },
-  introStatusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, marginTop: 24 },
+  header: {
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderBottomWidth: 1,
+    borderColor: '#E2E8F0',
+    zIndex: 100
+  },
+  headerInner: {
+    height: normalize(60),
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    justifyContent: 'space-between',
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center'
+  },
+  backButton: {
+    width: normalize(36),
+    height: normalize(36),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  moreButton: {
+    width: normalize(36),
+    height: normalize(36),
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+  },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    marginHorizontal: 10,
+  },
+  avatarPlaceholder: {
+    width: normalize(32),
+    height: normalize(32),
+    borderRadius: 16,
+    backgroundColor: '#E21D25',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  headerTitleContainer: { alignItems: 'flex-start' },
+  headerMainTitle: { fontSize: normalize(13), fontWeight: '900', color: '#0F172A', letterSpacing: 1.5, textAlign: 'center' },
+  activeStatusContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+  activeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginRight: 4 },
+  headerSubTitle: { fontSize: normalize(11), fontWeight: '600', color: '#64748B' },
+
+  listContent: { paddingHorizontal: 16, paddingTop: 20 },
+
+  introContainer: { alignItems: 'center', marginBottom: 16, marginTop: 10 },
+  introIconCircle: {
+    width: normalize(54),
+    height: normalize(54),
+    borderRadius: 27,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#E21D25',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  introTitle: { fontSize: normalize(20), fontWeight: '900', color: '#0F172A', marginBottom: 8, letterSpacing: -0.5 },
+  introSubtitle: { fontSize: normalize(12), color: '#64748B', textAlign: 'center', lineHeight: 18, paddingHorizontal: 30, fontWeight: '500' },
+  introStatusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#0F172A', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, marginTop: 20 },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' },
   statusText: { fontSize: 8, fontWeight: '900', color: '#FFF', letterSpacing: 1 },
-  dateSeparatorContainer: { alignItems: 'center', marginVertical: 32 },
-  dateSeparatorText: { fontSize: 9, fontWeight: '900', color: '#9CA3AF', letterSpacing: 2 },
-  supportLabelContainer: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, marginLeft: 4 },
-  supportLabelText: { fontSize: 8, fontWeight: '900', color: '#9CA3AF', letterSpacing: 1 },
-  messageBubble: { maxWidth: '78%', paddingHorizontal: 14, paddingVertical: 12 },
-  myMessage: { alignSelf: 'flex-end', backgroundColor: '#000' },
-  otherMessage: { alignSelf: 'flex-start', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#F3F4F6' },
-  messageText: { fontSize: 14.5, lineHeight: 21, fontWeight: '400' },
-  metaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 6 },
-  timestamp: { fontSize: 8, fontWeight: '800' },
-  inputContainer: { paddingHorizontal: 20, paddingTop: 16, borderTopWidth: 1, borderColor: '#1A1A1A05' },
-  inputInner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderWidth: 1, borderColor: '#1A1A1A', borderRadius: 8, paddingHorizontal: 16, minHeight: 52 },
-  textInput: { flex: 1, fontSize: 15, fontWeight: '500', color: '#000', paddingVertical: 12 },
-  sendButton: { paddingLeft: 12 },
-  toastContainer: { position: "absolute", top: 0, flexDirection: "row", alignItems: "center", backgroundColor: "#000", paddingHorizontal: 20, paddingVertical: 14, borderRadius: 8, gap: 10, zIndex: 9999, alignSelf: 'center', width: '90%' },
-  toastText: { color: "#FFF", fontWeight: "800", fontSize: 13 }
+
+  dateSeparatorContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 12, paddingHorizontal: 20 },
+  dateSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
+  dateSeparatorText: { fontSize: 9, fontWeight: '800', color: '#94A3B8', letterSpacing: 1.5, mx: 10, paddingHorizontal: 10 },
+
+  supportLabelContainer: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6, marginLeft: 4 },
+  supportLabelText: { fontSize: normalize(9), fontWeight: '800', color: '#E21D25', letterSpacing: 1 },
+
+  messageBubble: { maxWidth: '78%', paddingHorizontal: 16, paddingVertical: 10 },
+  myMessage: {
+    alignSelf: 'flex-end',
+    shadowColor: '#E21D25',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  otherMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  messageText: { fontSize: normalize(13), lineHeight: 19, fontWeight: '500' },
+  metaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 },
+  timestamp: { fontSize: 8, fontWeight: '700' },
+
+  inputContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    backgroundColor: 'rgba(248,250,252,0.8)',
+    borderTopWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  inputInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    minHeight: 45,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center'
+  },
+  textInput: { flex: 1, fontSize: normalize(13), fontWeight: '500', color: '#0F172A', paddingVertical: 8 },
+  sendButton: {
+    width: normalize(32),
+    height: normalize(32),
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8
+  },
+  toastContainer: { position: "absolute", top: 0, flexDirection: "row", alignItems: "center", backgroundColor: "#0F172A", paddingHorizontal: 20, paddingVertical: 14, borderRadius: 12, gap: 10, zIndex: 9999, alignSelf: 'center', width: '90%', maxWidth: 450, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  toastText: { color: "#FFF", fontWeight: "700", fontSize: 13 }
 });

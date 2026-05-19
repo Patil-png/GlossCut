@@ -45,7 +45,7 @@ const Login = () => {
             <span className="text-2xl text-white font-bold">S</span>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {step === 'login' ? 'SetKarr Admin' : 'Two-Factor Authentication'}
+            {step === 'login' ? 'GlossCut Admin' : 'Two-Factor Authentication'}
           </h2>
           <p className="text-gray-600">
             {step === 'login' ? 'Sign in to access the admin panel' : 'Enter the code from your authenticator app'}

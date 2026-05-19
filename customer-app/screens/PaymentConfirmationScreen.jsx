@@ -145,25 +145,35 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
     }
   };
 
-  // Prevent Back Button
+  // Prevent Back Button / Redirect to Home on Success Back Press
   useFocusEffect(
     useCallback(() => {
       const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-        if (!paymentConfirmedRef.current && route.params.bookingId) {
+        if (!paymentConfirmedRef.current) {
+          if (route.params.bookingId) {
+            e.preventDefault();
+            Alert.alert(
+              'Confirm Payment',
+              'You must pay the amount to confirm the appointment. If you go back now, the appointment will be cancelled.',
+              [
+                { text: 'Pay Now', onPress: () => { }, style: 'cancel' },
+                { text: 'Cancel Appointment', onPress: () => { unsubscribe(); cancelBooking(); }, style: 'destructive' },
+              ],
+              { cancelable: false }
+            );
+          }
+        } else {
+          // If payment is confirmed (Success screen), prevent default back and redirect to Home
           e.preventDefault();
-          Alert.alert(
-            'Confirm Payment',
-            'You must pay the amount to confirm the appointment. If you go back now, the appointment will be cancelled.',
-            [
-              { text: 'Pay Now', onPress: () => { }, style: 'cancel' },
-              { text: 'Cancel Appointment', onPress: () => { unsubscribe(); cancelBooking(); }, style: 'destructive' },
-            ],
-            { cancelable: false }
-          );
+          unsubscribe();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Home' }],
+          });
         }
       });
       return unsubscribe;
-    }, [navigation, cancelBooking, route.params.bookingId])
+    }, [navigation, cancelBooking, route.params.bookingId, paymentConfirmed])
   );
 
   // --- ROBUST TIMER LOGIC (Background Safe) ---
@@ -279,41 +289,7 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
       <View style={[styles.successContainer, { backgroundColor: '#FFFFFF' }]}>
         <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-        {/* --- TOP NAVIGATION BAR --- */}
-        <View style={[styles.topNavBar, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            style={styles.navCircleBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Home' }],
-              });
-            }}
-          >
-            <ArrowLeft size={20} color="#0F172A" />
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.navCircleBtn}
-            onPress={async () => {
-              try {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                const shareUrl = `https://glosscut.com/booking-success/${route.params.bookingId || ''}`;
-                const trackUrl = `https://glosscut.com/track-queue/${route.params.bookingId || ''}`;
-
-                await Share.share({
-                  title: 'GlossCut Booking Receipt',
-                  message: `🛡️ GlossCut Booking Confirmed!\n\n🏪 Shop: ${shopName || 'Our Partner Shop'}\n👤 Barber: ${providerName || 'My Barber'}\n📅 Date: ${formatBookingDate(bookingDate)}\n🔑 Entry Code (OTP): ${bookingOtp || 'N/A'}\n📍 Location: ${providerAddress || 'N/A'}\n\n📲 Track Your Queue Live:\n${trackUrl}\n\nPlease keep this receipt for smooth entry!`
-                });
-              } catch (error) {
-                console.log(error);
-              }
-            }}
-          >
-            <ShareIcon size={20} color="#0F172A" />
-          </TouchableOpacity>
-        </View>
 
         {/* 1. EXECUTIVE CONFIRMATION HERO */}
         <View style={styles.executiveHero}>
@@ -505,9 +481,17 @@ const PaymentConfirmationScreen = ({ route, navigation }) => {
 
           <TouchableOpacity
             style={styles.shareReceiptBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              // Add share logic
+            onPress={async () => {
+              try {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                const trackUrl = `https://glosscut.com/track-queue/${route.params.bookingId || ''}`;
+                await Share.share({
+                  title: 'GlossCut Booking Receipt',
+                  message: `🛡️ GlossCut Booking Confirmed!\n\n🏪 Shop: ${shopName || 'Our Partner Shop'}\n👤 Barber: ${providerName || 'My Barber'}\n📅 Date: ${formatBookingDate(bookingDate)}\n🔑 Entry Code (OTP): ${bookingOtp || 'N/A'}\n📍 Location: ${providerAddress || 'N/A'}\n\n📲 Track Your Queue Live:\n${trackUrl}\n\nPlease keep this receipt for smooth entry!`
+                });
+              } catch (error) {
+                console.error('Error sharing receipt:', error);
+              }
             }}
           >
             <ShareIcon size={20} color="#0F172A" />

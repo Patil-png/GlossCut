@@ -26,6 +26,7 @@ import BookingScreen from './screens/BookingScreen.jsx';
 import BookingOTPVerificationScreen from './screens/BookingOTPVerificationScreen.jsx';
 import PaymentConfirmationScreen from './screens/PaymentConfirmationScreen.jsx';
 import HistoryScreen from './screens/HistoryScreen.jsx';
+import ScheduleNextAppointmentScreen from './screens/ScheduleNextAppointmentScreen.jsx';
 import BookingDetailScreen from './screens/BookingDetailScreen.jsx';
 import BookAppointmentScreen from './screens/BookAppointmentScreen.jsx';
 
@@ -41,9 +42,12 @@ import TrackQueueScreen from './screens/TrackQueueScreen.jsx';
 import OnboardingScreen from './screens/OnboardingScreen.jsx';
 import CustomerReviewsScreen from './screens/CustomerReviewsScreen.jsx';
 import MapScreen from './screens/MapScreen.jsx';
+import ShopMapScreen from './screens/ShopMapScreen.jsx';
 import RefundPolicyScreen from './screens/RefundPolicyScreen.jsx';
+import AboutGlossCutScreen from './screens/AboutGlossCutScreen.jsx';
 import BarberReviewsScreen from './screens/BarberReviewsScreen.jsx';
 import SplashScreen from './src/screens/SplashScreen.jsx';
+import BottomSpotlightNav from './src/components/BottomSpotlightNav.jsx';
 
 import { ThemeProvider, useTheme } from './contexts/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
@@ -63,6 +67,17 @@ import {
 
 const queryClient = new QueryClient();
 const Stack = createStackNavigator();
+
+const linking = {
+  prefixes: ['glosscut://', 'https://glosscut.com'],
+  config: {
+    screens: {
+      Home: 'home',
+      Booking: 'book/:providerId',
+      BarberSearch: 'search',
+    }
+  }
+};
 
 const AppContent = () => {
   const { isLoading, user, isNewLogin } = useAuth();
@@ -87,7 +102,7 @@ const AppContent = () => {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           {!isAppReady ? (
@@ -124,6 +139,9 @@ const AppContent = () => {
               <Stack.Screen name="GenderSelection" component={GenderSelectionScreen} />
               <Stack.Screen name="EditEmail" component={EditEmailScreen} />
               <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+              <Stack.Screen name="OTPVerification" component={OTPVerificationScreen} />
+              <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
               <Stack.Screen name="ManageNotifications" component={ManageNotificationsScreen} />
               <Stack.Screen name="TwoFactorVerification" component={TwoFactorVerificationScreen} />
               <Stack.Screen name="PrivacyCheckup" component={PrivacyCheckupScreen} />
@@ -135,6 +153,7 @@ const AppContent = () => {
               <Stack.Screen name="PaymentConfirmation" component={PaymentConfirmationScreen} />
               <Stack.Screen name="TrackQueue" component={TrackQueueScreen} />
               <Stack.Screen name="History" component={HistoryScreen} />
+              <Stack.Screen name="ScheduleNextAppointment" component={ScheduleNextAppointmentScreen} />
               <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
               <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
 
@@ -148,11 +167,14 @@ const AppContent = () => {
               <Stack.Screen name="FaceSuggestor" component={FaceSuggestorScreen} />
               <Stack.Screen name="CustomerReviewsScreen" component={CustomerReviewsScreen} />
               <Stack.Screen name="MapScreen" component={MapScreen} />
+              <Stack.Screen name="ShopMapScreen" component={ShopMapScreen} />
               <Stack.Screen name="RefundPolicy" component={RefundPolicyScreen} />
+              <Stack.Screen name="AboutGlossCut" component={AboutGlossCutScreen} />
               <Stack.Screen name="BarberReviews" component={BarberReviewsScreen} />
             </>
           )}
         </Stack.Navigator>
+        <BottomSpotlightNav />
       </SafeAreaView>
     </NavigationContainer>
   );

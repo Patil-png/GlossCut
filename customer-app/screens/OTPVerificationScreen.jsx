@@ -13,142 +13,111 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Keyboard,
-  Animated,
   Platform,
+  StatusBar,
+  Animated,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
   Dimensions,
-  Easing
+  Easing,
+  Image,
+  Keyboard
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather as Icon } from "@expo/vector-icons";
-import api from "../utils/api";
 import { useTheme } from "../contexts/ThemeContext.jsx";
+import {
+  ChevronLeft,
+  ArrowRight,
+  CheckCircle,
+  AlertCircle,
+  ShieldCheck,
+  Mail,
+  KeyRound,
+  Lock,
+  RefreshCw
+} from "lucide-react-native";
+import api from "../utils/api";
 
-// --- 1. MEMOIZED MODERN ALERT (Prevents re-renders during typing) ---
-const ModernAlert = memo(
-  ({ visible, type, title, message, onClose, theme, insets }) => {
-    const translateY = useRef(new Animated.Value(-150)).current;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+// Cap the scale factor to prevent elements from becoming massive on tablets
+const scale = Math.min(SCREEN_WIDTH / 375, 1.25);
 
-    useEffect(() => {
-      if (visible) {
-        Animated.spring(translateY, {
-          toValue: 0,
-          friction: 6,
-          tension: 50,
-          useNativeDriver: true
-        }).start();
-
-        const timer = setTimeout(() => {
-          handleClose();
-        }, 4000);
-        return () => clearTimeout(timer);
-      }
-    }, [visible]);
-
-    const handleClose = useCallback(() => {
-      Animated.timing(translateY, {
-        toValue: -150,
-        duration: 300,
-        useNativeDriver: true
-      }).start(() => {
-        if (onClose) onClose();
-      });
-    }, [onClose, translateY]);
-
-    if (!visible) return null;
-
-    const isSuccess = type === "success";
-    const bgColor = theme.colors.card;
-    const textColor = theme.colors.text;
-    const accentColor = isSuccess ? "#10B981" : "#EF4444";
-
-    return (
-      <Animated.View
-        style={[styles.alertWrapper, { transform: [{ translateY }] }]}
-      >
-        <View style={[styles.alertContainer, { backgroundColor: bgColor }]}>
-          <View
-            style={[styles.accentStrip, { backgroundColor: accentColor }]}
-          />
-          <View style={styles.alertContent}>
-            <View
-              style={[
-                styles.iconBox,
-                { backgroundColor: isSuccess ? "#D1FAE5" : "#FEE2E2" },
-              ]}
-            >
-              <Icon
-                name={isSuccess ? "check" : "alert-triangle"}
-                size={20}
-                color={accentColor}
-              />
-            </View>
-            <View style={styles.textStack}>
-              <Text style={[styles.alertTitle, { color: textColor }]}>
-                {title}
-              </Text>
-              <Text
-                style={[
-                  styles.alertMessage,
-                  { color: theme.colors.textSecondary },
-                ]}
-                numberOfLines={2}
-              >
-                {message}
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={handleClose}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            >
-              <Icon name="x" size={18} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Animated.View>
-    );
+/**
+ * Normalizes font size and dimensions
+ */
+const normalize = (size) => {
+  const newSize = size * scale;
+  if (Platform.OS === 'ios') {
+    return Math.round(newSize);
+  } else {
+    return Math.round(newSize) - 1;
   }
-);
+};
 
-// --- 2. MEMOIZED HEADER & TEXT (Static parts won't re-render) ---
-const Header = memo(({ navigation, theme, insets }) => (
-  <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-    <TouchableOpacity
-      onPress={() => navigation.goBack()}
-      style={[styles.backButton, { backgroundColor: theme.colors.card }]}
-      activeOpacity={0.7}
-    >
-      <Icon name="chevron-left" size={26} color={theme.colors.text} />
-    </TouchableOpacity>
+// --- OPTIMIZED SUB-COMPONENTS ---
+
+const Header = memo(({ onBack, insets }) => (
+  <View 
+    style={[styles.headerOuterContainer, { paddingTop: Math.max(insets.top, 16) }]}
+    accessibilityRole="header"
+  >
+    <View style={styles.headerContainer}>
+      <TouchableOpacity 
+        onPress={onBack} 
+        style={styles.backBtn}
+        accessibilityLabel="Go back"
+        accessibilityRole="button"
+      >
+        <ChevronLeft size={normalize(22)} color="#1E293B" strokeWidth={2.5} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>OTP Verification</Text>
+      <View style={{ width: normalize(40) }} />
+    </View>
   </View>
 ));
 
-const PageTitle = memo(({ email, theme }) => (
-  <>
-    <Text style={[styles.title, { color: theme.colors.text }]}>
-      OTP Verification
-    </Text>
-    <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-      Enter the 6-digit code sent to{"\n"}
-      {email}
-    </Text>
-  </>
-));
+const CustomToast = memo(({ visible, message, type, animatedValue }) => {
+  if (!visible) return null;
 
-// --- 3. MEMOIZED DIGIT INPUT (Crucial for performance) ---
-// This ensures that when Input 1 updates, Input 2, 3, 4, 5, 6 do NOT re-render.
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-100, 0],
+  });
+
+  const isSuccess = type === "success";
+  const iconColor = isSuccess ? "#10B981" : "#EF4444";
+
+  return (
+    <Animated.View
+      style={[
+        styles.toastContainer,
+        { transform: [{ translateY }] },
+      ]}
+      accessibilityLiveRegion="polite"
+    >
+      <View style={[styles.toastContent, { borderLeftColor: iconColor }]}>
+        {isSuccess ? <CheckCircle size={20} color={iconColor} /> : <AlertCircle size={20} color={iconColor} />}
+        <View style={styles.toastTextContainer}>
+          <Text style={styles.toastMessage}>{message}</Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+});
+
+// Memoized Digit Input for performance
 const DigitInput = memo(
   forwardRef(
     ({ digit, index, theme, loading, onChangeText, onKeyPress }, ref) => {
-      // Memoize dynamic styles
       const inputStyle = useMemo(
         () => [
           styles.otpInput,
           {
-            backgroundColor: theme.colors.card,
-            color: theme.colors.text,
-            borderColor: digit ? theme.colors.primary : "transparent",
-            borderWidth: 1.5
+            borderColor: digit ? theme.colors.primary : "#E2E8F0",
+            borderWidth: digit ? 2 : 1.5,
+            backgroundColor: "#FFFFFF",
+            color: "#0F172A"
           },
         ],
         [theme, digit]
@@ -165,72 +134,134 @@ const DigitInput = memo(
           onChangeText={(text) => onChangeText(text, index)}
           value={digit}
           editable={!loading}
+          cursorColor={theme.colors.primary}
         />
       );
     }
   )
 );
 
-// --- 4. MAIN SCREEN ---
+// --- MAIN SCREEN ---
+
 const OTPVerificationScreen = ({ route, navigation }) => {
-  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const { email } = route.params || { email: "test@example.com" };
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
 
-  const [alertState, setAlertState] = useState({
-    visible: false,
-    type: "success",
-    title: "",
-    message: ""
-  });
+  // Animation Refs
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const itemAnims = useRef([...Array(6)].map(() => new Animated.Value(30))).current;
+  const itemFades = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
+
+  const [toast, setToast] = useState({ visible: false, message: "", type: "info" });
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef(null);
 
   const inputs = useRef([]);
 
-  const showAlert = useCallback((type, title, message) => {
-    setAlertState({ visible: true, type, title, message });
+  useEffect(() => {
+    // Staggered Entrance Animation
+    const animations = itemAnims.map((anim, i) => 
+      Animated.parallel([
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.back(1.5))
+        }),
+        Animated.timing(itemFades[i], {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true
+        })
+      ])
+    );
+
+    Animated.stagger(100, animations).start();
+
+    // Floating Loop Animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -10,
+          duration: 2500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+      ])
+    ).start();
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
-  const closeAlert = useCallback(() => {
-    setAlertState((prev) => ({ ...prev, visible: false }));
+  const showToast = useCallback((message, type = "info") => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ visible: true, message, type });
+    Animated.spring(toastAnim, { toValue: 1, useNativeDriver: true }).start();
+    timerRef.current = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setToast(p => ({ ...p, visible: false })));
+    }, 3000);
   }, []);
 
-  // --- OPTIMIZED HANDLERS (Wrapped in useCallback) ---
+  const handleGoBack = useCallback(() => navigation.goBack(), [navigation]);
+
   const handleChange = useCallback((text, index) => {
     const cleanedText = text.replace(/[^0-9]/g, "");
 
-    setOtp((prevOtp) => {
-      // Functional update to avoid dependency on 'otp' state
-      if (cleanedText.length === 0) {
-        // Handle clear/backspace logic if text is empty (rare in this flow due to maxLength=1)
+    if (cleanedText.length > 1) {
+      // Handle Paste
+      setOtp((prevOtp) => {
         const newOtp = [...prevOtp];
+        for (let i = 0; i < cleanedText.length; i++) {
+          if (index + i < 6) {
+            newOtp[index + i] = cleanedText.charAt(i);
+          }
+        }
+        return newOtp;
+      });
+      
+      // Focus the last filled input or dismiss keyboard
+      const lastIndex = Math.min(index + cleanedText.length - 1, 5);
+      if (lastIndex === 5) {
+        Keyboard.dismiss();
+      } else {
+        inputs.current[lastIndex + 1]?.focus();
+      }
+      return;
+    }
+
+    setOtp((prevOtp) => {
+      const newOtp = [...prevOtp];
+      if (cleanedText.length === 0) {
         newOtp[index] = "";
         return newOtp;
       }
-      const newOtp = [...prevOtp];
       newOtp[index] = cleanedText.charAt(cleanedText.length - 1);
       return newOtp;
     });
 
-    // Focus logic doesn't trigger state update, so it's safe
     if (cleanedText.length > 0 && index < 5) {
       inputs.current[index + 1]?.focus();
     } else if (cleanedText.length > 0 && index === 5) {
       Keyboard.dismiss();
     }
-  }, []); // Empty dependency array = function never recreated
+  }, []);
 
   const handleKeyPress = useCallback((e, index) => {
-    if (e.nativeEvent.key === "Backspace" && index > 0) {
-      // We need to check current value. Since we are inside callback,
-      // we check the ref or we can check state if we include it in deps.
-      // For performance, we can just optimistically move back if empty.
-      // But to be precise, let's access the latest state via setOtp callback or similar.
-      // Simplest effective way for backspace focus:
+    if (e.nativeEvent.key === "Backspace") {
       setOtp((prevOtp) => {
-        if (!prevOtp[index]) {
+        if (!prevOtp[index] && index > 0) {
           inputs.current[index - 1]?.focus();
           const newOtp = [...prevOtp];
           newOtp[index - 1] = "";
@@ -242,21 +273,10 @@ const OTPVerificationScreen = ({ route, navigation }) => {
   }, []);
 
   const handleVerifyOTP = useCallback(async () => {
-    // We need the latest OTP, so we can't fully memoize without 'otp' dependency
-    // But since this is a button press, re-creation is cheap.
-    // We can't access 'otp' inside useCallback without adding it to deps unless we use a ref for otp.
-    // However, for the button, standard function is fine.
-
-    // To keep it strictly clean, we'll use the 'otp' from closure,
-    // but the button only re-renders when OTP changes which is acceptable.
     const otpCode = otp.join("");
 
     if (otpCode.length !== 6) {
-      showAlert(
-        "error",
-        "Incomplete Code",
-        "Please enter the full 6-digit code sent to your email."
-      );
+      showToast("Please enter the full 6-digit code.", "error");
       return;
     }
 
@@ -266,45 +286,21 @@ const OTPVerificationScreen = ({ route, navigation }) => {
     try {
       await api.post(
         `/api/password/verify`,
-        {
-          email,
-          otp: otpCode
-        },
+        { email, otp: otpCode },
         { timeout: 10000 }
       );
 
-      showAlert(
-        "success",
-        "Verified Successfully",
-        "Redirecting to password reset..."
-      );
+      showToast("OTP verified successfully!", "success");
       setTimeout(() => {
         navigation.navigate("ResetPassword", { email, otp: otpCode });
       }, 1500);
     } catch (err) {
-      if (err.response) {
-        showAlert(
-          "error",
-          "Verification Failed",
-          err.response.data.message || "The OTP entered is incorrect."
-        );
-      } else if (err.request) {
-        showAlert(
-          "error",
-          "Connection Error",
-          "Could not reach the server. Please check your internet connection."
-        );
-      } else {
-        showAlert(
-          "error",
-          "Something went wrong",
-          "An unexpected error occurred. Please try again."
-        );
-      }
+      const msg = err.response?.data?.message || "The OTP entered is incorrect.";
+      showToast(msg, "error");
     } finally {
       setLoading(false);
     }
-  }, [otp, email, navigation, showAlert]);
+  }, [otp, email, navigation, showToast]);
 
   const handleResendOTP = useCallback(async () => {
     setLoading(true);
@@ -313,227 +309,392 @@ const OTPVerificationScreen = ({ route, navigation }) => {
         `/api/password/forgot`,
         { email }
       );
-      showAlert(
-        "success",
-        "Code Resent",
-        `A new code has been sent to ${email}`
-      );
+      showToast(`A new code has been sent to ${email}`, "success");
     } catch (err) {
-      if (!err.response) {
-        showAlert(
-          "error",
-          "Network Error",
-          "Please check your internet connection."
-        );
-      } else {
-        showAlert(
-          "error",
-          "Failed",
-          "Could not resend OTP. Please try again later."
-        );
-      }
+      showToast("Could not resend OTP. Please try again later.", "error");
     } finally {
       setLoading(false);
     }
-  }, [email, showAlert]);
+  }, [email, showToast]);
+
+  const animatedStyle = (index) => ({
+    opacity: itemFades[index],
+    transform: [{ translateY: itemAnims[index] }]
+  });
 
   return (
-    <View
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
-    >
-      {/* Alert Layer */}
-      <View style={styles.alertLayer}>
-        <ModernAlert
-          visible={alertState.visible}
-          type={alertState.type}
-          title={alertState.title}
-          message={alertState.message}
-          onClose={closeAlert}
-          theme={theme}
-          insets={insets}
-        />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Toast Notification */}
+      <View style={[styles.toastWrapper, { top: insets.top + 10 }]}>
+        <CustomToast visible={toast.visible} message={toast.message} type={toast.type} animatedValue={toastAnim} />
       </View>
 
-      <View style={styles.container}>
-        {/* Memoized Header */}
-        <Header navigation={navigation} theme={theme} insets={insets} />
+      <Header onBack={handleGoBack} insets={insets} />
 
-        <View style={styles.contentContainer}>
-          {/* Memoized Title */}
-          <PageTitle email={email} theme={theme} />
-
-          <View style={styles.otpContainer}>
-            {otp.map((digit, index) => (
-              <DigitInput
-                key={index}
-                index={index}
-                digit={digit}
-                theme={theme}
-                loading={loading}
-                onChangeText={handleChange}
-                onKeyPress={handleKeyPress}
-                ref={(el) => (inputs.current[index] = el)}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={styles.content}
+      >
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + normalize(40) }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.centeredContentWrapper}>
+            {/* 1. Illustration Section */}
+            <Animated.View style={[styles.illustrationContainer, { transform: [{ translateY: floatAnim }] }, animatedStyle(0)]}>
+              <Image 
+                source={require("../assets/otp_verification_cartoon.png")} 
+                style={styles.illustration}
+                resizeMode="contain"
+                accessibilityLabel="OTP Verification Illustration"
               />
-            ))}
-          </View>
+            </Animated.View>
 
-          <TouchableOpacity onPress={!loading ? handleResendOTP : null}>
-            <Text
-              style={[styles.resendText, { color: theme.colors.textSecondary }]}
-            >
-              OTP not received?{" "}
-              <Text
-                style={[styles.resendLink, { color: theme.colors.primary }]}
-              >
-                RESEND
+            {/* 2. Text Header Section */}
+            <Animated.View style={[styles.textContainer, animatedStyle(1)]}>
+              <Text style={styles.title}>Verification Code</Text>
+              <Text style={styles.subtitle}>
+                We have sent a 6-digit access code to{"\n"}
+                <Text style={{ fontWeight: "700", color: "#0F172A" }}>{email}</Text>
               </Text>
-            </Text>
-          </TouchableOpacity>
+            </Animated.View>
 
-          <TouchableOpacity
-            style={[
-              styles.button,
-              {
-                backgroundColor: theme.colors.primary,
-                opacity: loading ? 0.7 : 1
-              },
-            ]}
-            onPress={handleVerifyOTP}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            <Text
-              style={[styles.buttonText, { color: theme.colors.background }]}
-            >
-              {loading ? "Verifying..." : "Verify OTP"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            {/* 3. OTP Input Section */}
+            <Animated.View style={[styles.inputWrapper, animatedStyle(2)]}>
+              <View style={styles.otpContainer}>
+                {otp.map((digit, index) => (
+                  <DigitInput
+                    key={index}
+                    index={index}
+                    digit={digit}
+                    theme={theme}
+                    loading={loading}
+                    onChangeText={handleChange}
+                    onKeyPress={handleKeyPress}
+                    ref={(el) => (inputs.current[index] = el)}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+
+            {/* 5. Action Section */}
+            <Animated.View style={[styles.actionSection, animatedStyle(4)]}>
+              <TouchableOpacity 
+                style={[styles.primaryBtn, { backgroundColor: theme.colors.primary, opacity: loading ? 0.7 : 1 }]}
+                onPress={handleVerifyOTP}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Verify OTP"
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Text style={styles.btnText}>Verify OTP</Text>
+                    <ArrowRight size={normalize(16)} color="#FFFFFF" strokeWidth={2.5} />
+                  </>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* 4. Resend Section */}
+            <Animated.View style={[styles.resendWrapper, animatedStyle(3)]}>
+              <TouchableOpacity onPress={!loading ? handleResendOTP : null}>
+                <Text style={styles.resendText}>
+                  Didn't receive code?{" "}
+                  <Text style={[styles.resendLink, { color: theme.colors.primary }]}>RESEND</Text>
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* 6. Helpful Tips Section */}
+            <Animated.View style={[styles.usageContainer, animatedStyle(5)]}>
+              <View style={styles.usageItem}>
+                <View style={styles.iconCircle}>
+                  <Mail size={normalize(16)} color={theme.colors.primary} />
+                </View>
+                <View style={styles.usageTextContent}>
+                  <Text style={styles.usageTitle}>Check Inbox</Text>
+                  <Text style={styles.usageDesc}>Look for the email from GLOSSCUT in your inbox.</Text>
+                </View>
+              </View>
+              
+              <View style={styles.usageItem}>
+                <View style={styles.iconCircle}>
+                  <RefreshCw size={normalize(16)} color={theme.colors.primary} />
+                </View>
+                <View style={styles.usageTextContent}>
+                  <Text style={styles.usageTitle}>Check Spam</Text>
+                  <Text style={styles.usageDesc}>Sometimes codes end up in the junk or spam folder.</Text>
+                </View>
+              </View>
+
+              <View style={styles.usageItem}>
+                <View style={styles.iconCircle}>
+                  <ShieldCheck size={normalize(16)} color={theme.colors.primary} />
+                </View>
+                <View style={styles.usageTextContent}>
+                  <Text style={styles.usageTitle}>Secure Channel</Text>
+                  <Text style={styles.usageDesc}>This code is for your eyes only. Never share it with anyone.</Text>
+                </View>
+              </View>
+            </Animated.View>
+
+            {/* 7. Footer Privacy Note */}
+            <Animated.View style={[styles.noteContainer, animatedStyle(5)]}>
+              <View style={styles.noteHeader}>
+                <ShieldCheck size={16} color="#10B981" strokeWidth={2.5} />
+                <Text style={styles.noteTitle}>SECURE PROTOCOL</Text>
+              </View>
+              <Text style={styles.noteText}>
+                We use bank-grade encryption to secure your data. Reset links and codes expire within 15 minutes for your safety.
+              </Text>
+            </Animated.View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 24
+    backgroundColor: "#FFFFFF"
   },
-  // Alert Styles
-  alertLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    paddingHorizontal: 20,
-    alignItems: "center"
+  content: {
+    flex: 1
   },
-  alertWrapper: {
-    width: "100%"
+  headerOuterContainer: {
+    width: "100%",
+    backgroundColor: "#FFFFFF"
   },
-  alertContainer: {
+  headerContainer: {
     flexDirection: "row",
-    borderRadius: 12,
-    overflow: "hidden",
-    minHeight: 65,
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: normalize(16),
+    paddingBottom: normalize(12),
+    maxWidth: 500,
+    width: "100%",
+    alignSelf: "center"
+  },
+  headerTitle: {
+    fontSize: normalize(15),
+    fontWeight: "800",
+    color: "#0F172A",
+    letterSpacing: -0.5
+  },
+  backBtn: {
+    padding: normalize(8),
+    borderRadius: normalize(12),
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  scrollContent: {
+    paddingTop: normalize(10),
     width: "100%"
   },
-  accentStrip: {
-    width: 5,
+  centeredContentWrapper: {
+    maxWidth: 500,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: normalize(24)
+  },
+  illustrationContainer: {
+    width: "100%",
+    height: normalize(180),
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: normalize(20)
+  },
+  illustration: {
+    width: "85%",
     height: "100%"
   },
-  alertContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12
-  },
-  textStack: {
-    flex: 1,
-    marginRight: 8
-  },
-  alertTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 2
-  },
-  alertMessage: {
-    fontSize: 13,
-    lineHeight: 18
-  },
-  // Page Styles
-  header: {
-    width: "100%",
-    paddingBottom: 15,
-    marginBottom: 10,
-    alignItems: "flex-start"
-  },
-  backButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  contentContainer: {
-    flex: 1,
-    marginTop: 10
+  textContainer: {
+    marginBottom: normalize(28)
   },
   title: {
-    fontSize: 28,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 10
+    fontSize: normalize(24),
+    fontWeight: "900",
+    color: "#0F172A",
+    letterSpacing: -0.8,
+    marginBottom: normalize(10),
+    textAlign: "center"
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: normalize(13),
+    color: "#64748B",
     textAlign: "center",
-    marginBottom: 40,
-    lineHeight: 22
+    lineHeight: normalize(20),
+    fontWeight: "500",
+    paddingHorizontal: normalize(10)
+  },
+  usageContainer: {
+    width: "100%",
+    backgroundColor: "#F8FAFC",
+    borderRadius: normalize(20),
+    padding: normalize(20),
+    marginBottom: normalize(30),
+    gap: normalize(18),
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  usageItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: normalize(14)
+  },
+  iconCircle: {
+    width: normalize(36),
+    height: normalize(36),
+    borderRadius: normalize(18),
+    backgroundColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  usageTextContent: {
+    flex: 1
+  },
+  usageTitle: {
+    fontSize: normalize(13),
+    color: "#0F172A",
+    fontWeight: "800",
+    marginBottom: normalize(2)
+  },
+  usageDesc: {
+    fontSize: normalize(11),
+    color: "#64748B",
+    fontWeight: "500",
+    lineHeight: normalize(16)
+  },
+  inputWrapper: {
+    width: "100%",
+    marginBottom: normalize(24)
   },
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 30
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 320,
+    alignSelf: "center"
   },
   otpInput: {
-    width: 45,
-    height: 55,
-    fontSize: 22,
+    width: normalize(42),
+    height: normalize(52),
+    fontSize: normalize(20),
     textAlign: "center",
-    borderRadius: 10,
-    fontWeight: "700"
+    borderRadius: normalize(12),
+    fontWeight: "800",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2
+  },
+  resendWrapper: {
+    marginBottom: normalize(15),
+    alignItems: "center"
   },
   resendText: {
-    textAlign: "center",
-    fontSize: 15,
-    marginBottom: 40
+    fontSize: normalize(11),
+    color: "#475569",
+    fontWeight: "600"
   },
   resendLink: {
-    fontWeight: "bold"
+    fontWeight: "800",
+    letterSpacing: 0.3
   },
-  button: {
+  actionSection: {
+    marginBottom: normalize(15)
+  },
+  primaryBtn: {
+    height: normalize(58),
+    borderRadius: normalize(18),
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 14
+    gap: normalize(12),
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8
   },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: "700"
+  btnText: {
+    fontSize: normalize(16),
+    fontWeight: "800",
+    color: "#FFF",
+    letterSpacing: -0.2
+  },
+  noteContainer: {
+    width: "100%",
+    padding: normalize(18),
+    backgroundColor: "#F0FDF4",
+    borderRadius: normalize(16),
+    borderWidth: 1,
+    borderColor: "#DCFCE7",
+    marginBottom: normalize(20)
+  },
+  noteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: normalize(8),
+    marginBottom: normalize(8)
+  },
+  noteTitle: {
+    fontSize: normalize(11),
+    fontWeight: "900",
+    color: "#166534",
+    letterSpacing: 1
+  },
+  noteText: {
+    fontSize: normalize(11),
+    color: "#166534",
+    lineHeight: normalize(18),
+    fontWeight: "500"
+  },
+  toastWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 2000,
+    alignItems: "center"
+  },
+  toastContainer: {
+    width: '90%',
+    maxWidth: 450,
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  toastContent: {
+    padding: 16,
+    borderLeftWidth: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
+  toastTextContainer: {
+    flex: 1
+  },
+  toastMessage: {
+    fontSize: 14,
+    color: "#0F172A",
+    fontWeight: "600"
   }
 });
 

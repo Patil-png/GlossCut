@@ -10,7 +10,9 @@ const GlossCutLogo = require('../../assets/image-removebg-preview.png');
 
 const PromoCard = ({ title, discount, subtext, onClaim, style, isFullWidth, buttonText = "Claim Now", badgeText = "ADVANTAGE" }) => {
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onClaim}
       style={[
         styles.container,
         isFullWidth && { width: SCREEN_WIDTH - 32, marginHorizontal: 16 },
@@ -30,9 +32,9 @@ const PromoCard = ({ title, discount, subtext, onClaim, style, isFullWidth, butt
           <Text style={styles.subtext}>{subtext}</Text>
 
           {onClaim && (
-            <TouchableOpacity style={styles.claimBtn} onPress={onClaim} activeOpacity={0.85}>
+            <View style={styles.claimBtn}>
               <Text style={styles.claimText}>{buttonText}</Text>
-            </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -40,7 +42,7 @@ const PromoCard = ({ title, discount, subtext, onClaim, style, isFullWidth, butt
           <Image source={GlossCutLogo} style={styles.logo} resizeMode="contain" />
         </View>
       </LinearGradient>
-    </View>
+    </TouchableOpacity>
   );
 };
 

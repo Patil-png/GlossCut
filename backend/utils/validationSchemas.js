@@ -24,7 +24,8 @@ const schemas = {
 
     login: Joi.object({
         email: Joi.string().required(),
-        password: Joi.string().required()
+        password: Joi.string().required(),
+        otp: Joi.string().optional().allow('')
     }),
 
     // --- SHOP SCHEMAS ---

@@ -225,10 +225,58 @@ router.post('/public/batch-wait-times', async (req, res) => {
 router.get('/history', auth, async (req, res) => {
   try {
     const bookings = await Booking.find({ userId: req.user.id })
-      .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone shopRating shopReviews')
+      .populate('barberId', 'name email phone address rating reviews profilePicture')
       .select('+otp')
       .sort({ date: -1 });
-    res.json(bookings);
+
+    const Shop = require('../models/Shop');
+    
+    // Extract unique barber IDs from the user's booking history
+    const barberIds = [];
+    bookings.forEach(b => {
+      if (b.barberId && b.barberId._id) {
+        barberIds.push(b.barberId._id);
+      }
+    });
+
+    // Query all shops matching the relevant barbers in a single batch query
+    const shops = await Shop.find({
+      $or: [
+        { owner: { $in: barberIds } },
+        { staff: { $in: barberIds } }
+      ]
+    }).select('name address phone owner staff');
+
+    // Create a fast-lookup map for shop details mapped by barber ID
+    const shopMap = new Map();
+    for (const shop of shops) {
+      if (shop.owner) {
+        shopMap.set(shop.owner.toString(), shop);
+      }
+      if (Array.isArray(shop.staff)) {
+        for (const staffId of shop.staff) {
+          if (staffId) {
+            shopMap.set(staffId.toString(), shop);
+          }
+        }
+      }
+    }
+
+    const bookingsObj = [];
+    for (const b of bookings) {
+      const bObj = b.toObject();
+      if (bObj.barberId && bObj.barberId._id) {
+        const shop = shopMap.get(bObj.barberId._id.toString());
+        if (shop) {
+          bObj.barberId.shopName = shop.name;
+          bObj.barberId.shopAddress = shop.address;
+          bObj.barberId.shopPhone = shop.phone;
+          bObj.barberId.shopId = shop._id;
+        }
+      }
+      bookingsObj.push(bObj);
+    }
+    res.json(bookingsObj);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
@@ -251,13 +299,30 @@ router.get('/active', auth, async (req, res) => {
       date: { $gte: queryDate, $lt: nextDay }
     })
       .sort({ time: 1 }) // Earliest active booking today
-      .populate('barberId', 'name shopName image profilePicture');
+      .populate('barberId', 'name image profilePicture');
 
     if (!activeBooking) {
       return res.json({ success: true, activeBooking: null });
     }
 
-    res.json({ success: true, activeBooking });
+    const Shop = require('../models/Shop');
+    const activeBookingObj = activeBooking.toObject();
+    if (activeBookingObj.barberId) {
+      const shop = await Shop.findOne({
+        $or: [
+          { owner: activeBookingObj.barberId._id },
+          { staff: activeBookingObj.barberId._id }
+        ]
+      }).select('name address phone');
+      if (shop) {
+        activeBookingObj.barberId.shopName = shop.name;
+        activeBookingObj.barberId.shopAddress = shop.address;
+        activeBookingObj.barberId.shopPhone = shop.phone;
+        activeBookingObj.barberId.shopId = shop._id;
+      }
+    }
+
+    res.json({ success: true, activeBooking: activeBookingObj });
   } catch (err) {
     console.error('Active booking error:', err.message);
     res.status(500).json({ msg: 'Server Error', activeBooking: null });
@@ -453,12 +518,35 @@ router.get('/barber-appointments-batch', auth, async (req, res) => {
 router.get('/:id', auth, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
-      .populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone')
+      .populate('barberId', 'name email phone address rating reviews profilePicture')
       .populate('userId', 'name email profilePicture phone gender language');
     if (!booking) return res.status(404).json({ msg: 'Booking not found' });
 
-    const bookingResponse = await Booking.findById(booking._id).select('+otp').populate('barberId', 'name email phone address rating reviews profilePicture shopName shopAddress shopPhone').populate('userId', 'name email profilePicture phone gender language');
-    res.json(bookingResponse);
+    const bookingResponse = await Booking.findById(booking._id)
+      .select('+otp')
+      .populate('barberId', 'name email phone address rating reviews profilePicture')
+      .populate('userId', 'name email profilePicture phone gender language');
+
+    if (!bookingResponse) return res.status(404).json({ msg: 'Booking not found' });
+
+    const Shop = require('../models/Shop');
+    const bookingObj = bookingResponse.toObject();
+    if (bookingObj.barberId) {
+      const shop = await Shop.findOne({
+        $or: [
+          { owner: bookingObj.barberId._id },
+          { staff: bookingObj.barberId._id }
+        ]
+      }).select('name address phone');
+      if (shop) {
+        bookingObj.barberId.shopName = shop.name;
+        bookingObj.barberId.shopAddress = shop.address;
+        bookingObj.barberId.shopPhone = shop.phone;
+        bookingObj.barberId.shopId = shop._id;
+      }
+    }
+
+    res.json(bookingObj);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: err.message });
@@ -1158,8 +1246,34 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
     console.log('═══════════════════════════════════════');
     // === DEBUG LOGGING END ===
 
+    // Notifications for Online Bookings (since payment is skipped)
+    if (!isOfflineBooking) {
+      // 1. Notification for Customer
+      const customerNotification = new Notification({ 
+        userId: req.user.id, 
+        title: 'Booking Confirmed', 
+        message: `Your booking with ${barber.name} is confirmed.` 
+      });
+      await customerNotification.save();
+
+      // 2. Notification for Barber
+      const barberNotification = new Notification({ 
+        userId: barber._id, 
+        title: 'New Booking', 
+        message: `New booking from ${req.user.name}` 
+      });
+      await barberNotification.save();
+
+      // Socket emits
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${req.user.id}`).emit('notification', customerNotification.toObject());
+        io.to(`barber_${barber._id.toString()}`).emit('notification', barberNotification.toObject());
+      }
+    }
+
     // 2. Notification for barber (ONLY for Walk-ins/Offline)
-    // Online bookings are notified via payment.js AFTER payment is verified
+    // Online bookings used to be notified via payment.js, but now we handle them above!
     if (isOfflineBooking && barber) {
       // 1. In-App Notification (Existing)
       const message = `New walk-in booking from ${customerName}`;

@@ -66,8 +66,8 @@ const LanguageSelectionScreen = () => {
                             className="fixed top-0 left-0 right-0 z-[100] flex justify-center px-6 pointer-events-none"
                         >
                             <div className={`px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3 backdrop-blur-md border ${toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' :
-                                    toast.type === 'error' ? 'bg-red-500/90 border-red-400 text-white' :
-                                        'bg-gray-900/90 border-gray-700 text-white'
+                                toast.type === 'error' ? 'bg-red-500/90 border-red-400 text-white' :
+                                    'bg-gray-900/90 border-gray-700 text-white'
                                 }`}>
                                 {toast.type === 'success' ? <Check size={20} /> : <Info size={20} />}
                                 <p className="font-bold text-sm tracking-wide">{toast.message}</p>
@@ -123,8 +123,8 @@ const LanguageSelectionScreen = () => {
                                 transition={{ delay: index * 0.1 }}
                                 onClick={() => setSelectedLanguage(lang.name)}
                                 className={`p-5 rounded-[28px] border-2 transition-all cursor-pointer flex items-center justify-between ${selectedLanguage === lang.name
-                                        ? 'bg-white border-indigo-500 shadow-xl shadow-indigo-100 scale-[1.02]'
-                                        : 'bg-white border-transparent border-gray-100/50 hover:bg-gray-50'
+                                    ? 'bg-white border-indigo-500 shadow-xl shadow-indigo-100 scale-[1.02]'
+                                    : 'bg-white border-transparent border-gray-100/50 hover:bg-gray-50'
                                     }`}
                             >
                                 <div className="flex items-center gap-4">
@@ -180,7 +180,7 @@ const LanguageSelectionScreen = () => {
                         )}
                     </button>
                     <p className="text-center text-[11px] font-black text-gray-300 uppercase tracking-[0.2em] mt-6">
-                        Version 1.4 • SetKarr Global
+                        Version 1.4 • GlossCut Global
                     </p>
                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useState, useEffect, useCallback, memo, useRef } from "react";
 import {
   View,
   Text,
@@ -349,6 +349,9 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const otpInputs = useRef([]);
 
   const [alert, setAlert] = useState({
     visible: false,
@@ -377,6 +380,62 @@ const LoginScreen = () => {
     };
   }, []);
 
+  const handleOtpChange = useCallback((text, index) => {
+    const cleanedText = text.replace(/[^0-9]/g, "");
+
+    if (cleanedText.length > 1) {
+      // Handle Paste
+      setOtp((prevOtp) => {
+        const newOtp = [...prevOtp];
+        for (let i = 0; i < cleanedText.length; i++) {
+          if (index + i < 6) {
+            newOtp[index + i] = cleanedText.charAt(i);
+          }
+        }
+        return newOtp;
+      });
+      
+      // Focus the last filled input or dismiss keyboard
+      const lastIndex = Math.min(index + cleanedText.length - 1, 5);
+      if (lastIndex === 5) {
+        Keyboard.dismiss();
+      } else {
+        otpInputs.current[lastIndex + 1]?.focus();
+      }
+      return;
+    }
+
+    setOtp((prevOtp) => {
+      const newOtp = [...prevOtp];
+      if (cleanedText.length === 0) {
+        newOtp[index] = "";
+        return newOtp;
+      }
+      newOtp[index] = cleanedText.charAt(cleanedText.length - 1);
+      return newOtp;
+    });
+
+    if (cleanedText.length > 0 && index < 5) {
+      otpInputs.current[index + 1]?.focus();
+    } else if (cleanedText.length > 0 && index === 5) {
+      Keyboard.dismiss();
+    }
+  }, []);
+
+  const handleOtpKeyPress = useCallback((e, index) => {
+    if (e.nativeEvent.key === "Backspace") {
+      setOtp((prevOtp) => {
+        if (!prevOtp[index] && index > 0) {
+          otpInputs.current[index - 1]?.focus();
+          const newOtp = [...prevOtp];
+          newOtp[index - 1] = "";
+          return newOtp;
+        }
+        return prevOtp;
+      });
+    }
+  }, []);
+
   const animatedCardStyle = useAnimatedStyle(() => ({
     opacity: cardOpacity.value,
     transform: [{ translateY: cardTranslateY.value }]
@@ -397,12 +456,26 @@ const LoginScreen = () => {
       return;
     }
 
+    if (showOtpInput && (!otp || otp.join("").length < 6)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      showAlert("Incomplete Code", "Please enter the complete 6-digit verification code.", "warning");
+      return;
+    }
+
     Keyboard.dismiss();
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (success) {
+      const result = await login(email, password, showOtpInput ? otp.join("") : null);
+      
+      if (result.twoFactorRequired) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        showAlert("Security", "A verification code has been sent to your email.", "info");
+        setShowOtpInput(true);
+        return;
+      }
+
+      if (result.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         showAlert("Success", "Welcome back to GlossCut!", "success");
         setTimeout(() => {
@@ -410,13 +483,13 @@ const LoginScreen = () => {
         }, 1000);
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        showAlert("Login Failed", "Incorrect email or password.", "error");
+        showAlert("Login Failed", result.error || "Incorrect email or password.", "error");
       }
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       let msg = "Something went wrong. Please try again.";
       if (error.response && error.response.status === 400) {
-        msg = "Invalid email or password. Please try again.";
+        msg = error.response.data?.msg || "Invalid email or password. Please try again.";
       }
       showAlert("Error", msg, "error");
     } finally {
@@ -499,44 +572,95 @@ const LoginScreen = () => {
 
           <Animated.View style={[styles.card, animatedCardStyle]}>
             <View style={styles.form}>
-              <CustomInput
-                index={0}
-                placeholder="Email Address"
-                value={email}
-                onChangeText={setEmail}
-                icon={Mail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                isValid={validateEmail(email)}
-                showValidation={email.length > 0}
-              />
+              {!showOtpInput ? (
+                <>
+                  <CustomInput
+                    index={0}
+                    placeholder="Email Address"
+                    value={email}
+                    onChangeText={setEmail}
+                    icon={Mail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    isValid={validateEmail(email)}
+                    showValidation={email.length > 0}
+                  />
 
-              <View style={styles.inputGroup}>
-                <CustomInput
-                  index={1}
-                  placeholder="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  icon={Lock}
-                  isPassword
-                  secureTextEntry={!isPasswordVisible}
-                  toggleSecure={() => setIsPasswordVisible(!isPasswordVisible)}
-                  isValid={password.length >= 6}
-                  showValidation={password.length > 0}
-                />
-                <TouchableOpacity
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    navigation.navigate("ForgotPassword");
-                  }}
-                  style={styles.forgotButton}
-                >
-                  <Text style={styles.forgotText}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
+                  <View style={styles.inputGroup}>
+                    <CustomInput
+                      index={1}
+                      placeholder="Password"
+                      value={password}
+                      onChangeText={setPassword}
+                      icon={Lock}
+                      isPassword
+                      secureTextEntry={!isPasswordVisible}
+                      toggleSecure={() => setIsPasswordVisible(!isPasswordVisible)}
+                      isValid={password.length >= 6}
+                      showValidation={password.length > 0}
+                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        navigation.navigate("ForgotPassword");
+                      }}
+                      style={styles.forgotButton}
+                    >
+                      <Text style={styles.forgotText}>Forgot Password?</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.inputGroup}>
+                  <Text style={{ fontSize: scaleFont(14), color: "#6B7280", fontFamily: "PlusJakartaSans_600SemiBold", marginBottom: 8, textAlign: "center" }}>Enter 6-Digit Code</Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", width: "100%", marginBottom: 15 }}>
+                    {otp.map((digit, index) => (
+                      <TextInput
+                        key={index}
+                        ref={(el) => (otpInputs.current[index] = el)}
+                        style={{
+                          width: scaleFont(42),
+                          height: scaleFont(52),
+                          fontSize: scaleFont(20),
+                          textAlign: "center",
+                          borderRadius: 12,
+                          fontWeight: "800",
+                          backgroundColor: "#FFFFFF",
+                          color: "#111827",
+                          borderWidth: digit ? 2 : 1.5,
+                          borderColor: digit ? "#E21D25" : "#D1D5DB",
+                          shadowColor: "#000",
+                          shadowOpacity: 0.05,
+                          shadowRadius: 5,
+                          shadowOffset: { width: 0, height: 2 },
+                          elevation: 2
+                        }}
+                        maxLength={1}
+                        keyboardType="number-pad"
+                        textContentType="oneTimeCode"
+                        onKeyPress={(e) => handleOtpKeyPress(e, index)}
+                        onChangeText={(text) => handleOtpChange(text, index)}
+                        value={digit}
+                        editable={!isLoading}
+                        cursorColor="#E21D25"
+                      />
+                    ))}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setShowOtpInput(false);
+                      setOtp(["", "", "", "", "", ""]);
+                    }}
+                    style={{ alignSelf: "center", marginTop: 5 }}
+                  >
+                    <Text style={{ fontSize: scaleFont(13), color: "#E21D25", fontFamily: "PlusJakartaSans_600SemiBold" }}>Back to Login</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <PrimaryButton
-                title="Enter GlossCut"
+                title={showOtpInput ? "Verify & Enter" : "Enter GlossCut"}
                 onPress={handleLogin}
                 isLoading={isLoading}
               />

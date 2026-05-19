@@ -265,7 +265,7 @@ const PaymentScreen = () => {
           currency: orderRes.data.currency,
           key: rzpKey,
           amount: orderRes.data.amount,
-          name: 'SetKarr Salon',
+          name: 'GlossCut Salon',
           order_id: orderRes.data.id,
           prefill: {
             email: user.email,
@@ -346,7 +346,7 @@ const PaymentScreen = () => {
         currency: orderRes.data.currency,
         key: rzpKey,
         amount: orderRes.data.amount,
-        name: 'SetKarr Salon',
+        name: 'GlossCut Salon',
         order_id: orderRes.data.id,
         prefill: {
           email: user.email,

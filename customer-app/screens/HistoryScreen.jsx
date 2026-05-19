@@ -12,9 +12,11 @@ import {
   Image,
   Easing,
   Platform,
-  StatusBar
+  StatusBar,
+  SectionList
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from 'expo-blur';
 import {
   Calendar,
   ChevronLeft,
@@ -177,27 +179,10 @@ const TripCard = React.memo(
             navigation.navigate("BookingDetail", { booking: trip })
           }
           activeOpacity={0.9}
-          style={[styles.card, { backgroundColor: theme.colors.card }]}
+          style={[styles.card, { backgroundColor: "#fffdfbff" }]}
         >
           <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <View style={styles.timeBadge}>
-                <Clock size={12} color={theme.colors.primary} />
-                <Text style={[styles.timeText, { color: theme.colors.text }]}>
-                  {trip.time}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: statusStyle.bg },
-                ]}
-              >
-                <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                  {displayStatus}
-                </Text>
-              </View>
-            </View>
+            {/* Card Header removed (Time removed, Status moved inline) */}
 
             <View style={styles.mainInfoRow}>
               <Image
@@ -205,12 +190,24 @@ const TripCard = React.memo(
                 style={styles.avatar}
               />
               <View style={styles.infoCol}>
-                <Text
-                  style={[styles.barberName, { color: theme.colors.text }]}
-                  numberOfLines={1}
-                >
-                  {trip.barberId?.shopName || trip.barberId?.name || "Unknown Shop"}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text
+                    style={[styles.barberName, { color: theme.colors.text, flexShrink: 1, marginBottom: 0 }]}
+                    numberOfLines={1}
+                  >
+                    {trip.barberId?.shopName || trip.barberId?.name || "Unknown Shop"}
+                  </Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: statusStyle.bg },
+                    ]}
+                  >
+                    <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                      {displayStatus}
+                    </Text>
+                  </View>
+                </View>
                 {trip.barberId?.shopName && (
                   <Text
                     style={{
@@ -225,28 +222,7 @@ const TripCard = React.memo(
                     Served by <Text style={{ fontFamily: 'Syne_800ExtraBold', color: theme.colors.text }}>{trip.barberId?.name}</Text>
                   </Text>
                 )}
-                <View style={styles.subInfoRow}>
-                  <Text
-                    style={[
-                      styles.serviceCount,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    {trip.services.length} Service
-                    {trip.services.length !== 1 ? "s" : ""}
-                  </Text>
-                  <View
-                    style={[
-                      styles.dot,
-                      { backgroundColor: theme.colors.textSecondary },
-                    ]}
-                  />
-                  <Text
-                    style={[styles.priceText, { color: theme.colors.primary }]}
-                  >
-                    ₹{trip.totalPrice}
-                  </Text>
-                </View>
+
               </View>
               <View style={styles.arrowContainer}>
                 <ChevronRight size={18} color={theme.colors.border} />
@@ -408,6 +384,7 @@ const HistoryScreen = () => {
   const [pastTrips, setPastTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Alert State (Replaces generic Error Screen)
   const [alertConfig, setAlertConfig] = useState({
@@ -442,7 +419,7 @@ const HistoryScreen = () => {
       .sort((a, b) => new Date(b) - new Date(a))
       .map((date) => ({
         date,
-        items: grouped[date].sort((a, b) => {
+        data: grouped[date].sort((a, b) => {
           // Sort items within a date by time descending (latest time first)
           return b.time.localeCompare(a.time);
         }),
@@ -455,6 +432,7 @@ const HistoryScreen = () => {
       const data = response.data;
 
       if (response.status === 200) {
+        setHasError(false);
         const now = new Date();
         const upcoming = [];
         const past = [];
@@ -488,6 +466,7 @@ const HistoryScreen = () => {
         throw new Error(data.message || "Failed to fetch trip history");
       }
     } catch (error) {
+      setHasError(true);
       // Replaced setError logic with ModernAlert to keep page valid
       showAlert(
         error.message || "Internet connection appears to be offline",
@@ -554,8 +533,8 @@ const HistoryScreen = () => {
 
   // --- Main Render ---
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <View style={[styles.container, { backgroundColor: "#FFFFFF" }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Alert Overlay - Placed here to float above everything */}
       <ModernAlert
@@ -567,63 +546,108 @@ const HistoryScreen = () => {
         topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
       />
 
-      {/* STICKY NAVBAR (Premium Anime-Tech) */}
+      {/* STICKY NAVBAR (Glassmorphic Premium) */}
       <View style={styles.topSection}>
+        <BlurView intensity={90} tint="light" style={StyleSheet.absoluteFill} />
         <View style={[styles.locationRow, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronLeft size={24} color="#FFFFFF" strokeWidth={2.5} />
+            <ChevronLeft size={22} color="#1E293B" strokeWidth={2.5} />
           </TouchableOpacity>
           <View style={styles.locationTextContainer}>
             <Text style={styles.locationLabel}>Personal Records</Text>
             <Text style={styles.locationValue}>My Bookings</Text>
           </View>
-          <View style={{ width: 44 }} />
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ScheduleNextAppointment")}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Calendar size={20} color="#1E293B" strokeWidth={2.5} />
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Spacer for Absolute Header */}
-      <View style={{ height: insets.top + 110 }} />
+      <View style={{ height: insets.top + 85 }} />
 
-      {/* Handling Empty State Manually here inside ScrollView or standalone */}
-      {upcomingTrips.length === 0 && pastTrips.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View
-            style={[
-              styles.emptyIconCircle,
-              { backgroundColor: theme.colors.card },
-            ]}
-          >
-            <Calendar size={32} color={theme.colors.primary} />
+      {/* Handling Empty/Error States */}
+      {hasError ? (
+        <View style={styles.errorStateContainer}>
+          <View style={styles.errorIconOuterCircle}>
+            <View style={styles.errorIconInnerCircle}>
+              <WifiOff size={36} color="#9B1C1C" />
+            </View>
           </View>
-          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-            No Bookings Found
-          </Text>
-          <Text
-            style={[
-              styles.emptySubtitle,
-              { color: theme.colors.textSecondary },
-            ]}
-          >
-            You haven't made any appointments yet, or we couldn't fetch them.
+          <Text style={styles.errorTitleText}>Connection Offline</Text>
+          <Text style={styles.errorSubtitleText}>
+            We couldn't sync your bookings. Please check your internet connection or try again.
           </Text>
           <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              { backgroundColor: theme.colors.primary },
-            ]}
-            onPress={onRefresh} // Changed to retry/refresh
+            style={styles.errorRetryButton}
+            onPress={onRefresh}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.primaryButtonText, { color: "#fff" }]}>
-              Refresh Page
-            </Text>
+            <Text style={styles.errorRetryButtonText}>Retry Connection</Text>
+            <RefreshCw size={14} color="#1A1A1A" strokeWidth={2.5} />
+          </TouchableOpacity>
+        </View>
+      ) : upcomingTrips.length === 0 && pastTrips.length === 0 ? (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.emptyIconOuterCircle}>
+            <View style={styles.emptyIconInnerCircle}>
+              <Calendar size={36} color="#1A1A1A" />
+            </View>
+          </View>
+          <Text style={styles.emptyTitleText}>No Grooming Sessions</Text>
+          <Text style={styles.emptySubtitleText}>
+            Your booked services, queue progress, and styling history will appear here once you schedule an appointment.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyBookButton}
+            onPress={() => navigation.navigate("ScheduleNextAppointment")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.emptyBookButtonText}>Book Your First Session</Text>
+            <ChevronRight size={18} color="#C8FF00" strokeWidth={3} />
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
+        <SectionList
+          sections={allGroupedTrips}
+          keyExtractor={(item) => item._id}
+          renderItem={({ item, index }) => (
+            <View style={styles.groupItemsContainer}>
+              <TripCard
+                trip={item}
+                index={index}
+                navigation={navigation}
+                theme={theme}
+                styles={styles}
+              />
+            </View>
+          )}
+          renderSectionHeader={({ section: { date } }) => (
+            <View style={styles.sectionHeader}>
+              <View style={styles.headerPill}>
+                <Text style={styles.headerPillText}>
+                  {formatDateHeader(date)}
+                </Text>
+              </View>
+              <View style={styles.headerLine} />
+            </View>
+          )}
+          SectionSeparatorComponent={() => (
+            <View
+              style={[
+                styles.daySeparator,
+                { backgroundColor: theme.colors.border },
+              ]}
+            />
+          )}
           contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 60 }]}
           refreshControl={
             <RefreshControl
@@ -633,57 +657,11 @@ const HistoryScreen = () => {
             />
           }
           showsVerticalScrollIndicator={false}
-          // Remove clipping to help with smoothness
           removeClippedSubviews={Platform.OS === "android"}
-        >
-          {allGroupedTrips.map((group, groupIdx) => (
-            <View key={group.date} style={styles.dateGroupBlock}>
-              <View style={styles.dateHeaderRow}>
-                <View
-                  style={[
-                    styles.dateHeaderDot,
-                    {
-                      backgroundColor: isToday(new Date(group.date))
-                        ? theme.colors.primary
-                        : theme.colors.textSecondary,
-                    },
-                  ]}
-                />
-                <Text
-                  style={[
-                    styles.dateHeaderText,
-                    { color: theme.colors.text },
-                  ]}
-                >
-                  {formatDateHeader(group.date)}
-                </Text>
-              </View>
-
-              <View style={styles.groupItemsContainer}>
-                {group.items.map((trip, idx) => (
-                  <TripCard
-                    key={trip._id}
-                    trip={trip}
-                    index={idx}
-                    navigation={navigation}
-                    theme={theme}
-                    styles={styles}
-                  />
-                ))}
-              </View>
-
-              {/* Day Separation Line */}
-              {groupIdx < allGroupedTrips.length - 1 && (
-                <View
-                  style={[
-                    styles.daySeparator,
-                    { backgroundColor: theme.colors.border },
-                  ]}
-                />
-              )}
-            </View>
-          ))}
-        </ScrollView>
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={3}
+        />
       )}
     </View>
   );
@@ -732,56 +710,56 @@ const styles = StyleSheet.create({
   // --- Existing Styles ---
   // --- TOP SECTION (Premium Anime-Tech) ---
   topSection: {
-    backgroundColor: '#0D0D0D', // Deeper black
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent for blur effect
     zIndex: 1000,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
     borderBottomWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#F1F5F9',
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     width: '100%',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 12
+    paddingBottom: 8,
+    gap: 16
   },
   locationTextContainer: {
-    flex: 1
+    flex: 1,
+    alignItems: 'center'
   },
   locationLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'DMSans_700Bold',
-    color: 'rgba(255, 255, 255, 0.45)',
+    color: '#64748B',
     textTransform: 'uppercase',
-    letterSpacing: 1.5, // Increased for professional look
-    marginBottom: 1
+    letterSpacing: 1.5,
+    marginBottom: 0
   },
   locationValue: {
-    fontSize: 20, // Slightly larger for impact
-    fontFamily: 'Syne_800ExtraBold',
-    color: '#FFFFFF',
-    letterSpacing: -0.2
+    fontSize: 22,
+    fontFamily: 'PlusJakartaSans_800ExtraBold', // Consistent bold font
+    color: '#0F172A',
+    letterSpacing: -0.5
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: '#F1F5F9',
   },
   centerContainer: {
     flex: 1,
@@ -812,35 +790,51 @@ const styles = StyleSheet.create({
   daySeparator: {
     height: 1,
     width: '100%',
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: 4,
+    marginBottom: 12,
     opacity: 0.2
   },
-  dateHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
-    paddingHorizontal: 4
+    marginTop: 4
   },
-  dateHeaderDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#000",
-    marginRight: 10
+  headerPill: {
+    backgroundColor: '#eeeeeeff', // Darker grey for better contrast
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 100,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 7, 7, 0.1)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  dateHeaderText: {
-    fontSize: 16,
-    fontWeight: "700"
+  headerPillText: {
+    fontFamily: 'PlusJakartaSans_800ExtraBold', // Bolder font for date headers
+    color: '#1A1A1A',
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase'
+  },
+  headerLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: 'rgba(30, 29, 29, 0.2)', // Darker line for better visibility
+    borderRadius: 1
   },
   card: {
     borderRadius: 24,
-    marginBottom: 20,
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 6,
   },
   cardContent: {
     padding: 16
@@ -898,7 +892,9 @@ const styles = StyleSheet.create({
   },
   subInfoRow: {
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 4
   },
   serviceCount: {
     fontSize: 13,
@@ -928,7 +924,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 4
+    elevation: 4,
+    flexShrink: 0 // Prevent button from collapsing on small screens
   },
   rebookText: {
     fontSize: 12,
@@ -967,7 +964,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontSize: 11,
-    fontWeight: "500",
+    fontFamily: 'DMSans_500Medium',
     letterSpacing: 0.2,
     opacity: 0.9
   },
@@ -1034,7 +1031,7 @@ const styles = StyleSheet.create({
   },
   moreText: {
     fontSize: 10,
-    fontWeight: "700",
+    fontFamily: 'DMSans_700Bold',
     color: "#FFFFFF"
   },
   emptyState: {
@@ -1054,24 +1051,147 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: "700",
+    fontFamily: 'DMSans_700Bold',
     marginBottom: 10
   },
-  emptySubtitle: {
-    fontSize: 15,
+  emptyStateContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+    marginTop: 80,
+  },
+  emptyIconOuterCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#F0EFE9',
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: '#E8E7E2',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  emptyIconInnerCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FFFFFF',
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: '#E8E7E2',
+  },
+  emptyTitleText: {
+    fontSize: 20,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    color: '#1A1A1A',
+    marginBottom: 10,
+    textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  emptySubtitleText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    color: '#606058',
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 30,
-    opacity: 0.6
+    marginBottom: 32,
+    paddingHorizontal: 16,
   },
-  primaryButton: {
+  emptyBookButton: {
+    height: 52,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 14
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: "700"
+  emptyBookButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    letterSpacing: 0.5,
+  },
+  errorStateContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+    marginTop: 80,
+  },
+  errorIconOuterCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#FDF2F2',
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: '#FDE8E8',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  errorIconInnerCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FFFFFF',
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: '#FDE8E8',
+  },
+  errorTitleText: {
+    fontSize: 20,
+    fontFamily: 'PlusJakartaSans_800ExtraBold',
+    color: '#9B1C1C',
+    marginBottom: 10,
+    textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  errorSubtitleText: {
+    fontSize: 14,
+    fontFamily: 'DMSans_500Medium',
+    color: '#606058',
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 32,
+    paddingHorizontal: 16,
+  },
+  errorRetryButton: {
+    height: 52,
+    backgroundColor: '#FDFDFD',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#1A1A1A',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  errorRetryButtonText: {
+    color: '#1A1A1A',
+    fontSize: 14,
+    fontFamily: 'DMSans_700Bold',
+    letterSpacing: 0.5,
   },
   cancellationRow: {
     marginTop: 8,
@@ -1081,6 +1201,7 @@ const styles = StyleSheet.create({
   },
   cancellationText: {
     fontSize: 12,
+    fontFamily: 'DMSans_500Medium',
     fontStyle: "italic"
   }
 });

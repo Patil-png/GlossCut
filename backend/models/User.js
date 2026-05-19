@@ -63,10 +63,13 @@ const userSchema = new mongoose.Schema({
 
   // Security & Verification
   isEmailVerified: { type: Boolean, default: false },
+  isTerminated: { type: Boolean, default: false },
   emailVerificationToken: String,
   emailVerificationExpires: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  resetPasswordOtp: Number,
+  resetPasswordExpires: Date,
 
   // App Specific
   twoFactorEnabled: { type: Boolean, default: false },
@@ -78,6 +81,11 @@ const userSchema = new mongoose.Schema({
   notificationsEnabled: { type: Boolean, default: true }, // [NEW] Global notification toggle
   likedBarbers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   likedSalons: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Shop' }],
+  likedProviders: [{
+    providerId: { type: mongoose.Schema.Types.ObjectId },
+    providerType: { type: String, enum: ['barber', 'salon'] },
+    likedAt: { type: Date, default: Date.now }
+  }],
 
   // Barber Specific
   isAvailable: { type: Boolean, default: true },

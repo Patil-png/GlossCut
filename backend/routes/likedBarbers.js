@@ -139,7 +139,7 @@ router.get('/', auth, async (req, res) => {
     let barberCards = [];
     try {
       // FIXED: Removed .lean() so decryption works
-      barberCards = await BarberCard.find({ _id: { $in: barberCardIds } });
+      barberCards = await BarberCard.find({ _id: { $in: barberCardIds } }).populate('shopId');
     } catch (err) {
       console.error('Error querying BarberCard collection:', err.stack || err.message);
       barberCards = [];

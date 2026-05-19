@@ -127,13 +127,13 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
 
         {review.title && (
           <Text style={[styles.reviewTitle, { color: theme.colors.text }]}>
-            {review.title}
+            {typeof review.title === 'object' && review.title !== null ? (review.title.content || '') : String(review.title)}
           </Text>
         )}
 
         {review.comment && (
           <Text style={[styles.reviewComment, { color: theme.colors.textSecondary }]} numberOfLines={0}>
-            {review.comment}
+            {typeof review.comment === 'object' && review.comment !== null ? (review.comment.content || '') : String(review.comment)}
           </Text>
         )}
 
@@ -143,7 +143,7 @@ const CustomerReviewsScreen = ({ navigation, route }) => {
               Barber Response:
             </Text>
             <Text style={[styles.responseText, { color: theme.colors.text }]}>
-              {review.barberResponse}
+              {typeof review.barberResponse === 'object' && review.barberResponse !== null ? (review.barberResponse.content || '') : String(review.barberResponse)}
             </Text>
           </View>
         )}

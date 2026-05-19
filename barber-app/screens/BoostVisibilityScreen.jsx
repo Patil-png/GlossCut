@@ -321,7 +321,7 @@ const BoostVisibilityScreen = ({ navigation }) => {
                 currency: "INR",
                 key: rzpKey, // Securely fetched from backend
                 amount: orderRes.data.amount,
-                name: "SetKarr Barber Subscription",
+                name: "GlossCut Partner Subscription",
                 order_id: orderRes.data.id,
                 prefill: {
                     email: user.email,

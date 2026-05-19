@@ -1,9 +1,205 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { CheckCircle, AlertCircle, X } from 'lucide-react-native';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import io from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { useAuth } from './AuthContext';
+
+const getBlinkitProgressBar = (title = '', message = '') => {
+  const t = title.toLowerCase();
+  const m = message.toLowerCase();
+
+  // If it's a booking/queue update, generate progress bar (20 units total inside brackets)
+  if (t.includes('confirmed') || t.includes('secured')) {
+    return '\n[🟢●------------------] Confirmed';
+  }
+  if (m.includes('queue') || m.includes('line') || m.includes('ahead')) {
+    const match = m.match(/(\d+)/);
+    const num = match ? parseInt(match[0], 10) : null;
+
+    if (num !== null) {
+      if (num >= 4) {
+        return `\n[----●---------------] In Queue (${num} ahead)`;
+      }
+      if (num === 3) {
+        return '\n[--------●-----------] In Queue (3rd)';
+      }
+      if (num === 2) {
+        return '\n[------------●-------] Next In Line (2nd)';
+      }
+      if (num === 1) {
+        return '\n[----------------●---] Next In Line (1st)';
+      }
+    }
+    return '\n[--------●-----------] In Queue';
+  }
+  if (t.includes('ready') || t.includes('start') || t.includes('otp') || m.includes('otp') || m.includes('ready')) {
+    return '\n[-------------------🟢] Ready! Your Turn';
+  }
+  return '';
+};
+
+const getBlinkitProgressDetails = (title = '', message = '') => {
+  const t = title.toLowerCase();
+  const m = message.toLowerCase();
+
+  if (t.includes('confirmed') || t.includes('secured')) {
+    return {
+      progress: 0.15,
+      timeText: 'Arriving in 30 mins',
+      statusText: 'Slot Secured',
+      iconType: 'calendar',
+      illustrationText: 'Booking Confirmed!',
+      subMessage: 'John is scheduled for your visit.'
+    };
+  }
+  if (m.includes('queue') || m.includes('line') || m.includes('ahead')) {
+    const match = m.match(/(\d+)/);
+    const num = match ? parseInt(match[0], 10) : null;
+
+    if (num !== null) {
+      if (num >= 4) {
+        return {
+          progress: 0.30,
+          timeText: `Arriving in ${num * 5} mins`,
+          statusText: `In Queue (${num} ahead)`,
+          iconType: 'clock',
+          illustrationText: 'Queue is moving',
+          subMessage: `There are ${num} people ahead of you.`
+        };
+      }
+      if (num === 3) {
+        return {
+          progress: 0.55,
+          timeText: 'Arriving in 15 mins',
+          statusText: 'In Queue (3rd)',
+          iconType: 'clock',
+          illustrationText: 'Almost your turn',
+          subMessage: '3 people ahead. Get ready!'
+        };
+      }
+      if (num === 2) {
+        return {
+          progress: 0.75,
+          timeText: 'Arriving in 10 mins',
+          statusText: 'Next In Line (2nd)',
+          iconType: 'walk',
+          illustrationText: 'Start heading over',
+          subMessage: 'You are 2nd in queue. Please head to the shop.'
+        };
+      }
+      if (num === 1) {
+        return {
+          progress: 0.90,
+          timeText: 'Arriving in 5 mins',
+          statusText: 'Next up (1st)',
+          iconType: 'walk',
+          illustrationText: 'Be ready at counter',
+          subMessage: 'You are next! Keep your entry OTP ready.'
+        };
+      }
+    }
+    return {
+      progress: 0.50,
+      timeText: 'Arriving in 15 mins',
+      statusText: 'In Queue',
+      iconType: 'clock',
+      illustrationText: 'Queue is active',
+      subMessage: 'Tracking your live position.'
+    };
+  }
+  if (t.includes('ready') || t.includes('start') || t.includes('otp') || m.includes('otp') || m.includes('ready')) {
+    return {
+      progress: 1.0,
+      timeText: 'Session Starting Now',
+      statusText: 'Your Turn!',
+      iconType: 'scissors',
+      illustrationText: 'Ready at Salon!',
+      subMessage: 'Please take your seat and share OTP.'
+    };
+  }
+  
+  return {
+    progress: 0.5,
+    timeText: 'Update received',
+    statusText: 'SetKarr Live',
+    iconType: 'bell',
+    illustrationText: title,
+    subMessage: message
+  };
+};
+
+const triggerLocalNotification = async (title, body) => {
+  try {
+    const isExpoGo = Constants.appOwnership === 'expo' || 
+                     Constants.executionEnvironment === 'storeClient';
+
+    if (Platform.OS === 'android' && !isExpoGo) {
+      try {
+        const notifeeModule = require('@notifee/react-native');
+        const notifee = notifeeModule.default;
+        const { AndroidImportance, AndroidStyle } = notifeeModule;
+
+        await notifee.requestPermission();
+
+        const details = getBlinkitProgressDetails(title, body);
+        const progressValue = Math.round(details.progress * 100);
+
+        const channelId = await notifee.createChannel({
+          id: 'setkarr-tracking',
+          name: 'SetKarr Live Tracking',
+          importance: AndroidImportance.HIGH,
+        });
+
+        await notifee.displayNotification({
+          title: title,
+          body: body,
+          android: {
+            channelId,
+            smallIcon: 'notification_icon',
+            importance: AndroidImportance.HIGH,
+            pressAction: {
+              id: 'default',
+              launchActivity: 'default',
+            },
+            style: {
+              type: AndroidStyle.CUSTOM,
+              layout: 'custom_notification',
+            },
+            progress: {
+              max: 100,
+              current: progressValue,
+              indeterminate: false,
+            }
+          },
+        });
+        return; // Success, do not fall back
+      } catch (notifeeErr) {
+        console.log("Notifee native module missing or running in Expo Go. Falling back to system notification...");
+      }
+    }
+
+    // Fallback: Use standard Expo notifications (which work everywhere, including inside Expo Go!)
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status === 'granted') {
+      const progressBar = getBlinkitProgressBar(title, body);
+      const finalBody = body + progressBar;
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body: finalBody,
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: null,
+      });
+    }
+  } catch (err) {
+    console.warn("Error triggering local notification:", err);
+  }
+};
 
 const NotificationContext = createContext();
 
@@ -15,98 +211,11 @@ export const useNotifications = () => {
   return context;
 };
 
-// Popup Notification Component
-const PopupNotification = ({ visible, notification, onHide, theme }) => {
-  const translateY = useRef(new Animated.Value(-100)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible && notification) {
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: 50,
-          duration: 400,
-          useNativeDriver: true}),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true}),
-      ]).start();
-
-      // Auto hide after 5 seconds
-      const timer = setTimeout(() => {
-        hideNotification();
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    } else {
-      hideNotification();
-    }
-  }, [visible, notification]);
-
-  const hideNotification = () => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -100,
-        duration: 300,
-        useNativeDriver: true}),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true}),
-    ]).start(() => {
-      if (onHide) onHide();
-    });
-  };
-
-  if (!visible || !notification) return null;
-
-  const isError = notification.title?.toLowerCase().includes('cancelled') ||
-                  notification.title?.toLowerCase().includes('declined');
-  const bgColor = isError ? '#FEF2F2' : '#F0FDF4';
-  const borderColor = isError ? '#EF4444' : '#22C55E';
-  const textColor = isError ? '#991B1B' : '#166534';
-  const Icon = isError ? AlertCircle : CheckCircle;
-
-  return (
-    <Animated.View
-      style={[
-        styles.popupContainer,
-        {
-          transform: [{ translateY }],
-          opacity,
-          backgroundColor: bgColor,
-          borderColor: borderColor},
-      ]}
-    >
-      <View style={styles.popupContent}>
-        <View style={[styles.iconContainer, { backgroundColor: isError ? '#FECACA' : '#DCFCE7' }]}>
-          <Icon size={20} color={borderColor} />
-        </View>
-        <View style={styles.textContainer}>
-          <Text style={[styles.popupTitle, { color: textColor }]} numberOfLines={1}>
-            {notification.title}
-          </Text>
-          <Text style={[styles.popupMessage, { color: textColor }]} numberOfLines={2}>
-            {notification.message}
-          </Text>
-        </View>
-        <TouchableOpacity onPress={hideNotification} style={styles.closeButton}>
-          <X size={16} color={textColor} />
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
-  );
-};
-
 export const NotificationProvider = ({ children }) => {
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
-  const [currentNotification, setCurrentNotification] = useState(null);
-  const [showPopup, setShowPopup] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
-  // Connect to socket when user is authenticated
   useEffect(() => {
     const connectSocket = async () => {
       if (user && user._id) {
@@ -115,7 +224,8 @@ export const NotificationProvider = ({ children }) => {
           if (token) {
             const newSocket = io(process.env.EXPO_PUBLIC_API_URL, {
               query: { token },
-              transports: ['websocket', 'polling']});
+              transports: ['websocket', 'polling']
+            });
 
             newSocket.on('connect', () => {
               console.log('Connected to notification socket');
@@ -125,21 +235,14 @@ export const NotificationProvider = ({ children }) => {
               console.log('Disconnected from notification socket');
             });
 
-            // Listen for new notifications
             newSocket.on('notification', (notification) => {
               console.log('Received notification:', notification);
-
-              // Add to notifications list
               setNotifications(prev => [notification, ...prev]);
 
-              // Show popup for important notifications (cancellations, etc.)
-              if (notification.title?.toLowerCase().includes('booking') &&
-                  (notification.title?.toLowerCase().includes('cancelled') ||
-                   notification.title?.toLowerCase().includes('declined') ||
-                   notification.message?.toLowerCase().includes('coins'))) {
-                setCurrentNotification(notification);
-                setShowPopup(true);
-              }
+              triggerLocalNotification(
+                notification.title || "SetKarr Update",
+                notification.message || notification.body || ""
+              );
             });
 
             setSocket(newSocket);
@@ -159,11 +262,6 @@ export const NotificationProvider = ({ children }) => {
     };
   }, [user]);
 
-  const hidePopup = () => {
-    setShowPopup(false);
-    setCurrentNotification(null);
-  };
-
   const markAsRead = async (notificationId) => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -171,9 +269,10 @@ export const NotificationProvider = ({ children }) => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': token}});
+          'x-auth-token': token
+        }
+      });
 
-      // Update local state
       setNotifications(prev =>
         prev.map(notif =>
           notif._id === notificationId ? { ...notif, read: true } : notif
@@ -187,50 +286,13 @@ export const NotificationProvider = ({ children }) => {
   const value = {
     notifications,
     socket,
-    markAsRead};
+    markAsRead,
+    triggerLocalNotification
+  };
 
   return (
     <NotificationContext.Provider value={value}>
       {children}
-      <PopupNotification
-        visible={showPopup}
-        notification={currentNotification}
-        onHide={hidePopup}
-        theme={{}} // Pass theme if needed
-      />
     </NotificationContext.Provider>
   );
 };
-
-const styles = StyleSheet.create({
-  popupContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-    zIndex: 9999,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1},
-  popupContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start'},
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12},
-  textContainer: {
-    flex: 1},
-  popupTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 4},
-  popupMessage: {
-    fontSize: 12,
-    lineHeight: 16},
-  closeButton: {
-    padding: 4,
-    marginLeft: 8}});

@@ -3,18 +3,22 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  memo,
   useRef
 } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   FlatList,
   Image,
   ActivityIndicator,
   Animated,
+  Easing,
   Dimensions,
   Platform,
   StatusBar,
@@ -28,8 +32,10 @@ import { useAuth } from "../contexts/AuthContext.jsx";
 import api from "../utils/api";
 import {
   ArrowLeft,
+  ChevronLeft,
   Bookmark,
   AlertTriangle,
+  AlertCircle,
   ShieldCheck,
   Star,
   MapPin,
@@ -48,65 +54,75 @@ import BarberCard from "../src/components/BarberCard";
 const { width, height } = Dimensions.get("window");
 const CARD_HEIGHT = 280;
 
-// --- 1. MEMOIZED ALERT COMPONENT ---
-const ModernAlert = React.memo(({ visible, message, type, onHide, topInset }) => {
-  const translateY = useRef(new Animated.Value(-120)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+const scale = width / 375;
+const normalize = (size) => {
+  const newSize = size * scale;
+  if (Platform.OS === 'ios') {
+    return Math.round(newSize);
+  } else {
+    return Math.round(newSize) - 1;
+  }
+};
 
-  useEffect(() => {
-    if (visible) {
-      Animated.parallel([
-        Animated.spring(translateY, {
-          toValue: topInset,
-          friction: 9,
-          tension: 50,
-          useNativeDriver: true
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true
-        }),
-      ]).start();
-      const timer = setTimeout(() => hide(), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [visible]);
+const getImageUrl = (image) => {
+  if (!image) return null;
+  if (typeof image === 'object' && image.uri) return image;
+  if (typeof image === 'string') {
+    if (image.startsWith('http') || image.startsWith('data:')) return { uri: image };
+    const baseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://192.168.29.243:5000';
+    return { uri: `${baseUrl}${image.startsWith('/') ? '' : '/'}${image}` };
+  }
+  return image;
+};
 
-  const hide = () => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -120,
-        duration: 300,
-        useNativeDriver: true
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true
-      }),
-    ]).start(() => onHide());
-  };
+// --- 1. OPTIMIZED SUB-COMPONENTS ---
 
+const Header = memo(({ onBack, insets, count }) => (
+  <View 
+    style={[localStyles.headerContainer, { paddingTop: Math.max(insets.top, 16) }]}
+    accessibilityRole="header"
+  >
+    <TouchableOpacity 
+      onPress={onBack} 
+      style={localStyles.backBtn}
+      accessibilityLabel="Go back"
+      accessibilityRole="button"
+    >
+      <ChevronLeft size={normalize(22)} color="#1E293B" strokeWidth={2.5} />
+    </TouchableOpacity>
+    <View style={{ alignItems: 'center' }}>
+      <Text style={localStyles.headerTitle}>Favorites</Text>
+      <Text style={localStyles.headerSubtitle}>{count} {count === 1 ? 'expert' : 'experts'} saved</Text>
+    </View>
+    <View style={{ width: normalize(40) }} />
+  </View>
+));
+
+const CustomToast = memo(({ visible, message, type, animatedValue }) => {
   if (!visible) return null;
+
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-100, 0],
+  });
+
+  const isSuccess = type === "success";
+  const iconColor = isSuccess ? "#10B981" : "#EF4444";
 
   return (
     <Animated.View
       style={[
-        localStyles.alertWrapper,
-        {
-          transform: [{ translateY }],
-          opacity,
-          backgroundColor: type === "error" ? "#FF3B30" : "#1A1A1A"
-        },
+        localStyles.toastContainer,
+        { transform: [{ translateY }] },
       ]}
+      accessibilityLiveRegion="polite"
     >
-      {type === "error" ? (
-        <AlertTriangle color="#FFF" size={18} />
-      ) : (
-        <ShieldCheck color="#4ADE80" size={18} />
-      )}
-      <Text style={localStyles.alertText}>{message}</Text>
+      <View style={[localStyles.toastContent, { borderLeftColor: iconColor }]}>
+        {isSuccess ? <CheckCircle size={20} color={iconColor} /> : <AlertCircle size={20} color={iconColor} />}
+        <View style={localStyles.toastTextContainer}>
+          <Text style={localStyles.toastMessage}>{message}</Text>
+        </View>
+      </View>
     </Animated.View>
   );
 });
@@ -114,22 +130,42 @@ const ModernAlert = React.memo(({ visible, message, type, onHide, topInset }) =>
 // --- 2. PREMIUM EMPTY STATE COMPONENT ---
 const EmptyState = ({ theme, onExplore, dynamicStyles }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Entrance Animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true
     }).start();
+
+    // Floating Loop Animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -10,
+          duration: 2500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2500,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.sin),
+        }),
+      ])
+    ).start();
   }, []);
 
   return (
     <Animated.View
       style={[dynamicStyles.emptyContainer, { opacity: fadeAnim }]}
     >
-      <View style={dynamicStyles.iconCircle}>
-        <HeartOff size={48} color={theme.colors.primary} strokeWidth={1.5} />
-      </View>
+      <Animated.View style={[dynamicStyles.iconCircle, { transform: [{ translateY: floatAnim }] }]}>
+        <HeartOff size={normalize(48)} color={theme.colors.primary} strokeWidth={1.5} />
+      </Animated.View>
       <Text style={[dynamicStyles.emptyTitle, { color: theme.colors.text }]}>
         No favorites yet
       </Text>
@@ -146,12 +182,41 @@ const EmptyState = ({ theme, onExplore, dynamicStyles }) => {
           onExplore();
         }}
       >
-        <Search size={18} color="#FFF" />
+        <Search size={normalize(18)} color="#FFF" />
         <Text style={dynamicStyles.exploreButtonText}>Explore Services</Text>
       </TouchableOpacity>
     </Animated.View>
   );
 };
+
+const AnimatedListItem = memo(({ children, index }) => {
+  const itemAnim = useRef(new Animated.Value(30)).current;
+  const itemFade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(itemAnim, {
+        toValue: 0,
+        duration: 500,
+        delay: index * 100,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.back(1.5))
+      }),
+      Animated.timing(itemFade, {
+        toValue: 1,
+        duration: 400,
+        delay: index * 100,
+        useNativeDriver: true
+      })
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: itemFade, transform: [{ translateY: itemAnim }] }}>
+      {children}
+    </Animated.View>
+  );
+});
 
 // --- 3. SHOP DETAILS BOTTOM SHEET ---
 const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBook, onCardPress, checkIsLiked, premiumAvailability }) => {
@@ -179,6 +244,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       category: shop.category || 'Barber',
       avgAppointmentTime: shop.avgAppointmentTime || '30 min',
       totalServices: shop.services?.length || 0,
+      services: shop.services || [],
       isAvailable: shop.owner.isAvailable,
       todaysBookings: bookingsPerProvider,
       listingTier: shop.listingTier,
@@ -200,6 +266,7 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
       category: shop.category || 'Barber',
       avgAppointmentTime: shop.avgAppointmentTime || '30 min',
       totalServices: shop.services?.length || 0,
+      services: shop.services || [],
       isAvailable: staffMember.isAvailable,
       todaysBookings: bookingsPerProvider,
       listingTier: shop.listingTier,
@@ -283,98 +350,6 @@ const ShopDetailsSheet = ({ visible, shop, onClose, theme, styles, onLike, onBoo
 // ShopProviderCard removed in favor of BarberCard
 
 
-// --- 5. OPTIMIZED CARD COMPONENT ---
-const LikedServiceCard = React.memo(
-  ({ item, theme, cardStyles, onPress, onUnlike }) => {
-    const maxAppointments = item.owner
-      ? Math.max(item.todaysBookings, item.owner.maxAppointmentsPerDay)
-      : item.todaysBookings;
-
-    return (
-      <Pressable
-        onPress={() => onPress(item)}
-        style={({ pressed }) => [
-          cardStyles.premiumCard,
-          { transform: [{ scale: pressed ? 0.98 : 1 }] },
-        ]}
-      >
-        <View style={cardStyles.imageWrapper}>
-          <Image
-            source={item.image}
-            style={cardStyles.cardImage}
-            resizeMode="cover"
-          />
-          {item.rating > 0 && (
-            <View style={cardStyles.ratingBadge}>
-              <Star size={10} color="#FFD700" fill="#FFD700" />
-              <Text style={cardStyles.ratingText}>{item.rating.toFixed(1)}</Text>
-            </View>
-          )}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => onUnlike(item._id)}
-            style={cardStyles.likeTrigger}
-          >
-            <Bookmark size={22} color="#FF3B30" fill="#FF3B30" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={cardStyles.cardContent}>
-          <View style={cardStyles.titleRow}>
-            <Text
-              style={[cardStyles.shopName, { color: theme.colors.text }]}
-              numberOfLines={1}
-            >
-              {item.name}
-            </Text>
-            <View style={cardStyles.tagBadge}>
-              <Text style={cardStyles.tagText}>
-                {item.tag || item.category}
-              </Text>
-            </View>
-          </View>
-
-          <View style={cardStyles.infoGrid}>
-            <View style={cardStyles.infoItem}>
-              <MapPin size={12} color="#888" />
-              <Text style={cardStyles.infoLabel} numberOfLines={1}>
-                {item.address}
-              </Text>
-            </View>
-            <View style={cardStyles.infoItem}>
-              <Clock size={12} color="#888" />
-              <Text style={cardStyles.infoLabel}>
-                {item.avgAppointmentTime}
-              </Text>
-            </View>
-          </View>
-
-          <View style={cardStyles.progressContainer}>
-            <View style={cardStyles.progressHeader}>
-              <Text style={cardStyles.progressTitle}>Availability Today</Text>
-              <Text style={cardStyles.progressValue}>
-                {item.todaysBookings}/{maxAppointments}
-              </Text>
-            </View>
-            <View style={cardStyles.progressBarBg}>
-              <View
-                style={[
-                  cardStyles.progressBarFill,
-                  {
-                    width: `${(item.todaysBookings / maxAppointments) * 100}%`
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        </View>
-      </Pressable>
-    );
-  },
-  (prev, next) =>
-    prev.item._id === next.item._id && prev.theme.dark === next.theme.dark
-);
-
 // --- MAIN SCREEN ---
 const LikedBarbersScreen = ({ navigation }) => {
   const { theme } = useTheme();
@@ -384,80 +359,97 @@ const LikedBarbersScreen = ({ navigation }) => {
   const [likedBarbers, setLikedBarbers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedShop, setSelectedShop] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [toast, setToast] = useState({
     visible: false,
     message: "",
     type: "info"
   });
 
+  const filteredLikedBarbers = useMemo(() => {
+    if (!searchQuery) return likedBarbers;
+    const lowerQuery = searchQuery.toLowerCase().trim();
+    return likedBarbers.filter(barber => 
+      (barber.name || "").toLowerCase().includes(lowerQuery) ||
+      (barber.address || "").toLowerCase().includes(lowerQuery) ||
+      (barber.shopName || "").toLowerCase().includes(lowerQuery)
+    );
+  }, [likedBarbers, searchQuery]);
+
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef(null);
+
+  const showToast = useCallback((message, type = "info") => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ visible: true, message, type });
+    Animated.spring(toastAnim, { toValue: 1, useNativeDriver: true }).start();
+    timerRef.current = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setToast(p => ({ ...p, visible: false })));
+    }, 3000);
+  }, []);
+
   const dynamicStyles = useMemo(() => getStyles(theme, insets), [theme, insets]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchLikedBarbers = async () => {
-      try {
-        // Fetch liked providers from the new API
-        const likedProvidersRes = await api.get('/api/liked-barbers');
-        const likedProviders = likedProvidersRes.data.likedProviders || [];
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      const fetchLikedBarbers = async () => {
+        try {
+          // Fetch liked providers from the new API
+          const likedProvidersRes = await api.get('/api/liked-barbers');
+          const providers = likedProvidersRes.data.likedProviders || [];
 
-        console.log('Liked providers from API:', likedProviders.length);
+          console.log('Liked providers from API:', providers.length);
 
-        if (likedProviders.length > 0) {
-          // Transform the liked providers data to match our expected format
-          const transformedLikedBarbers = likedProviders.map(provider => ({
-            _id: provider._id,
-            id: provider._id,
-            barberId: provider.barberId,
-            name: provider.name,
-            address: provider.address,
-            image: provider.image,
-            rating: provider.rating,
-            reviews: provider.reviews || [],
-            reviewCount: provider.reviewCount || 0,
-            services: provider.services || [],
-            category: provider.category,
-            tag: provider.tag,
-            avgAppointmentTime: provider.avgAppointmentTime,
-            totalServices: provider.totalServices || 0,
-            isAvailable: provider.isAvailable,
-            todaysBookings: provider.todaysBookings || 0,
-            shopName: provider.shopName,
-            type: 'barber',
-            likedAt: provider.likedAt
-          }));
+          if (providers.length > 0) {
+            // Transform the liked providers data to match our expected format
+            const transformedLikedBarbers = providers.map(provider => ({
+              _id: provider._id,
+              id: provider._id,
+              barberId: provider.barberId,
+              name: provider.name,
+              address: provider.address,
+              image: (typeof provider.image === 'string' && provider.image.includes('placeholder')) ? null : provider.image,
+              rating: provider.rating,
+              reviews: provider.reviews || [],
+              reviewCount: provider.reviewCount || 0,
+              services: provider.services || [],
+              category: provider.category,
+              tag: provider.tag,
+              avgAppointmentTime: provider.avgAppointmentTime,
+              totalServices: provider.totalServices || 0,
+              isAvailable: provider.isAvailable,
+              todaysBookings: provider.todaysBookings || 0,
+              shopName: provider.shopName,
+              type: 'barber',
+              likedAt: provider.likedAt
+            }));
 
-          console.log('Transformed liked barbers:', transformedLikedBarbers.length);
-          setLikedBarbers(transformedLikedBarbers);
-        } else {
-          setLikedBarbers([]);
+            console.log('Transformed liked barbers:', transformedLikedBarbers.length);
+            setLikedBarbers(transformedLikedBarbers);
+          } else {
+            setLikedBarbers([]);
+          }
+        } catch (err) {
+          console.error('Error fetching liked providers:', err);
+          showToast("Failed to load favorites. Please try again.", "error");
+        } finally {
+          if (isMounted) setLoading(false);
         }
-      } catch (err) {
-        console.error('Error fetching liked providers:', err);
-        setToast({
-          visible: true,
-          message: "Failed to load favorites. Please try again.",
-          type: "error"
-        });
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    fetchLikedBarbers();
-    return () => {
-      isMounted = false;
-    };
-  }, [likedProviders]);
+      };
+      fetchLikedBarbers();
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
 
   const handleUnlike = useCallback(
     async (id) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const success = await unlikeProvider(id, 'barber');
       if (success) {
-        setToast({
-          visible: true,
-          message: "Removed from favorites",
-          type: "info"
-        });
+        showToast("Removed from favorites", "info");
       }
     },
     [unlikeProvider]
@@ -488,35 +480,36 @@ const LikedBarbersScreen = ({ navigation }) => {
   }, [navigation]);
 
   return (
-    <SafeAreaProvider>
-      <View
+    <View
         style={[
           dynamicStyles.container,
           { backgroundColor: theme.colors.background },
         ]}
       >
-        <StatusBar barStyle={theme.dark ? "light-content" : "dark-content"} />
+        <StatusBar barStyle="light-content" backgroundColor="#111111" translucent />
 
-        <ModernAlert
-          visible={toast.visible}
-          message={toast.message}
-          type={toast.type}
-          onHide={() => setToast((prev) => ({ ...prev, visible: false }))}
-          topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
-        />
+        <View style={[localStyles.toastWrapper, { top: insets.top + 10 }]}>
+          <CustomToast visible={toast.visible} message={toast.message} type={toast.type} animatedValue={toastAnim} />
+        </View>
 
-        <View style={[dynamicStyles.header, { paddingTop: Math.max(insets.top, 10) }]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={dynamicStyles.backCircle}
-          >
-            <ArrowLeft size={22} color={theme.colors.text} />
-          </TouchableOpacity>
-          <View>
-            <Text style={dynamicStyles.headerTitle}>Favorites</Text>
-            <Text style={dynamicStyles.secureText}>
-              Privacy Encrypted Selection
-            </Text>
+        {/* --- PREMIUM COMPACT TOP SECTION (SearchScreen Style) --- */}
+        <View style={{ backgroundColor: '#111111', paddingTop: insets.top + 10, paddingBottom: 15 }}>
+          {/* CONSOLIDATED HEADER */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: normalize(16), justifyContent: 'space-between' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.backBtn}>
+              <ChevronLeft size={normalize(22)} color="#FFF" strokeWidth={2.5} />
+            </TouchableOpacity>
+
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: normalize(10), color: '#888888', fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                Your Selection
+              </Text>
+              <Text style={{ fontSize: normalize(15), color: '#FFFFFF', fontWeight: '800', letterSpacing: -0.2, marginTop: 2 }}>
+                Saved Favorites ({likedBarbers.length})
+              </Text>
+            </View>
+
+            <View style={{ width: normalize(40) }} />
           </View>
         </View>
 
@@ -532,18 +525,37 @@ const LikedBarbersScreen = ({ navigation }) => {
           />
         ) : (
           <FlatList
-            data={likedBarbers}
+            data={filteredLikedBarbers}
             keyExtractor={(item) => item._id}
-            renderItem={({ item }) => (
-              <LikedServiceCard
-                item={item}
-                theme={theme}
-                cardStyles={dynamicStyles}
-                onPress={() => handlePress(item)}
-                onUnlike={handleUnlike}
-              />
+            renderItem={({ item, index }) => (
+              <AnimatedListItem index={index}>
+                <BarberCard
+                  item={item}
+                  isLiked={true}
+                  onPress={handlePress}
+                  onLikePress={() => handleUnlike(item._id)}
+                  onBookPress={handleCheckAppointment}
+                  isSmall={false}
+                />
+              </AnimatedListItem>
             )}
             contentContainerStyle={dynamicStyles.list}
+            ListHeaderComponent={
+              <View style={[dynamicStyles.listHeader, { borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingBottom: normalize(15), marginBottom: normalize(10) }]}>
+                <View style={dynamicStyles.listHeaderAccent} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: normalize(10), color: '#888888', fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                    Your Curated Selection
+                  </Text>
+                  <Text style={{ fontSize: normalize(16), color: theme.colors.text, fontWeight: '800', letterSpacing: -0.2, marginTop: 2 }}>
+                    Saved Experts
+                  </Text>
+                </View>
+                <View style={[dynamicStyles.listHeaderBadge, { backgroundColor: theme.colors.primary + '18' }]}>
+                  <Text style={[dynamicStyles.listHeaderBadgeText, { color: theme.colors.primary }]}>{likedBarbers.length}</Text>
+                </View>
+              </View>
+            }
             showsVerticalScrollIndicator={false}
             initialNumToRender={5}
             maxToRenderPerBatch={5}
@@ -571,24 +583,73 @@ const LikedBarbersScreen = ({ navigation }) => {
           premiumAvailability={{}}
         />
       </View>
-    </SafeAreaProvider>
   );
 };
 
 // --- STYLING ---
 const localStyles = StyleSheet.create({
-  alertWrapper: {
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: normalize(16),
+    paddingBottom: normalize(12),
+    backgroundColor: "#111111",
+    borderBottomWidth: 1,
+    borderBottomColor: "#222222"
+  },
+  headerTitle: {
+    fontSize: normalize(15),
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: -0.5
+  },
+  headerSubtitle: {
+    fontSize: normalize(10),
+    color: "#888888",
+    fontWeight: "600",
+    marginTop: normalize(2)
+  },
+  backBtn: {
+    padding: normalize(8),
+    borderRadius: normalize(12),
+    backgroundColor: "#1A1A1A",
+    borderWidth: 1,
+    borderColor: "#333333"
+  },
+  toastWrapper: {
     position: "absolute",
-    alignSelf: "center",
+    left: 0,
+    right: 0,
+    zIndex: 2000,
+    alignItems: "center"
+  },
+  toastContainer: {
     width: width - 40,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 18,
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  toastContent: {
+    padding: 16,
+    borderLeftWidth: 4,
     flexDirection: "row",
     alignItems: "center",
-    zIndex: 10000
+    gap: 12
   },
-  alertText: { color: "#FFF", fontWeight: "700", marginLeft: 10, fontSize: 13 }
+  toastTextContainer: {
+    flex: 1
+  },
+  toastMessage: {
+    fontSize: 14,
+    color: "#0F172A",
+    fontWeight: "600"
+  }
 });
 
 const getStyles = (theme, insets) =>
@@ -597,82 +658,110 @@ const getStyles = (theme, insets) =>
     header: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 20,
-      paddingBottom: 10
+      paddingHorizontal: normalize(20),
+      paddingBottom: normalize(10)
     },
     backCircle: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
+      width: normalize(42),
+      height: normalize(42),
+      borderRadius: normalize(21),
       backgroundColor: theme.dark ? "#222" : "#F0F0F0",
       justifyContent: "center",
       alignItems: "center",
-      marginRight: 15
+      marginRight: normalize(15)
     },
     headerTitle: {
-      fontSize: 26,
+      fontSize: normalize(26),
       fontWeight: "900",
       color: theme.colors.text,
       letterSpacing: -1
     },
     secureText: {
-      fontSize: 10,
+      fontSize: normalize(10),
       color: "#4ADE80",
       fontWeight: "800",
-      marginTop: 2
+      marginTop: normalize(2)
     },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    listHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: normalize(20),
+      paddingVertical: normalize(15),
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border
+    },
+    listHeaderAccent: {
+      width: 4,
+      height: 16,
+      backgroundColor: '#C8FF00',
+      borderRadius: 2,
+      marginRight: 10
+    },
+    listHeaderTitle: {
+      fontSize: normalize(16),
+      fontWeight: '800',
+      flex: 1
+    },
+    listHeaderBadge: {
+      paddingHorizontal: normalize(10),
+      paddingVertical: normalize(4),
+      borderRadius: 12,
+    },
+    listHeaderBadgeText: {
+      fontSize: normalize(12),
+      fontWeight: '800'
+    },
 
     // Empty State Styling
     emptyContainer: {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      paddingHorizontal: 40,
-      marginTop: -40
+      paddingHorizontal: normalize(40),
+      marginTop: normalize(-40)
     },
     iconCircle: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
+      width: normalize(100),
+      height: normalize(100),
+      borderRadius: normalize(50),
       backgroundColor: theme.colors.primary + "10",
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: 20
+      marginBottom: normalize(20)
     },
     emptyTitle: {
-      fontSize: 22,
+      fontSize: normalize(22),
       fontWeight: "800",
-      marginBottom: 10,
+      marginBottom: normalize(10),
       textAlign: "center"
     },
     emptySubtitle: {
-      fontSize: 14,
+      fontSize: normalize(14),
       color: "#888",
       textAlign: "center",
-      lineHeight: 20,
-      marginBottom: 30
+      lineHeight: normalize(20),
+      marginBottom: normalize(30)
     },
     exploreButton: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 25,
-      paddingVertical: 14,
-      borderRadius: 30
+      paddingHorizontal: normalize(25),
+      paddingVertical: normalize(14),
+      borderRadius: normalize(30)
     },
     exploreButtonText: {
       color: "#FFF",
       fontWeight: "800",
-      fontSize: 15,
-      marginLeft: 8
+      fontSize: normalize(15),
+      marginLeft: normalize(8)
     },
 
-    list: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: insets.bottom + 60 },
+    list: { paddingHorizontal: normalize(20), paddingTop: normalize(10), paddingBottom: insets.bottom + normalize(60) },
     premiumCard: {
-      height: CARD_HEIGHT - 20,
+      height: normalize(CARD_HEIGHT - 20),
       backgroundColor: theme.dark ? "#1A1A1A" : "#FFF",
-      borderRadius: 24,
-      marginBottom: 20,
+      borderRadius: normalize(24),
+      marginBottom: normalize(20),
       borderWidth: 1,
       borderColor: theme.dark ? "#333" : "#F0F0F0",
       overflow: "hidden"
@@ -681,77 +770,77 @@ const getStyles = (theme, insets) =>
     cardImage: { width: "100%", height: "100%" },
     ratingBadge: {
       position: "absolute",
-      top: 12,
-      left: 12,
+      top: normalize(12),
+      left: normalize(12),
       backgroundColor: "rgba(0,0,0,0.6)",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 10,
+      paddingHorizontal: normalize(8),
+      paddingVertical: normalize(4),
+      borderRadius: normalize(10),
       flexDirection: "row",
       alignItems: "center"
     },
     ratingText: {
       color: "#FFF",
-      fontSize: 11,
+      fontSize: normalize(11),
       fontWeight: "800",
-      marginLeft: 3
+      marginLeft: normalize(3)
     },
     unlikeTrigger: {
       position: "absolute",
-      top: 10,
-      right: 10,
+      top: normalize(10),
+      right: normalize(10),
       backgroundColor: "#FFF",
-      padding: 8,
-      borderRadius: 20
+      padding: normalize(8),
+      borderRadius: normalize(20)
     },
-    cardContent: { padding: 15, flex: 1, justifyContent: "space-between" },
+    cardContent: { padding: normalize(15), flex: 1, justifyContent: "space-between" },
     titleRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center"
     },
-    shopName: { fontSize: 17, fontWeight: "800", flex: 1, marginRight: 10 },
+    shopName: { fontSize: normalize(17), fontWeight: "800", flex: 1, marginRight: normalize(10) },
     tagBadge: {
       backgroundColor: "#007BFF15",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 6
+      paddingHorizontal: normalize(8),
+      paddingVertical: normalize(4),
+      borderRadius: normalize(6)
     },
-    tagText: { color: "#007BFF", fontSize: 10, fontWeight: "700" },
-    infoGrid: { flexDirection: "row", marginTop: 8 },
+    tagText: { color: "#007BFF", fontSize: normalize(10), fontWeight: "700" },
+    infoGrid: { flexDirection: "row", marginTop: normalize(8) },
     infoItem: {
       flexDirection: "row",
       alignItems: "center",
-      marginRight: 15,
+      marginRight: normalize(15),
       flex: 1
     },
     infoLabel: {
-      fontSize: 12,
+      fontSize: normalize(12),
       color: "#888",
-      marginLeft: 4,
+      marginLeft: normalize(4),
       fontWeight: "500"
     },
-    progressContainer: { marginTop: 10 },
+    progressContainer: { marginTop: normalize(10) },
     progressHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
-      marginBottom: 5
+      marginBottom: normalize(5)
     },
-    progressTitle: { fontSize: 11, fontWeight: "600", color: "#888" },
+    progressTitle: { fontSize: normalize(11), fontWeight: "600", color: "#888" },
     progressValue: {
-      fontSize: 11,
+      fontSize: normalize(11),
       fontWeight: "700",
       color: theme.colors.text
     },
     progressBarBg: {
-      height: 5,
+      height: normalize(5),
       backgroundColor: theme.dark ? "#333" : "#F0F0F0",
-      borderRadius: 3
+      borderRadius: normalize(3)
     },
     progressBarFill: {
       height: "100%",
       backgroundColor: "#007BFF",
-      borderRadius: 3
+      borderRadius: normalize(3)
     },
 
     // Modal Styles
@@ -760,54 +849,54 @@ const getStyles = (theme, insets) =>
     modalContent: {
       maxHeight: height * 0.85,
       height: 'auto',
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      paddingHorizontal: 20,
-      paddingTop: 10,
+      borderTopLeftRadius: normalize(28),
+      borderTopRightRadius: normalize(28),
+      paddingHorizontal: normalize(20),
+      paddingTop: normalize(10),
       backgroundColor: theme.colors.card,
       borderWidth: 0.5,
       borderColor: theme.colors.border,
     },
-    modalHandleContainer: { alignItems: 'center', paddingVertical: 14 },
-    modalHandle: { width: 36, height: 4, backgroundColor: theme.colors.border, borderRadius: 2 },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-    modalTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5, lineHeight: 26, color: theme.colors.text },
-    modalSubtitle: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
-    closeBtn: { padding: 6, backgroundColor: theme.colors.card, borderRadius: 16, borderWidth: 0.5, borderColor: theme.colors.border },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    sectionTitle: { fontSize: 16, fontWeight: '800', marginRight: 10, color: theme.colors.text },
+    modalHandleContainer: { alignItems: 'center', paddingVertical: normalize(14) },
+    modalHandle: { width: normalize(36), height: normalize(4), backgroundColor: theme.colors.border, borderRadius: normalize(2) },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: normalize(20) },
+    modalTitle: { fontSize: normalize(22), fontWeight: '900', letterSpacing: -0.5, lineHeight: normalize(26), color: theme.colors.text },
+    modalSubtitle: { fontSize: normalize(14), fontWeight: '600', color: theme.colors.textSecondary },
+    closeBtn: { padding: normalize(6), backgroundColor: theme.colors.card, borderRadius: normalize(16), borderWidth: 0.5, borderColor: theme.colors.border },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: normalize(12) },
+    sectionTitle: { fontSize: normalize(16), fontWeight: '800', marginRight: normalize(10), color: theme.colors.text },
     sectionLine: { flex: 1, height: 0.5, backgroundColor: theme.colors.border, opacity: 0.7 },
 
     // Card Styles for Modal
-    barberCard: { backgroundColor: theme.colors.card, borderRadius: 24, marginBottom: 2, borderWidth: 1, borderColor: theme.colors.border },
-    smallCard: { marginBottom: 16, borderRadius: 20, shadowOpacity: 0.04 },
-    cardImageContainer: { height: 180, width: "100%", overflow: 'hidden', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+    barberCard: { backgroundColor: theme.colors.card, borderRadius: normalize(24), marginBottom: normalize(2), borderWidth: 1, borderColor: theme.colors.border },
+    smallCard: { marginBottom: normalize(16), borderRadius: normalize(20), shadowOpacity: 0.04 },
+    cardImageContainer: { height: normalize(180), width: "100%", overflow: 'hidden', borderTopLeftRadius: normalize(24), borderTopRightRadius: normalize(24) },
     cardImage: { width: "100%", height: "100%", justifyContent: 'space-between' },
     gradientOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.5)' },
-    cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
-    glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 0.5, borderColor: theme.colors.border },
-    ratingBadgeText: { fontSize: 12, fontWeight: '800', color: theme.colors.text },
-    heartButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-    cardBottomInfo: { padding: 12, flexDirection: 'row', alignItems: 'center' },
-    statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8, backgroundColor: theme.colors.card, borderWidth: 0.5, borderColor: theme.colors.border },
-    liveDotWrapper: { width: 8, height: 8, marginRight: 4, justifyContent: 'center', alignItems: 'center' },
-    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.accent },
-    statusText: { color: theme.colors.text, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-    cardBody: { padding: 16, paddingTop: 14 },
-    cardHeaderCol: { flexDirection: 'column', alignItems: 'flex-start', marginBottom: 8 },
-    barberName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5, lineHeight: 26 },
-    shopName: { fontSize: 15, fontWeight: '500' },
-    metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, marginBottom: 16, flexWrap: 'wrap' },
+    cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', padding: normalize(12) },
+    glassBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.card, paddingVertical: normalize(4), paddingHorizontal: normalize(10), borderRadius: normalize(12), borderWidth: 0.5, borderColor: theme.colors.border },
+    ratingBadgeText: { fontSize: normalize(12), fontWeight: '800', color: theme.colors.text },
+    heartButton: { width: normalize(32), height: normalize(32), borderRadius: normalize(16), backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+    cardBottomInfo: { padding: normalize(12), flexDirection: 'row', alignItems: 'center' },
+    statusPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: normalize(4), paddingHorizontal: normalize(8), borderRadius: normalize(8), backgroundColor: theme.colors.card, borderWidth: 0.5, borderColor: theme.colors.border },
+    liveDotWrapper: { width: normalize(8), height: normalize(8), marginRight: normalize(4), justifyContent: 'center', alignItems: 'center' },
+    liveDot: { width: normalize(6), height: normalize(6), borderRadius: normalize(3), backgroundColor: theme.colors.accent },
+    statusText: { color: theme.colors.text, fontSize: normalize(10), fontWeight: '800', letterSpacing: 0.5 },
+    cardBody: { padding: normalize(16), paddingTop: normalize(14) },
+    cardHeaderCol: { flexDirection: 'column', alignItems: 'flex-start', marginBottom: normalize(8) },
+    barberName: { fontSize: normalize(22), fontWeight: '800', letterSpacing: -0.5, lineHeight: normalize(26) },
+    shopName: { fontSize: normalize(15), fontWeight: '500' },
+    metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: normalize(10), marginBottom: normalize(16), flexWrap: 'wrap' },
     metaItem: { flexDirection: 'row', alignItems: 'center' },
-    metaText: { fontSize: 14, fontWeight: '600', marginLeft: 6 },
-    dotSeparator: { width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, marginHorizontal: 10 },
+    metaText: { fontSize: normalize(14), fontWeight: '600', marginLeft: normalize(6) },
+    dotSeparator: { width: normalize(4), height: normalize(4), borderRadius: normalize(2), backgroundColor: theme.colors.border, marginHorizontal: normalize(10) },
     cardFooter: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-    capacityContainer: { flex: 1, marginRight: 16, paddingBottom: 2 },
-    capacityBarTrack: { height: 4, backgroundColor: '#F0F0F0', borderRadius: 2, overflow: 'hidden' },
-    capacityBarFill: { height: '100%', borderRadius: 2 },
-    capacityText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
-    bookButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 22, borderRadius: 14, backgroundColor: theme.colors.primary },
-    bookButtonText: { fontWeight: '700', fontSize: 15, letterSpacing: 0.3, color: '#FFFFFF' },
+    capacityContainer: { flex: 1, marginRight: normalize(16), paddingBottom: normalize(2) },
+    capacityBarTrack: { height: normalize(4), backgroundColor: '#F0F0F0', borderRadius: normalize(2), overflow: 'hidden' },
+    capacityBarFill: { height: '100%', borderRadius: normalize(2) },
+    capacityText: { fontSize: normalize(12), fontWeight: '800', letterSpacing: 0.5 },
+    bookButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: normalize(12), paddingHorizontal: normalize(22), borderRadius: normalize(14), backgroundColor: theme.colors.primary },
+    bookButtonText: { fontWeight: '700', fontSize: normalize(15), letterSpacing: 0.3, color: '#FFFFFF' },
   });
 
 export default LikedBarbersScreen;

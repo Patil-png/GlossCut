@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useMemo
-} from "react";
+import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import {
   View,
   Text,
@@ -17,127 +11,110 @@ import {
   Platform,
   Animated,
   Easing,
-  InteractionManager
+  InteractionManager,
+  Dimensions,
+  Image,
+  Alert,
+  Linking
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ChevronLeft,
-  Shield,
   ShieldCheck,
   AlertCircle,
   CheckCircle,
-  X,
-  WifiOff,
-  Lock
+  Bell,
+  MapPin,
+  Users,
+  Camera as CameraIcon,
+  Image as ImageIcon,
+  Calendar as CalendarIcon,
+  ArrowRight
 } from "lucide-react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { usePrivacy } from "../contexts/PrivacyContext.jsx";
 import * as Location from "expo-location";
 import * as Contacts from "expo-contacts";
 import * as Notifications from "expo-notifications";
+import { Camera } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
+import * as Calendar from "expo-calendar";
 
-// --- 1. OPTIMIZED ALERT COMPONENT (Memoized) ---
-const ModernTopAlert = React.memo(
-  ({ visible, title, message, type, onClose, topInset }) => {
-    const translateY = useRef(new Animated.Value(-150)).current;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+// Cap the scale factor to prevent elements from becoming massive on tablets
+const scale = Math.min(SCREEN_WIDTH / 375, 1.25);
 
-    useEffect(() => {
-      if (visible) {
-        Animated.spring(translateY, {
-          toValue: topInset,
-          useNativeDriver: true, // CRITICAL: Runs on UI Thread
-          damping: 15,
-          mass: 1,
-          stiffness: 120
-        }).start();
-
-        const timer = setTimeout(() => {
-          handleClose();
-        }, 4000);
-        return () => clearTimeout(timer);
-      } else {
-        handleClose();
-      }
-    }, [visible]);
-
-    const handleClose = useCallback(() => {
-      Animated.timing(translateY, {
-        toValue: -150,
-        duration: 300,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true
-      }).start(() => {
-        if (visible && onClose) onClose();
-      });
-    }, [visible, onClose, translateY]);
-
-    if (!visible) return null;
-
-    // Render logic...
-    const isError = type === "error";
-    const isNetwork = type === "network";
-
-    let accentColor = "#10B981";
-    let IconComponent = CheckCircle;
-    let bgColor = "#ECFDF5";
-
-    if (isError) {
-      accentColor = "#EF4444";
-      IconComponent = AlertCircle;
-      bgColor = "#FEF2F2";
-    } else if (isNetwork) {
-      accentColor = "#F59E0B";
-      IconComponent = WifiOff;
-      bgColor = "#FFFBEB";
-    }
-
-    return (
-      <Animated.View
-        style={[styles.alertWrapper, { transform: [{ translateY }] }]}
-      >
-        <View style={styles.alertCard}>
-          <View style={[styles.iconContainer, { backgroundColor: bgColor }]}>
-            <IconComponent size={24} color={accentColor} />
-          </View>
-          <View style={styles.textContainer}>
-            <Text style={styles.alertTitle}>{title}</Text>
-            <Text style={styles.alertMessage} numberOfLines={2}>
-              {message}
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={handleClose}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <X size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-    );
+const normalize = (size) => {
+  const newSize = size * scale;
+  if (Platform.OS === 'ios') {
+    return Math.round(newSize);
+  } else {
+    return Math.round(newSize) - 1;
   }
-);
+};
 
-// --- 2. HIGH PERFORMANCE LIST ITEM ---
-// Optimization: Accepts 'primaryColor' (string) instead of 'theme' (object) to prevent re-renders
+const Header = memo(({ onBack, insets }) => (
+  <View 
+    style={[styles.headerOuterContainer, { paddingTop: Math.max(insets.top, 16) }]}
+    accessibilityRole="header"
+  >
+    <View style={styles.headerContainer}>
+      <TouchableOpacity 
+        onPress={onBack} 
+        style={styles.backBtn}
+        accessibilityLabel="Go back"
+        accessibilityRole="button"
+      >
+        <ChevronLeft size={normalize(22)} color="#1E293B" strokeWidth={2.5} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Account Security</Text>
+      <View style={{ width: normalize(40) }} />
+    </View>
+  </View>
+));
+
+const CustomToast = memo(({ visible, message, type, animatedValue }) => {
+  if (!visible) return null;
+  const translateY = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-100, 0],
+  });
+  const isSuccess = type === "success";
+  const iconColor = isSuccess ? "#10B981" : "#EF4444";
+  return (
+    <Animated.View style={[styles.toastContainer, { transform: [{ translateY }] }]} accessibilityLiveRegion="polite">
+      <View style={[styles.toastContent, { borderLeftColor: iconColor }]}>
+        {isSuccess ? <CheckCircle size={20} color={iconColor} /> : <AlertCircle size={20} color={iconColor} />}
+        <View style={styles.toastTextContainer}>
+          <Text style={styles.toastMessage}>{message}</Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+});
+
 const PrivacySetting = React.memo(
-  ({ title, description, isEnabled, onToggle, primaryColor, disabled }) => (
-    <View style={[styles.settingItem, disabled && { opacity: 0.6 }]}>
-      <View style={styles.settingTextContainer}>
-        <Text style={styles.settingTitle}>{title}</Text>
-        <Text style={styles.settingDescription}>{description}</Text>
+  ({ title, description, isEnabled, onToggle, primaryColor, disabled, icon: IconComponent }) => (
+    <View style={styles.usageItem}>
+      <View style={styles.iconCircle}>
+        <IconComponent size={normalize(16)} color={primaryColor} />
+      </View>
+      <View style={styles.usageTextContent}>
+        <Text style={styles.usageTitle}>{title}</Text>
+        <Text style={styles.usageDesc}>{description}</Text>
       </View>
       <Switch
-        trackColor={{ false: "#E5E7EB", true: primaryColor }}
-        thumbColor={isEnabled ? "#fff" : "#9CA3AF"}
-        ios_backgroundColor="#E5E7EB"
+        trackColor={{ false: "#E2E8F0", true: primaryColor }}
+        thumbColor={"#FFFFFF"}
+        ios_backgroundColor="#E2E8F0"
         onValueChange={onToggle}
         value={isEnabled}
         disabled={disabled}
+        style={{ transform: [{ scale: Platform.OS === 'ios' ? 0.8 : 1 }] }}
       />
     </View>
   ),
   (prevProps, nextProps) => {
-    // Custom comparison for maximum performance
     return (
       prevProps.isEnabled === nextProps.isEnabled &&
       prevProps.disabled === nextProps.disabled &&
@@ -148,99 +125,53 @@ const PrivacySetting = React.memo(
 
 export default function PrivacyCheckupScreen({ navigation }) {
   const { theme } = useTheme();
-  const { privacySettings = {}, updatePrivacySettings = () => { } } =
-    usePrivacy() || {};
+  const { privacySettings = {}, updatePrivacySettings = () => {} } = usePrivacy() || {};
   const insets = useSafeAreaInsets();
-
-  // Extract color string to ensure prop stability for React.memo
   const primaryColor = theme?.colors?.primary || "#000000";
 
-  // Animations
-  const slideUp = useRef(new Animated.Value(50)).current;
-  const fade = useRef(new Animated.Value(0)).current;
-
-  const [alert, setAlert] = useState({
-    visible: false,
-    title: "",
-    message: "",
-    type: "success"
-  });
+  const [toast, setToast] = useState({ visible: false, message: "", type: "info" });
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const timerRef = useRef(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const showAlert = useCallback((title, message, type = "error") => {
-    setAlert({ visible: true, title, message, type });
-  }, []);
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const itemAnims = useRef([...Array(6)].map(() => new Animated.Value(30))).current;
+  const itemFades = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
 
-  const hideAlert = useCallback(() => {
-    setAlert((prev) => ({ ...prev, visible: false }));
-  }, []);
+  const showToast = useCallback((message, type = "error") => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ visible: true, message, type });
+    Animated.spring(toastAnim, { toValue: 1, useNativeDriver: true }).start();
+    timerRef.current = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setToast(p => ({ ...p, visible: false })));
+    }, 3000);
+  }, [toastAnim]);
 
-  // --- 3. ROBUST & MEMOIZED ACTION HANDLER ---
-  const handleSafeAction = useCallback(
-    async (actionName, asyncCallback) => {
-      if (isProcessing) return;
-      setIsProcessing(true);
-
-      try {
-        await asyncCallback();
-      } catch (error) {
-        console.error(`Error in ${actionName}:`, error);
-        if (
-          error.message &&
-          (error.message.includes("Network") || error.message.includes("fetch"))
-        ) {
-          showAlert(
-            "Connection Failed",
-            "Internet seems to be down. Changes saved locally.",
-            "network"
-          );
-        } else {
-          showAlert(
-            "Something went wrong",
-            "We couldn't update your settings. Please try again.",
-            "error"
-          );
-        }
-      } finally {
-        setIsProcessing(false);
-      }
-    },
-    [isProcessing, showAlert]
-  );
-
-  // --- 4. PARALLEL PERMISSION SYNC (Performance Fix) ---
   useEffect(() => {
-    // InteractionManager ensures this heavy check runs AFTER the screen transition finishes
-    // This makes the navigation feel instant.
     const task = InteractionManager.runAfterInteractions(async () => {
       try {
-        // Run checks in PARALLEL using Promise.allSettled instead of sequential await
         const results = await Promise.allSettled([
           Location.getForegroundPermissionsAsync(),
           Contacts.getPermissionsAsync(),
           Notifications.getPermissionsAsync(),
+          Camera.getCameraPermissionsAsync(),
+          ImagePicker.getMediaLibraryPermissionsAsync(),
+          Calendar.getCalendarPermissionsAsync()
         ]);
-
-        const locStatus =
-          results[0].status === "fulfilled"
-            ? results[0].value.status
-            : "undetermined";
-        const conStatus =
-          results[1].status === "fulfilled"
-            ? results[1].value.status
-            : "undetermined";
-        const notStatus =
-          results[2].status === "fulfilled"
-            ? results[2].value.status
-            : "undetermined";
+        const locStatus = results[0].status === "fulfilled" ? results[0].value.status : "undetermined";
+        const conStatus = results[1].status === "fulfilled" ? results[1].value.status : "undetermined";
+        const notStatus = results[2].status === "fulfilled" ? results[2].value.status : "undetermined";
+        const camStatus = results[3].status === "fulfilled" ? results[3].value.status : "undetermined";
+        const medStatus = results[4].status === "fulfilled" ? results[4].value.status : "undetermined";
+        const calStatus = results[5].status === "fulfilled" ? results[5].value.status : "undetermined";
 
         const updates = {};
-        if ((locStatus === "granted") !== privacySettings.locationEnabled)
-          updates.locationEnabled = locStatus === "granted";
-        if ((conStatus === "granted") !== privacySettings.contactsEnabled)
-          updates.contactsEnabled = conStatus === "granted";
-        if ((notStatus === "granted") !== privacySettings.notificationEnabled)
-          updates.notificationEnabled = notStatus === "granted";
+        if ((locStatus === "granted") !== privacySettings.locationEnabled) updates.locationEnabled = locStatus === "granted";
+        if ((conStatus === "granted") !== privacySettings.contactsEnabled) updates.contactsEnabled = conStatus === "granted";
+        if ((notStatus === "granted") !== privacySettings.notificationEnabled) updates.notificationEnabled = notStatus === "granted";
+        if ((camStatus === "granted") !== privacySettings.cameraEnabled) updates.cameraEnabled = camStatus === "granted";
+        if ((medStatus === "granted") !== privacySettings.mediaEnabled) updates.mediaEnabled = medStatus === "granted";
+        if ((calStatus === "granted") !== privacySettings.calendarEnabled) updates.calendarEnabled = calStatus === "granted";
 
         if (Object.keys(updates).length > 0) {
           updatePrivacySettings(updates);
@@ -250,401 +181,389 @@ export default function PrivacyCheckupScreen({ navigation }) {
       }
     });
 
-    Animated.parallel([
-      Animated.timing(slideUp, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true
-      }),
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true
-      }),
-    ]).start();
+    const animations = itemAnims.map((anim, i) => 
+      Animated.parallel([
+        Animated.timing(anim, { toValue: 0, duration: 600, useNativeDriver: true, easing: Easing.out(Easing.back(1.5)) }),
+        Animated.timing(itemFades[i], { toValue: 1, duration: 500, useNativeDriver: true })
+      ])
+    );
+    Animated.stagger(100, animations).start();
 
-    return () => task.cancel();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: -10, duration: 2500, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2500, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
+      ])
+    ).start();
+
+    return () => {
+      task.cancel();
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
-  // --- TOGGLE HANDLERS (Stable Dependencies) ---
+  const handleSafeAction = useCallback(async (actionName, asyncCallback) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await asyncCallback();
+    } catch (error) {
+      if (error.message && (error.message.includes("Network") || error.message.includes("fetch"))) {
+        showToast("Internet seems to be down. Changes saved locally.", "error");
+      } else {
+        showToast("We couldn't update your settings. Please try again.", "error");
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [isProcessing, showToast]);
 
-  const handleNotificationToggle = useCallback(
-    (value) => {
-      handleSafeAction("Notification Toggle", async () => {
-        if (value) {
-          const { status } = await Notifications.getPermissionsAsync();
-          if (status === "granted") {
-            updatePrivacySettings({ notificationEnabled: true });
-          } else {
-            showAlert(
-              "Permission Required",
-              "Please enable notifications in your device settings.",
-              "error"
-            );
-          }
+  const promptForSettings = useCallback((type) => {
+    Alert.alert(
+      `${type} Access Required`,
+      `GlossCut needs ${type} access to enable this feature. Please go to your device settings to grant permission.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Settings", onPress: () => Linking.openSettings() }
+      ]
+    );
+  }, []);
+
+  const handleToggle = useCallback((value, type, internalKey, requestFunc) => {
+    handleSafeAction(`${type} Toggle`, async () => {
+      if (value) {
+        // Turning ON
+        const { status } = await requestFunc();
+        if (status === "granted") {
+          updatePrivacySettings({ [internalKey]: true });
         } else {
-          updatePrivacySettings({ notificationEnabled: false });
+          promptForSettings(type);
+          updatePrivacySettings({ [internalKey]: false });
         }
-      });
-    },
-    [updatePrivacySettings, showAlert, handleSafeAction]
-  );
-
-  const handleLocationToggle = useCallback(
-    (value) => {
-      handleSafeAction("Location Toggle", async () => {
-        if (value) {
-          const { status } = await Location.getForegroundPermissionsAsync();
-          if (status === "granted") {
-            updatePrivacySettings({ locationEnabled: true });
-          } else {
-            showAlert(
-              "Permission Required",
-              "Please enable location access in device settings.",
-              "error"
-            );
-          }
-        } else {
-          updatePrivacySettings({ locationEnabled: false });
-        }
-      });
-    },
-    [updatePrivacySettings, showAlert, handleSafeAction]
-  );
-
-
-
-  const handleContactsToggle = useCallback(
-    (value) => {
-      handleSafeAction("Contacts Toggle", async () => {
-        if (value) {
-          const { status } = await Contacts.getPermissionsAsync();
-          if (status === "granted") {
-            updatePrivacySettings({ contactsEnabled: true });
-          } else {
-            showAlert(
-              "Permission Required",
-              "Please enable contacts access in device settings.",
-              "error"
-            );
-          }
-        } else {
-          updatePrivacySettings({ contactsEnabled: false });
-        }
-      });
-    },
-    [updatePrivacySettings, showAlert, handleSafeAction]
-  );
-
-  const handleSave = useCallback(() => {
-    handleSafeAction("Save Settings", async () => {
-      showAlert(
-        "Settings Saved",
-        "Your privacy preferences have been updated successfully.",
-        "success"
-      );
-      setTimeout(() => navigation.goBack(), 1500);
+      } else {
+        // Turning OFF (OS limitation: cannot programmatically revoke permissions)
+        Alert.alert(
+          `Revoke ${type} Access`,
+          `To completely disable ${type} access, you must turn it off in your device settings.`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { 
+              text: "Open Settings", 
+              onPress: () => {
+                updatePrivacySettings({ [internalKey]: false });
+                Linking.openSettings();
+              } 
+            }
+          ]
+        );
+      }
     });
-  }, [navigation, showAlert, handleSafeAction]);
+  }, [updatePrivacySettings, promptForSettings, handleSafeAction]);
 
-  // Pure styles for back button to prevent re-creation
-  const backBtnStyle = useMemo(
-    () => [styles.backBtn, { backgroundColor: "#f5f5f5" }],
-    []
-  );
+  const handleNotificationToggle = useCallback((v) => handleToggle(v, "Notification", "notificationEnabled", Notifications.requestPermissionsAsync), [handleToggle]);
+  const handleLocationToggle = useCallback((v) => handleToggle(v, "Location", "locationEnabled", Location.requestForegroundPermissionsAsync), [handleToggle]);
+  const handleContactsToggle = useCallback((v) => handleToggle(v, "Contacts", "contactsEnabled", Contacts.requestPermissionsAsync), [handleToggle]);
+  const handleCameraToggle = useCallback((v) => handleToggle(v, "Camera", "cameraEnabled", Camera.requestCameraPermissionsAsync), [handleToggle]);
+  const handleMediaToggle = useCallback((v) => handleToggle(v, "Photo Library", "mediaEnabled", ImagePicker.requestMediaLibraryPermissionsAsync), [handleToggle]);
+  const handleCalendarToggle = useCallback((v) => handleToggle(v, "Calendar", "calendarEnabled", Calendar.requestCalendarPermissionsAsync), [handleToggle]);
+
+  const animatedStyle = (index) => ({
+    opacity: itemFades[index],
+    transform: [{ translateY: itemAnims[index] }]
+  });
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <ModernTopAlert
-        message={alert.message}
-        type={alert.type}
-        onClose={hideAlert}
-        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
-      />
-
-      <View style={{ flex: 1 }}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-        >
-          <View style={[styles.navBar, { paddingTop: Math.max(insets.top, 10) }]}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={backBtnStyle}
-            >
-              <ChevronLeft size={24} color="#000" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-            removeClippedSubviews={false} // Better for short lists to prevent glitching
-          >
-            <View style={styles.contentContainer}>
-              <View style={styles.illustrationArea}>
-                <View
-                  style={[
-                    styles.circleBack,
-                    { backgroundColor: primaryColor + "15" },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.circleFront,
-                      { backgroundColor: primaryColor + "25" },
-                    ]}
-                  >
-                    <Shield size={48} color={primaryColor} />
-                  </View>
-                </View>
-              </View>
-
-              <Animated.View
-                style={{ opacity: fade, transform: [{ translateY: slideUp }] }}
-              >
-                <Text style={styles.heading}>Privacy Check-up</Text>
-                <Text style={styles.subHeading}>
-                  Control how your data is accessed. We value your privacy and
-                  only use data you explicitly approve.
-                </Text>
-
-                <View style={styles.settingsSection}>
-                  <PrivacySetting
-                    title="Notifications"
-                    description="Get important security alerts and updates."
-                    isEnabled={!!privacySettings.notificationEnabled}
-                    onToggle={handleNotificationToggle}
-                    primaryColor={primaryColor}
-                    disabled={isProcessing}
-                  />
-                  <PrivacySetting
-                    title="Location Services"
-                    description="For location-based features only."
-                    isEnabled={!!privacySettings.locationEnabled}
-                    onToggle={handleLocationToggle}
-                    primaryColor={primaryColor}
-                    disabled={isProcessing}
-                  />
-
-                  <PrivacySetting
-                    title="Contacts"
-                    description="To find friends. We never spam your contacts."
-                    isEnabled={!!privacySettings.contactsEnabled}
-                    onToggle={handleContactsToggle}
-                    primaryColor={primaryColor}
-                    disabled={isProcessing}
-                  />
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleSave}
-                  style={[styles.submitBtn, { backgroundColor: primaryColor }]}
-                >
-                  <Text style={styles.btnText}>Save Preferences</Text>
-                </TouchableOpacity>
-
-                <View style={styles.legalSection}>
-                  <Text style={styles.legalText}>
-                    By enabling these settings, you consent to the collection
-                    and processing of data as described in our{" "}
-                    <Text style={styles.linkText}>Privacy Policy</Text>. You may
-                    revoke these permissions at any time.
-                  </Text>
-                </View>
-              </Animated.View>
-            </View>
-
-            <View style={styles.footer}>
-              <View style={styles.trustBadge}>
-                <Lock size={14} color="#059669" />
-                <Text style={styles.footerText}>
-                  Bank-Grade 256-bit Encryption
-                </Text>
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+      <View style={[styles.toastWrapper, { top: insets.top + 10 }]}>
+        <CustomToast visible={toast.visible} message={toast.message} type={toast.type} animatedValue={toastAnim} />
       </View>
+
+      <Header onBack={() => navigation.goBack()} insets={insets} />
+
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.content}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) + normalize(40) }]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.centeredContentWrapper}>
+            {/* 1. Hero Visual */}
+            <Animated.View style={[styles.illustrationContainer, { transform: [{ translateY: floatAnim }] }, animatedStyle(0)]}>
+              <Image 
+                source={require("../assets/privacy_cartoon.png")} 
+                style={styles.illustration}
+                resizeMode="contain"
+                accessibilityLabel="Privacy Checkup Illustration"
+              />
+            </Animated.View>
+
+            {/* 2. Text Header */}
+            <Animated.View style={[styles.textContainer, animatedStyle(1)]}>
+              <Text style={styles.title}>Privacy Checkup</Text>
+              <Text style={styles.subtitle}>
+                Control how your data is accessed. We value your privacy and only use data you explicitly approve.
+              </Text>
+            </Animated.View>
+
+            {/* 3. Privacy Settings Cards */}
+            <Animated.View style={[styles.usageContainer, animatedStyle(2)]}>
+              <PrivacySetting
+                title="Notifications"
+                description="Get important security alerts and updates."
+                isEnabled={!!privacySettings.notificationEnabled}
+                onToggle={handleNotificationToggle}
+                primaryColor={primaryColor}
+                disabled={isProcessing}
+                icon={Bell}
+              />
+              <View style={styles.divider} />
+              <PrivacySetting
+                title="Location Services"
+                description="For location-based features only."
+                isEnabled={!!privacySettings.locationEnabled}
+                onToggle={handleLocationToggle}
+                primaryColor={primaryColor}
+                disabled={isProcessing}
+                icon={MapPin}
+              />
+              <View style={styles.divider} />
+              <PrivacySetting
+                title="Camera"
+                description="To take photos for your profile or reviews."
+                isEnabled={!!privacySettings.cameraEnabled}
+                onToggle={handleCameraToggle}
+                primaryColor={primaryColor}
+                disabled={isProcessing}
+                icon={CameraIcon}
+              />
+              <View style={styles.divider} />
+              <PrivacySetting
+                title="Photo Library"
+                description="To select images for your profile or shop reviews."
+                isEnabled={!!privacySettings.mediaEnabled}
+                onToggle={handleMediaToggle}
+                primaryColor={primaryColor}
+                disabled={isProcessing}
+                icon={ImageIcon}
+              />
+              <View style={styles.divider} />
+              <PrivacySetting
+                title="Calendar"
+                description="To save your upcoming appointments directly."
+                isEnabled={!!privacySettings.calendarEnabled}
+                onToggle={handleCalendarToggle}
+                primaryColor={primaryColor}
+                disabled={isProcessing}
+                icon={CalendarIcon}
+              />
+
+            </Animated.View>
+
+            {/* 4. Footer Privacy Note */}
+            <Animated.View style={[styles.noteContainer, animatedStyle(3)]}>
+              <View style={styles.noteHeader}>
+                <ShieldCheck size={16} color="#10B981" strokeWidth={2.5} />
+                <Text style={styles.noteTitle}>BANK-GRADE ENCRYPTION</Text>
+              </View>
+              <Text style={styles.noteText}>
+                By enabling these settings, you consent to the collection and processing of data as described in our Privacy Policy.
+              </Text>
+            </Animated.View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff"
-  },
-  alertWrapper: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    paddingHorizontal: 16,
-    alignItems: "center"
-  },
-  alertCard: {
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  content: { flex: 1 },
+  headerOuterContainer: {
     width: "100%",
-    maxWidth: 400,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#F3F4F6"
+    backgroundColor: "#FFFFFF"
   },
-  iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12
-  },
-  textContainer: {
-    flex: 1,
-    marginRight: 8
-  },
-  alertTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 2
-  },
-  alertMessage: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "500",
-    lineHeight: 18
-  },
-  navBar: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-    alignItems: "flex-start"
-  },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  scrollContainer: {
-    paddingBottom: 40
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40
-  },
-  illustrationArea: {
-    alignItems: "center",
-    marginVertical: 20
-  },
-  circleBack: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  circleFront: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 10,
-    letterSpacing: -0.5
-  },
-  subHeading: {
-    fontSize: 15,
-    color: "#6B7280",
-    lineHeight: 22,
-    marginBottom: 30,
-    fontWeight: "500"
-  },
-  settingsSection: {
-    marginBottom: 24
-  },
-  settingItem: {
+  headerContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 16,
-    marginBottom: 12,
+    paddingHorizontal: normalize(16),
+    paddingBottom: normalize(12),
+    maxWidth: 500,
+    width: "100%",
+    alignSelf: "center"
+  },
+  headerTitle: {
+    fontSize: normalize(15),
+    fontWeight: "800",
+    color: "#0F172A",
+    letterSpacing: -0.5
+  },
+  backBtn: {
+    padding: normalize(8),
+    borderRadius: normalize(12),
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#F3F4F6"
+    borderColor: "#F1F5F9"
   },
-  settingTextContainer: {
-    flex: 1,
-    marginRight: 16
+  scrollContent: {
+    paddingTop: normalize(10),
+    width: "100%"
   },
-  settingTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 4
+  centeredContentWrapper: {
+    maxWidth: 500,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: normalize(24)
   },
-  settingDescription: {
-    fontSize: 13,
-    color: "#6B7280",
-    lineHeight: 18
-  },
-  submitBtn: {
-    height: 56,
-    borderRadius: 16,
-    alignItems: "center",
+  illustrationContainer: {
+    width: "100%",
+    height: normalize(140),
     justifyContent: "center",
-    marginBottom: 20
-  },
-  btnText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#fff"
-  },
-  legalSection: {
-    paddingHorizontal: 4,
-    marginBottom: 30
-  },
-  legalText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    textAlign: "center",
-    lineHeight: 18
-  },
-  linkText: {
-    color: "#6B7280",
-    textDecorationLine: "underline",
-    fontWeight: "600"
-  },
-  footer: {
     alignItems: "center",
-    paddingBottom: 20
+    marginBottom: normalize(20)
   },
-  trustBadge: {
+  illustration: {
+    width: "85%",
+    height: "100%"
+  },
+  textContainer: { marginBottom: normalize(28) },
+  title: {
+    fontSize: normalize(24),
+    fontWeight: "900",
+    color: "#0F172A",
+    letterSpacing: -0.8,
+    marginBottom: normalize(10),
+    textAlign: "center"
+  },
+  subtitle: {
+    fontSize: normalize(13),
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: normalize(20),
+    fontWeight: "500",
+    paddingHorizontal: normalize(10)
+  },
+  usageContainer: {
+    width: "100%",
+    backgroundColor: "#F8FAFC",
+    borderRadius: normalize(20),
+    padding: normalize(20),
+    marginBottom: normalize(30),
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  usageItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6
+    gap: normalize(14)
   },
-  footerText: {
-    fontSize: 12,
-    color: "#059669",
+  divider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginVertical: normalize(16)
+  },
+  iconCircle: {
+    width: normalize(36),
+    height: normalize(36),
+    borderRadius: normalize(18),
+    backgroundColor: "#FFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  usageTextContent: { flex: 1 },
+  usageTitle: {
+    fontSize: normalize(14),
+    color: "#0F172A",
+    fontWeight: "800",
+    marginBottom: normalize(4)
+  },
+  usageDesc: {
+    fontSize: normalize(12),
+    color: "#64748B",
+    fontWeight: "500",
+    lineHeight: normalize(18)
+  },
+  actionSection: { marginBottom: normalize(30) },
+  primaryBtn: {
+    height: normalize(58),
+    borderRadius: normalize(16),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: normalize(12),
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8
+  },
+  btnText: {
+    fontSize: normalize(16),
+    fontWeight: "800",
+    color: "#FFF",
+    letterSpacing: -0.2
+  },
+  noteContainer: {
+    width: "100%",
+    padding: normalize(18),
+    backgroundColor: "#F0FDF4",
+    borderRadius: normalize(16),
+    borderWidth: 1,
+    borderColor: "#DCFCE7"
+  },
+  noteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: normalize(8),
+    marginBottom: normalize(8)
+  },
+  noteTitle: {
+    fontSize: normalize(11),
+    fontWeight: "900",
+    color: "#166534",
+    letterSpacing: 1
+  },
+  noteText: {
+    fontSize: normalize(11),
+    color: "#166534",
+    lineHeight: normalize(18),
+    fontWeight: "500"
+  },
+  toastWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 2000,
+    alignItems: "center"
+  },
+  toastContainer: {
+    width: '90%',
+    maxWidth: 450,
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    borderWidth: 1,
+    borderColor: "#F1F5F9"
+  },
+  toastContent: {
+    padding: 16,
+    borderLeftWidth: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
+  toastTextContainer: { flex: 1 },
+  toastMessage: {
+    fontSize: 14,
+    color: "#0F172A",
     fontWeight: "600"
   }
 });

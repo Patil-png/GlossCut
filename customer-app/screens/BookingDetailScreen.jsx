@@ -15,8 +15,23 @@ import {
   Easing,
   Platform,
   ScrollView,
-  Linking
+  Linking,
+  Dimensions,
+  PixelRatio
 } from "react-native";
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const scale = SCREEN_WIDTH / 375;
+
+function normalize(size) {
+  const newSize = size * scale;
+  if (Platform.OS === 'ios') {
+    return Math.round(PixelRatio.getFontScale() * newSize);
+  } else {
+    const res = Math.round(PixelRatio.getFontScale() * newSize) - 2;
+    return res > 0 ? res : size; // Fallback to original size if negative
+  }
+}
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OptimizedImage from "../components/OptimizedImage";
 import { useTheme } from "../contexts/ThemeContext.jsx";
@@ -39,7 +54,8 @@ import {
   Star,
   MessageSquare,
   HelpCircle,
-  Heart
+  Heart,
+  ShieldCheck
 } from "lucide-react-native";
 import { format, differenceInSeconds } from "date-fns";
 import api from "../utils/api";
@@ -65,55 +81,21 @@ const QUICK_TAGS = [
   "Good Value 💰",
 ];
 
+const PERF_DOTS = [...Array(15)];
+
 // --- CUSTOM TOAST COMPONENT ---
 const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
-  const translateY = useRef(new Animated.Value(-100)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
   const { theme } = useTheme();
 
   useEffect(() => {
     if (visible) {
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: topInset, // Dynamic top inset
-          duration: 400,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.back(1.5))
-        }),
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true
-        }),
-      ]).start();
-
       const timer = setTimeout(() => {
-        hideToast();
+        if (onHide) onHide();
       }, 3000);
 
       return () => clearTimeout(timer);
-    } else {
-      hideToast();
     }
   }, [visible]);
-
-  const hideToast = () => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -100,
-        duration: 300,
-        useNativeDriver: true,
-        easing: Easing.in(Easing.cubic)
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true
-      }),
-    ]).start(() => {
-      if (visible && onHide) onHide();
-    });
-  };
 
   if (!visible) return null;
 
@@ -124,14 +106,14 @@ const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
   const Icon = isError ? AlertCircle : Check;
 
   return (
-    <Animated.View
+    <View
       style={[
         styles.toastContainer,
         {
-          transform: [{ translateY }],
-          opacity,
+          top: topInset,
           backgroundColor: bgColor,
-          borderColor: borderColor
+          borderColor: borderColor,
+          opacity: 1
         },
       ]}
     >
@@ -151,7 +133,7 @@ const ToastNotification = ({ visible, message, type, onHide, topInset }) => {
           {message}
         </Text>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 
@@ -207,9 +189,52 @@ const StatusBanner = React.memo(({ booking, theme }) => {
 
 const BookingDetailScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
-  const { booking } = route.params;
+  const { booking: initialBooking } = route.params;
+  const [booking, setBooking] = useState(initialBooking);
+  const [queueInfo, setQueueInfo] = useState(null);
   const { token, user } = useAuth();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const fetchLatestBooking = async () => {
+      try {
+        if (!initialBooking?._id) return;
+        const res = await api.get(`/api/booking/${initialBooking._id}`);
+        if (res.data) {
+          setBooking(res.data);
+        }
+      } catch (err) {
+        console.log("Error fetching latest booking details:", err);
+      }
+    };
+
+    const fetchQueueInfo = async () => {
+      try {
+        if (!initialBooking?._id) return;
+        const res = await api.get(`/api/booking/track/${initialBooking.queueTrackingId || initialBooking._id}`);
+        if (res.data && res.data.success) {
+          setQueueInfo(res.data.data);
+        }
+      } catch (err) {
+        console.log("Error fetching queue info:", err);
+      }
+    };
+
+    fetchLatestBooking();
+    fetchQueueInfo();
+
+    const interval = setInterval(fetchQueueInfo, 15000);
+    return () => clearInterval(interval);
+  }, [initialBooking?._id, initialBooking?.queueTrackingId]);
+
+  const formattedDate = useMemo(() => {
+    if (!booking?.date) return "";
+    try {
+      return format(new Date(booking.date), "MMMM dd, yyyy");
+    } catch (e) {
+      return booking.date.split("T")[0] || booking.date;
+    }
+  }, [booking?.date]);
 
   // Toast State
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
@@ -228,6 +253,29 @@ const BookingDetailScreen = ({ route, navigation }) => {
   const emojiAnimations = useRef(
     RATING_EMOJIS.map(() => new Animated.Value(1))
   ).current;
+
+  // Pulse animation for live tracking status indicator
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.ease,
+          useNativeDriver: true
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.4,
+          duration: 1000,
+          easing: Easing.ease,
+          useNativeDriver: true
+        })
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [pulseAnim]);
 
   // Show Toast Helper
   const showToast = useCallback((type, message) => {
@@ -357,29 +405,8 @@ const BookingDetailScreen = ({ route, navigation }) => {
   const handleRating = useCallback(
     (rate) => {
       setRating(rate);
-      Animated.spring(emojiAnimations[rate - 1], {
-        toValue: 1.5,
-        friction: 3,
-        useNativeDriver: true
-      }).start(() => {
-        Animated.spring(emojiAnimations[rate - 1], {
-          toValue: 1.2,
-          friction: 3,
-          useNativeDriver: true
-        }).start();
-      });
-
-      emojiAnimations.forEach((anim, index) => {
-        if (index !== rate - 1) {
-          Animated.spring(anim, {
-            toValue: 1,
-            friction: 5,
-            useNativeDriver: true
-          }).start();
-        }
-      });
     },
-    [emojiAnimations]
+    []
   );
 
   const getStatusColor = (status) => {
@@ -439,23 +466,24 @@ const BookingDetailScreen = ({ route, navigation }) => {
       />
 
       <View
-        style={[styles.header, { backgroundColor: '#F6F7FB', paddingTop: Math.max(insets.top, 10) }]}
+        style={[styles.header, { backgroundColor: '#FFFFFF', paddingTop: Math.max(insets.top, 16), borderBottomWidth: 1, borderBottomColor: '#E2E8F0' }]}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButtonCircle}
+          style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}
         >
-          <ArrowLeft size={22} color="#111" />
+          <ArrowLeft size={24} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: '#111' }]}>
+        <Text style={[styles.headerTitle, { color: '#0F172A', fontWeight: '800', fontSize: 18 }]}>
           Booking Details
         </Text>
-        <View style={styles.headerPlaceholder} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         contentContainerStyle={[styles.contentContainer, { backgroundColor: '#F6F7FB' }]}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
       >
         <View style={{ height: 10 }} />
         
@@ -491,127 +519,6 @@ const BookingDetailScreen = ({ route, navigation }) => {
              </TouchableOpacity>
            )}
         </View>
-
-        {/* === BARBER PARTNER CARD === */}
-        {booking.barberId && (
-          <TouchableOpacity 
-            style={styles.partnerCard}
-            onPress={() => navigation.navigate("BarberProfile", { barberId: booking.barberId?._id })}
-          >
-             <View style={styles.partnerAvatarContainer}>
-               <OptimizedImage
-                  source={booking.barberId?.profilePicture || "https://via.placeholder.com/100"}
-                  style={styles.partnerAvatar}
-               />
-             </View>
-             <View style={styles.partnerInfo}>
-                <Text style={styles.partnerGreeting}>Meet your Barber</Text>
-                <Text style={styles.partnerName}>{barberName}</Text>
-             </View>
-             <TouchableOpacity 
-                style={styles.partnerCallBtn}
-                onPress={() => callNumber(booking.barberId?.phone)}
-              >
-                <PhoneCall size={18} color="#16A34A" />
-             </TouchableOpacity>
-          </TouchableOpacity>
-        )}
-
-        {/* === TIPPING SECTION === */}
-        <View style={styles.tipSectionCard}>
-           <Text style={styles.tipHeader}>Appreciate your barber!</Text>
-           <Text style={styles.tipSubheader}>Thank them by leaving a small tip</Text>
-           <View style={styles.tipRow}>
-              {[
-                { id: 1, amount: 20, emoji: "✌️" },
-                { id: 2, amount: 30, emoji: "💌" },
-                { id: 3, amount: 50, emoji: "❤️" },
-                { id: 4, label: "Other", emoji: "👏" }
-              ].map((item) => (
-                <TouchableOpacity 
-                  key={item.id} 
-                  style={[
-                    styles.tipPill, 
-                    selectedTip?.id === item.id && { backgroundColor: '#16A34A', borderColor: '#16A34A' }
-                  ]}
-                  onPress={() => {
-                    setSelectedTip(item);
-                    setTipConfirmed(true);
-                  }}
-                >
-                   <Text style={styles.tipEmoji}>{item.emoji}</Text>
-                   <Text style={[
-                     styles.tipAmountText, 
-                     selectedTip?.id === item.id && { color: '#fff' }
-                   ]}>
-                     {item.amount ? `₹${item.amount}` : item.label}
-                   </Text>
-                </TouchableOpacity>
-              ))}
-           </View>
-
-           {tipConfirmed && selectedTip && (
-             <View style={styles.tipThanksCard}>
-                <View style={styles.tipThanksIcon}>
-                   <Heart size={16} color="#fff" fill="#fff" />
-                </View>
-                <Text style={styles.tipThanksText}>
-                  {barberName} will be so happy! ❤️
-                </Text>
-                <TouchableOpacity onPress={() => {
-                  setSelectedTip(null);
-                  setTipConfirmed(false);
-                }}>
-                   <Text style={styles.tipRemoveText}>Remove</Text>
-                </TouchableOpacity>
-             </View>
-           )}
-        </View>
-
-        {/* === BOOKING DETAILS SECTION === */}
-        <View style={styles.detailsMainCard}>
-           <View style={styles.detailsHeaderRow}>
-              <View style={styles.detailsIconCircle}>
-                 <Clock size={20} color="#666" />
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                 <Text style={styles.detailsTitle}>Booking details</Text>
-                 <Text style={styles.detailsSubtitle}>Details of your appointment</Text>
-              </View>
-           </View>
-
-           <View style={styles.detailItemRow}>
-              <View style={styles.detailIconSmall}>
-                 <MapPin size={18} color="#666" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                 <Text style={styles.detailItemLabel}>Service Location</Text>
-                 <Text style={styles.detailItemValue}>{shopName || "At Customer Location"}</Text>
-                 <Text style={styles.detailItemSubValue}>{shopAddress || "Address provided during booking"}</Text>
-              </View>
-           </View>
-
-           <View style={styles.detailItemRow}>
-              <View style={styles.detailIconSmall}>
-                 <Phone size={18} color="#666" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                 <Text style={styles.detailItemValue}>{user?.name}, {user?.phone}</Text>
-              </View>
-           </View>
-        </View>
-
-        {/* === HELP SECTION === */}
-        <TouchableOpacity style={styles.helpCard}>
-           <View style={styles.helpIconCircle}>
-              <MessageSquare size={20} color="#666" />
-           </View>
-           <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.helpTitle}>Need help?</Text>
-              <Text style={styles.helpSubtitle}>Chat with us about any issue related to your booking</Text>
-           </View>
-           <ChevronRight size={20} color="#CCC" />
-        </TouchableOpacity>
 
         {/* === ORDER SUMMARY === */}
         <View style={styles.summaryCard}>
@@ -669,11 +576,233 @@ const BookingDetailScreen = ({ route, navigation }) => {
            </View>
         </View>
 
-        {/* === OTP SECTION (If needed) === */}
+        {/* === TRACK APPOINTMENT (Live Queue Status) === */}
+        {(booking.status === "confirmed" || booking.status === "pending") && (
+          <View style={styles.trackingCard}>
+             <View style={styles.detailsHeaderRow}>
+                <View style={styles.detailsIconCircle}>
+                   <Clock size={20} color="#1A1A1A" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                   <Text style={styles.detailsTitle}>Track Appointment</Text>
+                   <Text style={styles.detailsSubtitle}>Live status of your booking</Text>
+                </View>
+                <View style={styles.liveBadge}>
+                   <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
+                   <Text style={styles.liveBadgeText}>LIVE</Text>
+                </View>
+             </View>
+
+             {/* Live Queue Dashboard */}
+             <View style={styles.liveQueueDashboard}>
+                <View style={styles.queueMetricBox}>
+                   <Text style={styles.queueMetricLabel}>Queue No.</Text>
+                   <Text style={styles.queueMetricValue}>
+                      #{queueInfo?.queuePosition || booking.queuePosition || "1"}
+                   </Text>
+                </View>
+                <View style={styles.queueMetricBox}>
+                   <Text style={styles.queueMetricLabel}>Ahead of You</Text>
+                   <Text style={styles.queueMetricValue}>
+                      {queueInfo?.peopleAhead !== undefined 
+                         ? `${queueInfo.peopleAhead} ${queueInfo.peopleAhead === 1 ? 'person' : 'people'}` 
+                         : "0 people"}
+                   </Text>
+                </View>
+                <View style={styles.queueMetricBox}>
+                   <Text style={styles.queueMetricLabel}>Est. Wait</Text>
+                   <Text style={styles.queueMetricValue}>
+                      {queueInfo?.estimatedWaitMinutes 
+                         ? `${queueInfo.estimatedWaitMinutes} mins` 
+                         : "10 mins"}
+                   </Text>
+                </View>
+             </View>
+
+             {/* Elegant Horizontal Progress Bar */}
+             <View style={styles.progressBarWrapper}>
+                <View style={styles.progressBarTrack}>
+                   <View 
+                      style={[
+                         styles.progressBarFill, 
+                         { 
+                            width: queueInfo?.peopleAhead === 0 
+                               ? '100%' 
+                               : queueInfo?.peopleAhead === 1 
+                                  ? '66%' 
+                                  : '33%' 
+                         }
+                      ]} 
+                   />
+                </View>
+                <View style={styles.progressBarSteps}>
+                   <View style={styles.progressStepItem}>
+                      <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
+                         <Check size={10} color="#1A1A1A" strokeWidth={3} />
+                      </View>
+                      <Text style={styles.stepLabel}>Booked</Text>
+                   </View>
+                   <View style={styles.progressStepItem}>
+                      <View 
+                         style={[
+                            styles.stepCircle, 
+                            queueInfo?.peopleAhead === undefined || queueInfo?.peopleAhead > 0 
+                               ? styles.stepCircleActive 
+                               : styles.stepCircleCompleted
+                         ]}
+                      >
+                         {queueInfo?.peopleAhead === 0 ? (
+                            <Check size={10} color="#1A1A1A" strokeWidth={3} />
+                         ) : (
+                            <View style={styles.stepDotInner} />
+                         )}
+                      </View>
+                      <Text style={styles.stepLabel}>In Queue</Text>
+                   </View>
+                   <View style={styles.progressStepItem}>
+                      <View 
+                         style={[
+                            styles.stepCircle, 
+                            queueInfo?.peopleAhead === 0 
+                               ? styles.stepCircleActive 
+                               : styles.stepCircleInactive
+                         ]}
+                      >
+                         {queueInfo?.peopleAhead === 0 && <View style={styles.stepDotInner} />}
+                      </View>
+                      <Text style={styles.stepLabel}>Ready</Text>
+                   </View>
+                </View>
+             </View>
+
+             <TouchableOpacity 
+                style={styles.trackLiveButton}
+                onPress={() => navigation.navigate('TrackQueue', { trackingId: booking.queueTrackingId || booking._id })}
+             >
+                <Text style={styles.trackLiveButtonText}>Track Live Status</Text>
+                <ChevronRight size={18} color="#C8FF00" strokeWidth={3} />
+             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* === SALON & APPOINTMENT DETAILS === */}
+        <View style={styles.detailsMainCard}>
+           <View style={styles.detailsHeaderRow}>
+              <View style={styles.detailsIconCircle}>
+                 <Store size={20} color="#1A1A1A" />
+              </View>
+              <View style={{ marginLeft: 12 }}>
+                 <Text style={styles.detailsTitle}>Salon & Service Details</Text>
+                 <Text style={styles.detailsSubtitle}>Location and booking details</Text>
+              </View>
+           </View>
+
+           {/* Detailed Information Grid */}
+           <View style={styles.detailsGrid}>
+             {/* Shop Details */}
+             <View style={styles.detailsGridItem}>
+               <View style={styles.detailIconSmall}>
+                  <Store size={18} color="#606058" />
+               </View>
+               <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.detailItemLabel}>Salon</Text>
+                  <Text style={styles.detailItemValue}>{shopName || "GlossCut Studio"}</Text>
+                  {booking.barberId?.shopAddress ? (
+                    <Text style={styles.detailItemSubText}>{booking.barberId.shopAddress}</Text>
+                  ) : null}
+                  {booking.barberId?.shopId ? (
+                    <TouchableOpacity 
+                      style={styles.inlineActionBtn}
+                      onPress={() => navigation.navigate('ShopMapScreen', { shopId: booking.barberId.shopId })}
+                    >
+                      <MapPin size={14} color="#1A1A1A" />
+                      <Text style={styles.inlineActionText}>View on Salon Map</Text>
+                    </TouchableOpacity>
+                  ) : null}
+               </View>
+             </View>
+
+             {/* Barber Details */}
+             {booking.barberId && (
+               <View style={styles.detailsGridItem}>
+                 <View style={styles.detailIconSmall}>
+                    <User size={18} color="#606058" />
+                 </View>
+                 <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.detailItemLabel}>Barber</Text>
+                    <Text style={styles.detailItemValue}>{barberName}</Text>
+                    {booking.barberId.phone ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 12 }}>
+                        <Text style={styles.detailItemSubText}>{booking.barberId.phone}</Text>
+                        <TouchableOpacity 
+                          style={styles.inlineCallIcon}
+                          onPress={() => callNumber(booking.barberId.phone)}
+                        >
+                           <PhoneCall size={12} color="#16A34A" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+                 </View>
+               </View>
+             )}
+
+             {/* Booking Time */}
+             <View style={styles.detailsGridItem}>
+               <View style={styles.detailIconSmall}>
+                  <Calendar size={18} color="#606058" />
+               </View>
+               <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.detailItemLabel}>Appointment Time</Text>
+                  <Text style={styles.detailItemValue}>
+                    {booking.time} on {formattedDate}
+                  </Text>
+               </View>
+             </View>
+           </View>
+        </View>
+
+        {/* === HELP SECTION === */}
+        <TouchableOpacity 
+           style={styles.helpCard}
+           onPress={() => navigation.navigate("Chat")}
+        >
+           <View style={styles.helpIconCircle}>
+              <MessageSquare size={20} color="#666" />
+           </View>
+           <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.helpTitle}>Need help?</Text>
+              <Text style={styles.helpSubtitle}>Chat with us about any issue related to your booking</Text>
+           </View>
+           <ChevronRight size={20} color="#CCC" />
+        </TouchableOpacity>
+
+
+
+        {/* === TOKEN / OTP SECTION === */}
         {booking.otp && booking.status === "confirmed" && (
-          <View style={[styles.otpCardNew, { borderColor: theme.colors.primary + '40' }]}>
-            <Text style={styles.otpLabelNew}>Verification Code</Text>
-            <Text style={[styles.otpValueNew, { color: theme.colors.primary }]}>{booking.otp}</Text>
+          <View style={styles.tokenWrapper}>
+            <View style={styles.tokenTop}>
+              <Text style={styles.tokenTitle}>Verification Code</Text>
+              <Text style={styles.tokenSub}>Share this with your barber to start session</Text>
+            </View>
+            
+            <View style={styles.ripContainer}>
+              <View style={styles.ripCircleLeft} />
+              <View style={styles.dotsContainer}>
+                {PERF_DOTS.map((_, i) => <View key={i} style={styles.perfDot} />)}
+              </View>
+              <View style={styles.ripCircleRight} />
+            </View>
+            
+            <View style={styles.tokenBottom}>
+              <View style={styles.otpVault}>
+                <Text style={styles.otpDigit}>{booking.otp}</Text>
+              </View>
+              <View style={styles.trustFooter}>
+                <ShieldCheck size={14} color="#166534" />
+                <Text style={styles.trustText}>Secure Verification</Text>
+              </View>
+            </View>
           </View>
         )}
 
@@ -779,20 +908,15 @@ const BookingDetailScreen = ({ route, navigation }) => {
                         onPress={() => handleRating(item.id)}
                         activeOpacity={0.7}
                       >
-                        <Animated.Text
+                        <Text
                           style={[
                             styles.emojiChar,
-                            {
-                              transform: [
-                                { scale: emojiAnimations[item.id - 1] },
-                              ]
-                            },
                             rating > 0 &&
                             rating !== item.id && { opacity: 0.4 },
                           ]}
                         >
                           {item.char}
-                        </Animated.Text>
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -914,9 +1038,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F6F7FB'
   },
   backButtonCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: normalize(40),
+    height: normalize(40),
+    borderRadius: normalize(20),
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -927,9 +1051,9 @@ const styles = StyleSheet.create({
     elevation: 3
   },
   statusBannerCard: {
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
+    borderRadius: normalize(20),
+    padding: normalize(18),
+    marginBottom: normalize(16),
     borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -940,7 +1064,7 @@ const styles = StyleSheet.create({
   statusHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12
+    marginBottom: normalize(12)
   },
   statusIconCircle: {
     width: 32,
@@ -1162,7 +1286,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 15,
-    elevation: 3
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E8E7E2'
   },
   detailsHeaderRow: {
     flexDirection: 'row',
@@ -1177,7 +1303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9'
+    borderColor: '#E8E7E2'
   },
   detailsTitle: {
     fontSize: 18,
@@ -1186,8 +1312,190 @@ const styles = StyleSheet.create({
   },
   detailsSubtitle: {
     fontSize: 13,
-    color: '#666',
+    color: '#606058',
     marginTop: 2
+  },
+  trackingCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E8E7E2'
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0EFE9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E7E2',
+  },
+  liveBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: 0.5,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16A34A',
+    marginRight: 6,
+  },
+  liveQueueDashboard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 20,
+  },
+  queueMetricBox: {
+    flex: 1,
+    backgroundColor: '#FDFDFD',
+    borderWidth: 1,
+    borderColor: '#E8E7E2',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  queueMetricLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#606058',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  queueMetricValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1A1A1A',
+  },
+  progressBarWrapper: {
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  progressBarTrack: {
+    height: 6,
+    backgroundColor: '#F0EFE9',
+    borderRadius: 3,
+    position: 'relative',
+    marginBottom: 12,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 3,
+  },
+  progressBarSteps: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressStepItem: {
+    alignItems: 'center',
+    width: 60,
+  },
+  stepCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepCircleCompleted: {
+    borderColor: '#1A1A1A',
+    backgroundColor: '#C8FF00',
+  },
+  stepCircleActive: {
+    borderColor: '#1A1A1A',
+    backgroundColor: '#fff',
+  },
+  stepCircleInactive: {
+    borderColor: '#E8E7E2',
+    backgroundColor: '#FDFDFD',
+  },
+  stepDotInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#1A1A1A',
+  },
+  stepLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#606058',
+    marginTop: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  trackLiveButton: {
+    height: normalize(50),
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  trackLiveButtonText: {
+    color: '#fff',
+    fontSize: normalize(13),
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  detailsGrid: {
+    marginTop: 8,
+    gap: 20,
+  },
+  detailsGridItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  detailItemSubText: {
+    fontSize: 14,
+    color: '#606058',
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  inlineActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#F0EFE9',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  inlineActionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  inlineCallIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailItemRow: {
     flexDirection: 'row',
@@ -1201,20 +1509,20 @@ const styles = StyleSheet.create({
   detailItemLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#606058',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 6
   },
   detailItemValue: {
     fontSize: 16,
-    color: '#1E293B',
+    color: '#1A1A1A',
     fontWeight: '700',
     lineHeight: 22
   },
   detailItemSubValue: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#606058',
     marginTop: 4,
     lineHeight: 20
   },
@@ -1445,8 +1753,119 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 16
+    paddingHorizontal: 16,
+    paddingBottom: 12
+  },
+  tokenWrapper: {
+    backgroundColor: 'transparent',
+    marginTop: normalize(10),
+    marginBottom: normalize(20)
+  },
+  tokenTop: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: normalize(20),
+    borderTopRightRadius: normalize(20),
+    padding: normalize(20),
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderBottomWidth: 0
+  },
+  tokenTitle: {
+    fontSize: normalize(12),
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: normalize(4)
+  },
+  tokenSub: {
+    fontSize: normalize(13),
+    color: '#0F172A',
+    fontWeight: '600'
+  },
+  ripContainer: {
+    height: normalize(20),
+    backgroundColor: '#FFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    zIndex: 10,
+    position: 'relative',
+    marginTop: -1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  ripCircleLeft: {
+    width: normalize(20),
+    height: normalize(20),
+    borderRadius: normalize(10),
+    backgroundColor: '#F6F7FB',
+    marginLeft: normalize(-10),
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  ripCircleRight: {
+    width: normalize(20),
+    height: normalize(20),
+    borderRadius: normalize(10),
+    backgroundColor: '#F6F7FB',
+    marginRight: normalize(-10),
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  dotsContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: normalize(10),
+    overflow: 'hidden'
+  },
+  perfDot: {
+    width: normalize(4),
+    height: normalize(4),
+    borderRadius: normalize(2),
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: normalize(2)
+  },
+  tokenBottom: {
+    backgroundColor: '#F8FAFC',
+    borderBottomLeftRadius: normalize(20),
+    borderBottomRightRadius: normalize(20),
+    padding: normalize(20),
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderTopWidth: 0
+  },
+  otpVault: {
+    backgroundColor: '#FFF',
+    width: '100%',
+    paddingVertical: normalize(12),
+    borderRadius: normalize(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: normalize(12),
+    flexDirection: 'row'
+  },
+  otpDigit: {
+    fontSize: normalize(28),
+    fontWeight: '900',
+    letterSpacing: normalize(6),
+    color: '#0F172A',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
+  },
+  trustFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E6F4EA',
+    paddingHorizontal: normalize(12),
+    paddingVertical: normalize(6),
+    borderRadius: normalize(20)
   },
   headerTitle: {
     fontSize: 18,

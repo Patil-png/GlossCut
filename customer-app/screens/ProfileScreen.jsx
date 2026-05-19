@@ -17,7 +17,8 @@ import {
   Dimensions,
   Easing,
   InteractionManager,
-  Platform
+  Platform,
+  ImageBackground
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -46,14 +47,22 @@ import {
   XCircle,
   Info,
   WifiOff,
-  RefreshCcw
+  RefreshCcw,
+  Settings,
+  CreditCard,
+  Target,
+  Trophy,
+  Activity,
+  Zap
 } from "lucide-react-native";
 import api, { API_URL } from "../utils/api";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
-// --- 1. OPTIMIZED ANIMATED TOUCHABLE (MEMOIZED) ---
-const AnimatedTouchable = React.memo(({ onPress, style, children }) => {
+// --- 1. OPTIMIZED ANIMATED TOUCHABLE ---
+const PremiumTouchable = React.memo(({ onPress, style, children }) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const onPressIn = useCallback(() => {
@@ -88,7 +97,7 @@ const AnimatedTouchable = React.memo(({ onPress, style, children }) => {
   );
 });
 
-// --- 2. OPTIMIZED ALERT COMPONENT ---
+// --- 2. ALERT COMPONENT (IMPROVED) ---
 const TopActionAlert = React.memo(
   ({ config, onHide, onConfirm, topInset }) => {
     const translateY = useRef(new Animated.Value(-150)).current;
@@ -96,7 +105,7 @@ const TopActionAlert = React.memo(
     useEffect(() => {
       if (config.visible) {
         Animated.spring(translateY, {
-          toValue: topInset,
+          toValue: topInset + 10,
           useNativeDriver: true,
           friction: 6,
           tension: 80
@@ -124,22 +133,18 @@ const TopActionAlert = React.memo(
 
     if (!config.visible && translateY._value === -150) return null;
 
-    let bg = "#FFFFFF";
-    let accent = "#2ED573";
+    let accent = "#C8FF00";
     let IconComp = CheckCircle;
 
     if (config.type === "error") {
-      accent = "#FF4757";
+      accent = "#FF4444";
       IconComp = XCircle;
     } else if (config.type === "warning" || config.type === "action") {
       accent = "#FFA502";
       IconComp = AlertTriangle;
     } else if (config.type === "info") {
-      accent = "#3742FA";
+      accent = "#C8FF00";
       IconComp = Info;
-    } else if (config.type === "offline") {
-      accent = "#57606F";
-      IconComp = WifiOff;
     }
 
     const isDark = config.isDark;
@@ -150,27 +155,28 @@ const TopActionAlert = React.memo(
           styles.alertContainer,
           {
             transform: [{ translateY }],
-            backgroundColor: isDark ? "#1E1E1E" : "#FFFFFF",
-            shadowColor: accent,
-            shadowOpacity: 0.15
+            backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF",
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            borderColor: isDark ? "#333" : "#EEE",
+            borderWidth: 1
           },
         ]}
       >
-        <View style={[styles.alertStripe, { backgroundColor: accent }]} />
         <View style={styles.alertContent}>
           <View
             style={[styles.alertIconCircle, { backgroundColor: `${accent}15` }]}
           >
-            <IconComp size={22} color={accent} strokeWidth={2.5} />
+            <IconComp size={20} color={accent} strokeWidth={2.5} />
           </View>
           <View style={styles.alertTextWrapper}>
             <Text
-              style={[styles.alertTitle, { color: isDark ? "#FFF" : "#000" }]}
+              style={[styles.alertTitle, { color: isDark ? "#FFF" : "#1A1A1A" }]}
             >
               {config.title}
             </Text>
             <Text
-              style={[styles.alertMessage, { color: isDark ? "#AAA" : "#555" }]}
+              style={[styles.alertMessage, { color: isDark ? "#A0A09A" : "#606058" }]}
               numberOfLines={2}
             >
               {config.message}
@@ -184,7 +190,7 @@ const TopActionAlert = React.memo(
               <Text
                 style={[
                   styles.cancelBtnText,
-                  { color: isDark ? "#AAA" : "#666" },
+                  { color: isDark ? "#A0A09A" : "#606058" },
                 ]}
               >
                 Cancel
@@ -195,7 +201,7 @@ const TopActionAlert = React.memo(
                 handleClose();
                 onConfirm();
               }}
-              style={[styles.confirmBtn, { backgroundColor: "#FF4757" }]}
+              style={[styles.confirmBtn, { backgroundColor: "#1A1A1A" }]}
             >
               <Text style={styles.confirmBtnText}>Logout</Text>
             </TouchableOpacity>
@@ -203,15 +209,14 @@ const TopActionAlert = React.memo(
         )}
       </Animated.View>
     );
-  },
-  (prev, next) => prev.config === next.config
-); // Only re-render if config changes
+  }
+);
 
-// --- 3. OPTIMIZED MENU ITEM ---
+// --- 3. MENU ITEM (PREMIUM) ---
 const MenuItem = React.memo(
-  ({ icon: Icon, title, onPress, theme, isLast, subtitle, showBadge }) => (
+  ({ icon: Icon, title, onPress, theme, isLast, subtitle, showBadge, danger }) => (
     <TouchableOpacity
-      activeOpacity={0.7}
+      activeOpacity={0.6}
       onPress={onPress}
       style={[
         styles.menuItem,
@@ -223,25 +228,25 @@ const MenuItem = React.memo(
         style={[
           styles.iconContainer,
           {
-            backgroundColor: isLast
+            backgroundColor: danger
               ? "#FFF5F5"
               : theme.dark
-                ? "#1F1F1F"
-                : "#F2F4F8"
+                ? "#252525"
+                : "#F8F8F6"
           },
         ]}
       >
         <Icon
-          size={20}
-          color={isLast ? "#FF4757" : theme.colors.primary}
-          strokeWidth={2}
+          size={18}
+          color={danger ? "#FF4444" : theme.colors.text}
+          strokeWidth={1.8}
         />
       </View>
       <View style={styles.menuTextContainer}>
         <Text
           style={[
             styles.menuItemText,
-            { color: isLast ? "#FF4757" : theme.colors.text },
+            { color: danger ? "#FF4444" : theme.colors.text },
           ]}
         >
           {title}
@@ -262,91 +267,40 @@ const MenuItem = React.memo(
         <ChevronRight
           size={16}
           color={theme.colors.textSecondary}
-          opacity={0.4}
+          opacity={0.3}
         />
       </View>
     </TouchableOpacity>
   )
 );
 
-// --- 4. OPTIMIZED STAT WIDGET ---
-const StatWidget = React.memo(({ icon: Icon, label, value, theme, color }) => (
-  <View style={[styles.statWidget, { backgroundColor: theme.colors.card }]}>
-    <View style={[styles.statIconCircle, { backgroundColor: `${color}15` }]}>
-      <Icon size={18} color={color} strokeWidth={2.5} />
+// --- 4. STAT CARD ---
+const StatCard = React.memo(({ icon: Icon, label, value, theme, color }) => (
+  <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
+    <View style={[styles.statIconBox, { backgroundColor: `${color}10` }]}>
+      <Icon size={16} color={color} strokeWidth={2.5} />
     </View>
-    <Text style={[styles.statValue, { color: theme.colors.text }]}>
-      {value}
-    </Text>
-    <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
-      {label}
-    </Text>
+    <View>
+      <Text style={[styles.statValue, { color: theme.colors.text }]}>
+        {value}
+      </Text>
+      <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+        {label}
+      </Text>
+    </View>
   </View>
 ));
 
-// Helper function to determine membership tier based on Setkar coins (same as SetkarCoinHistoryScreen)
-const getMembershipTier = (user) => {
-  if (!user) return "Bronze";
-
-  const coins = Math.max(0, user.setkarCoins || 0);
-
-  // Use same tier calculation as SetkarCoinHistoryScreen
-  if (coins >= 2500) {
-    return "Diamond";
-  } else if (coins >= 1000) {
-    return "Platinum";
-  } else if (coins >= 500) {
-    return "Gold";
-  } else if (coins >= 100) {
-    return "Silver";
-  } else {
-    return "Bronze";
-  }
+// Tier Helper Logic
+const getTierInfo = (coins = 0) => {
+  if (coins >= 2500) return { name: "Diamond", color: "#00BFFF", gradient: ["#00BFFF", "#0080FF"], icon: Trophy };
+  if (coins >= 1000) return { name: "Platinum", color: "#E5E4E2", gradient: ["#E5E4E2", "#B8B8B8"], icon: Sparkles };
+  if (coins >= 500) return { name: "Gold", color: "#FFD700", gradient: ["#FFD700", "#DAA520"], icon: Trophy };
+  if (coins >= 100) return { name: "Silver", color: "#C0C0C0", gradient: ["#C0C0C0", "#A0A0A0"], icon: Target };
+  return { name: "Bronze", color: "#D2691E", gradient: ["#D2691E", "#8B4513"], icon: Activity };
 };
 
-// Helper function to get tier color and styling (same as SetkarCoinHistoryScreen)
-const getTierStyling = (tier) => {
-  switch (tier) {
-    case "Diamond":
-      return {
-        color: "#00BFFF",
-        bgColor: "rgba(0, 191, 255, 0.2)",
-        iconColor: "#00BFFF",
-        text: "GlossCut Diamond"
-      };
-    case "Platinum":
-      return {
-        color: "#E5E4E2",
-        bgColor: "rgba(229, 228, 226, 0.25)",
-        iconColor: "#E5E4E2",
-        text: "GlossCut Platinum"
-      };
-    case "Gold":
-      return {
-        color: "#FFD700",
-        bgColor: "rgba(255, 215, 0, 0.25)",
-        iconColor: "#FFD700",
-        text: "GlossCut Gold"
-      };
-    case "Silver":
-      return {
-        color: "#C0C0C0",
-        bgColor: "rgba(192, 192, 192, 0.25)",
-        iconColor: "#C0C0C0",
-        text: "GlossCut Silver"
-      };
-    default:
-      return {
-        color: "#D2691E",
-        bgColor: "rgba(210, 105, 30, 0.25)",
-        iconColor: "#D2691E",
-        text: "GlossCut Bronze"
-      };
-  }
-};
-
-// --- 5. HEAVY CONTENT COMPONENT (ISOLATED RENDERING) ---
-// This component holds all the "heavy" UI. It will NOT re-render when Alert Config changes.
+// --- 5. MAIN SCROLL CONTENT ---
 const ProfileScrollContent = React.memo(
   ({
     user,
@@ -359,323 +313,284 @@ const ProfileScrollContent = React.memo(
     showComingSoon,
     insets,
   }) => {
-    // Animation Refs local to this component
-    const headerAnim = useRef(new Animated.Value(0)).current;
-    const statsAnim = useRef(new Animated.Value(0)).current;
-    const listAnim = useRef(new Animated.Value(0)).current;
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const tier = getTierInfo(user?.setkarCoins || 0);
+
+    // Animation entry
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(30)).current;
 
     useEffect(() => {
-      // Run animations after interactions to prevent frame drops
-      InteractionManager.runAfterInteractions(() => {
-        Animated.stagger(100, [
-          Animated.spring(headerAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            tension: 50,
-            friction: 7
-          }),
-          Animated.spring(statsAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            tension: 50,
-            friction: 7
-          }),
-          Animated.spring(listAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            tension: 50,
-            friction: 7
-          }),
-        ]).start();
-      });
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true, easing: Easing.out(Easing.back(1)) })
+      ]).start();
     }, []);
 
-    const headerTranslate = headerAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [-50, 0]
-    });
-    const statsTranslate = statsAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [50, 0]
-    });
-    const listTranslate = listAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [100, 0]
+    const headerHeight = 320;
+    const headerScale = scrollY.interpolate({
+      inputRange: [-headerHeight, 0],
+      outputRange: [2, 1],
+      extrapolate: "clamp",
     });
 
     return (
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContainer, { paddingBottom: insets.bottom + 60 }]}
-        bounces={true}
-        removeClippedSubviews={true} // PERFORMANCE KEY: Unmounts offscreen views
-        scrollEventThrottle={16}
-      >
-        {/* Back Button */}
-        <View style={[styles.backButtonContainer, { paddingTop: Math.max(insets.top, 10) }]}>
-          <TouchableOpacity
-            onPress={() => onNavigate("BACK")}
-            style={[styles.backButton, { backgroundColor: theme.colors.card }]}
-          >
-            <ArrowLeft size={20} color={theme.colors.primary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* --- HEADER --- */}
-        <Animated.View
-          style={[
-            styles.headerWrapper,
-            {
-              opacity: headerAnim,
-              transform: [{ translateY: headerTranslate }]
-            },
-          ]}
+      <View style={styles.fill}>
+        <Animated.ScrollView
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: insets.bottom + 100,
+            maxWidth: 500,
+            alignSelf: 'center',
+            width: '100%'
+          }}
         >
-          <View
-            style={[
-              styles.membershipCard,
-              { backgroundColor: isDark ? "#1A1A1A" : "#FFFFFF" },
-            ]}
-          >
-            <View
-              style={[
-                styles.decorativeCircle,
-                { backgroundColor: theme.colors.primary, opacity: 0.05 },
-              ]}
-            />
+          {/* --- RESPONSIVE PROFESSIONAL TOP BAR --- */}
+          <View style={[styles.responsiveTopBar, { paddingTop: insets.top + 8 }]}>
+            <View style={styles.topBarContent}>
+              <TouchableOpacity
+                onPress={() => onNavigate("BACK")}
+                style={styles.topBarBtn}
+                activeOpacity={0.7}
+              >
+                <ArrowLeft size={20} color="#1A1A1A" strokeWidth={2.5} />
+              </TouchableOpacity>
 
-            <View style={styles.cardHeader}>
-              <View style={styles.avatarWrapper}>
-                <Image
-                  source={
-                    user?.profilePicture
-                      ? { uri: user.profilePicture }
-                      : require("../assets/GlossCut.png")
-                  }
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
-                <View style={styles.activeBadge} />
-              </View>
-
-              <View style={styles.cardInfo}>
-                <Text
-                  style={[
-                    styles.welcomeText,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  Welcome back,
-                </Text>
-                <Text
-                  style={[styles.userName, { color: theme.colors.text }]}
-                  numberOfLines={1}
-                >
-                  {user?.name || "Guest User"}
-                </Text>
-                <View style={styles.membershipBadge}>
-                  <CheckCircle size={10} color="#059669" />
-                  <Text style={styles.membershipText}>
-                    Member Since {new Date(user?.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                  </Text>
-                </View>
+              <View style={styles.topBarTitleWrapper}>
+                <Text style={styles.topBarTitle}>PROFILE</Text>
               </View>
 
               <TouchableOpacity
-                onPress={() => onNavigate("PersonalInfo")}
-                style={styles.editBtn}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => onNavigate("ManageNotifications")}
+                style={styles.topBarBtn}
+                activeOpacity={0.7}
               >
-                <Edit2 size={18} color={theme.colors.primary} />
+                <Bell size={18} color="#1A1A1A" strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
-
-          </View>
-        </Animated.View>
-
-        {/* --- STATS --- */}
-        <Animated.View
-          style={[
-            styles.statsRow,
-            { opacity: statsAnim, transform: [{ translateY: statsTranslate }] },
-          ]}
-        >
-          <StatWidget
-            icon={Heart}
-            value={stats.favorites}
-            label="Favorites"
-            theme={theme}
-            color="#FF4757"
-          />
-          <StatWidget
-            icon={Bell}
-            value={stats.notifications}
-            label="Notifications"
-            theme={theme}
-            color="#3742FA"
-          />
-          <StatWidget
-            icon={CalendarIcon}
-            value={stats.bookings}
-            label="Bookings"
-            theme={theme}
-            color="#059669"
-          />
-        </Animated.View>
-
-        {/* --- MENUS --- */}
-        <Animated.View
-          style={{
-            opacity: listAnim,
-            transform: [{ translateY: listTranslate }]
-          }}
-        >
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
-            ACCOUNT & SECURITY
-          </Text>
-          <View
-            style={[styles.menuGroup, { backgroundColor: theme.colors.card }]}
-          >
-            <MenuItem
-              icon={UserIcon}
-              title="Profile Information"
-              subtitle="Name, Phone, Bio"
-              onPress={() => onNavigate("PersonalInfo")}
-              theme={theme}
-            />
-            <MenuItem
-              icon={Lock}
-              title="Login & Security"
-              onPress={() => onNavigate("ChangePassword")}
-              theme={theme}
-            />
-            <MenuItem
-              icon={Key}
-              title="Two-Factor Auth"
-              showBadge={!user?.twoFactorEnabled}
-              onPress={() =>
-                onNavigate("TwoFactorVerification", {
-                  email: user?.email || ""
-                })
-              }
-              theme={theme}
-            />
-            <MenuItem
-              icon={Shield}
-              title="Privacy Check-up"
-              onPress={() => onNavigate("PrivacyCheckup")}
-              theme={theme}
-              isLast
-            />
           </View>
 
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
+          {/* --- CONTENT CARD --- */}
+          <Animated.View
+            style={[
+              styles.mainContent,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+                backgroundColor: theme.colors.background,
+                marginTop: 0,
+              },
+            ]}
           >
-            PREFERENCES
-          </Text>
-          <View
-            style={[styles.menuGroup, { backgroundColor: theme.colors.card }]}
-          >
-            <MenuItem
-              icon={Bell}
-              title="Notifications"
-              onPress={() => onNavigate("ManageNotifications")}
-              theme={theme}
-            />
-            <MenuItem
-              icon={Palette}
-              title="Appearance"
-              subtitle={isDark ? "Dark Mode" : "Light Mode"}
-              onPress={onChangeTheme}
-              theme={theme}
-            />
-            <MenuItem
-              icon={Languages}
-              title="App Language"
-              onPress={() => onNavigate("LanguageSelection")}
-              theme={theme}
-              isLast
-            />
-          </View>
+            {/* Elite Integrated Member Pass */}
+            <View style={styles.passContainer}>
+              <LinearGradient
+                colors={["#FFFFFF", "#F5F7F8", "#E8ECF0"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.eliteMemberPass}
+              >
+                {/* Abstract Industrial Watermark */}
+                <View style={styles.passWatermark}>
+                  <Text style={styles.watermarkText}>GC</Text>
+                </View>
 
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
-            HELP & MORE
-          </Text>
-          <View
-            style={[styles.menuGroup, { backgroundColor: theme.colors.card }]}
-          >
-            <MenuItem
-              icon={Sparkles}
-              title="AI Style Suggestor"
-              subtitle="Get personalized haircut advice"
-              onPress={() => onNavigate("FaceSuggestor")}
-              theme={theme}
-            />
-            <MenuItem
-              icon={Heart}
-              title="Your Favorites"
-              onPress={() => onNavigate("LikedBarbers")}
-              theme={theme}
-            />
-            <MenuItem
-              icon={MessageSquare}
-              title="Support Chat"
-              onPress={() => onNavigate("Chat")}
-              theme={theme}
-            />
-            <MenuItem
-              icon={RefreshCcw}
-              title="Refund Policy"
-              onPress={() => onNavigate("RefundPolicy")}
-              theme={theme}
-              isLast
-            />
-          </View>
+                {/* Premium Identity Strip */}
+                <View style={styles.passIdentityStrip} />
 
-          {/* --- NEW: REFERRAL / PROMO CARD --- */}
-          <View style={styles.promoCard}>
-            <View style={styles.promoContent}>
-              <Sparkles size={24} color="#FFF" />
-              <View style={styles.promoTextContainer}>
-                <Text style={styles.promoTitle}>Invite & Earn</Text>
-                <Text style={styles.promoDesc}>Refer friends and get exclusive rewards on your next visit!</Text>
-              </View>
+                <View style={styles.passMainRow}>
+                  <View style={styles.passAvatarSide}>
+                    <View style={styles.eliteAvatarBorder}>
+                      <Image
+                        source={
+                          user?.profilePicture
+                            ? { uri: user.profilePicture }
+                            : require("../assets/GlossCut.png")
+                        }
+                        style={styles.eliteAvatarImg}
+                      />
+                    </View>
+                    <View style={styles.passEditIndicator}>
+                      <Edit2 size={8} color="#FFF" strokeWidth={4} />
+                    </View>
+                  </View>
+
+                  <View style={styles.passInfoSide}>
+                    <View style={styles.passIdentityRow}>
+                      <Text style={styles.eliteNameText} numberOfLines={1}>
+                        {(user?.name || "GUEST MEMBER").toUpperCase()}
+                      </Text>
+                      <View style={styles.eliteVerifiedBadge}>
+                        <CheckCircle size={8} color="#FFF" strokeWidth={4} />
+                      </View>
+                    </View>
+
+                    <Text style={styles.eliteEmailText}>{user?.email || "MEMBER@GLOSSCUT.COM"}</Text>
+
+                    <View style={styles.passStatusRow}>
+                      <View style={[styles.eliteTierBadge, { backgroundColor: "#1A1A1A" }]}>
+                        <tier.icon size={10} color={tier.color} strokeWidth={3} />
+                        <Text style={[styles.eliteTierText, { color: "#FFF" }]}>{tier.name} ACCESS</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.passSecurityRow}>
+                  <View style={styles.securityItem}>
+                    <Text style={styles.securityLabel}>MEMBER SERIAL</Text>
+                    <Text style={styles.securityValue}>GC-{user?._id?.substring(0, 8).toUpperCase() || "8829-PX"}</Text>
+                  </View>
+                  <View style={[styles.securityItem, { alignItems: "flex-end" }]}>
+                    <Text style={styles.securityLabel}>PASS VALIDITY</Text>
+                    <Text style={styles.securityValue}>PERMANENT ELITE</Text>
+                  </View>
+                </View>
+              </LinearGradient>
             </View>
-            <TouchableOpacity style={styles.promoBtn} onPress={showComingSoon}>
-              <Text style={styles.promoBtnText}>Invite Now</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* Logout */}
-          <View style={styles.logoutWrapper}>
-            <Text style={styles.logoutLabel}>Account Actions</Text>
-            <TouchableOpacity activeOpacity={0.8} onPress={onLogout}>
-              <View style={styles.logoutButton}>
-                <LogOut size={20} color="#FF4757" />
-              </View>
-            </TouchableOpacity>
-            <Text style={styles.logoutText}>Log Out</Text>
-            <Text
-              style={[
-                styles.versionText,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              v2.4.0 • GlossCut Technologies
-            </Text>
-          </View>
-        </Animated.View>
-      </ScrollView>
+            {/* Performance Stats */}
+            <View style={styles.statsGrid}>
+              <StatCard
+                icon={CalendarIcon}
+                value={stats.bookings}
+                label="Total Bookings"
+                theme={theme}
+                color="#C8FF00"
+              />
+              <StatCard
+                icon={Heart}
+                value={stats.favorites}
+                label="Liked Studios"
+                theme={theme}
+                color="#FF4444"
+              />
+            </View>
+
+
+
+            {/* Account Settings */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Account Settings</Text>
+            </View>
+            <View style={[styles.menuContainer, { backgroundColor: theme.colors.card }]}>
+              <MenuItem
+                icon={UserIcon}
+                title="Personal Information"
+                subtitle="Edit your name, phone and bio"
+                onPress={() => onNavigate("PersonalInfo")}
+                theme={theme}
+              />
+              <MenuItem
+                icon={Lock}
+                title="Security & Password"
+                onPress={() => onNavigate("ChangePassword")}
+                theme={theme}
+              />
+              <MenuItem
+                icon={Key}
+                title="Two-Factor Auth"
+                subtitle={user?.twoFactorEnabled ? "Active" : "Not enabled"}
+                showBadge={!user?.twoFactorEnabled}
+                onPress={() => onNavigate("TwoFactorVerification", { email: user?.email || "" })}
+                theme={theme}
+              />
+              <MenuItem
+                icon={Shield}
+                title="Privacy Check-up"
+                onPress={() => onNavigate("PrivacyCheckup")}
+                theme={theme}
+                isLast
+              />
+            </View>
+
+            {/* Discover & Activity */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Discover & Activity</Text>
+            </View>
+            <View style={[styles.menuContainer, { backgroundColor: theme.colors.card }]}>
+              <MenuItem
+                icon={Sparkles}
+                title="AI Style Suggestor"
+                subtitle="Find your perfect look"
+                onPress={() => onNavigate("FaceSuggestor")}
+                theme={theme}
+              />
+              <MenuItem
+                icon={Heart}
+                title="Your Favorites"
+                subtitle="Quick access to liked studios"
+                onPress={() => onNavigate("LikedBarbers")}
+                theme={theme}
+              />
+              <MenuItem
+                icon={Bell}
+                title="Notification Settings"
+                onPress={() => onNavigate("ManageNotifications")}
+                theme={theme}
+                isLast
+              />
+            </View>
+
+            {/* Promotions & Referrals */}
+
+
+            {/* More */}
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Support & Legal</Text>
+            </View>
+            <View style={[styles.menuContainer, { backgroundColor: theme.colors.card }]}>
+              <MenuItem
+                icon={MessageSquare}
+                title="Help & Support"
+                onPress={() => onNavigate("Chat")}
+                theme={theme}
+              />
+              <MenuItem
+                icon={RefreshCcw}
+                title="Booking Policy"
+                onPress={() => onNavigate("RefundPolicy")}
+                theme={theme}
+              />
+              <MenuItem
+                icon={Info}
+                title="About GlossCut"
+                onPress={() => onNavigate("AboutGlossCut")}
+                theme={theme}
+              />
+              <MenuItem
+                icon={LogOut}
+                title="Log Out"
+                onPress={onLogout}
+                theme={theme}
+                danger
+                isLast
+              />
+            </View>
+
+            {/* App Version */}
+            <View style={styles.footer}>
+              <Text style={styles.versionText}>GLOSSCUT • VERSION 1.0.0</Text>
+              <Text style={styles.legalText}>Designed with precision in Amravati</Text>
+            </View>
+          </Animated.View>
+        </Animated.ScrollView>
+
+        {/* Floating Action Button (Optional) */}
+        {/* <PremiumTouchable style={styles.fab} onPress={showComingSoon}>
+          <Sparkles size={24} color="#000" />
+        </PremiumTouchable> */}
+      </View>
     );
   }
 );
 
-// --- 6. MAIN CONTROLLER COMPONENT ---
+// --- 6. MAIN CONTROLLER ---
 export default function ProfileScreen() {
   const { theme, isDark, changeTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -696,16 +611,9 @@ export default function ProfileScreen() {
     isDark: false
   });
 
-  // Safe Stats Fetching
   useEffect(() => {
     let isMounted = true;
-    const fetchStatsSafe = async () => {
-      if (user) {
-        setStats((prev) => ({
-          ...prev,
-          favorites: user.likedBarbers?.length || 0
-        }));
-      }
+    const fetchStats = async () => {
       try {
         const [notifRes, historyRes] = await Promise.all([
           api.get(`/api/notifications`),
@@ -713,23 +621,20 @@ export default function ProfileScreen() {
         ]);
 
         if (isMounted) {
-          setStats((prev) => ({
-            ...prev,
+          setStats({
+            favorites: user?.likedBarbers?.length || 0,
             notifications: notifRes.status === 200 ? notifRes.data.length : 0,
             bookings: historyRes.status === 200 ? historyRes.data.length : 0
-          }));
+          });
         }
       } catch (error) {
         console.log("Stats fetch error:", error.message);
       }
     };
-    fetchStatsSafe();
-    return () => {
-      isMounted = false;
-    };
+    fetchStats();
+    return () => { isMounted = false; };
   }, [user]);
 
-  // --- MEMOIZED HANDLERS (CRITICAL FOR PERFORMANCE) ---
   const showAlert = useCallback(
     (title, message, type = "success") => {
       setAlertConfig({ visible: true, title, message, type, isDark });
@@ -738,7 +643,7 @@ export default function ProfileScreen() {
   );
 
   const handleLogoutPress = useCallback(() => {
-    showAlert("Sign Out?", "Are you sure you want to log out?", "action");
+    showAlert("Sign Out", "Are you sure you want to log out?", "action");
   }, [showAlert]);
 
   const confirmLogout = useCallback(async () => {
@@ -746,7 +651,6 @@ export default function ProfileScreen() {
       await logout();
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     } catch (e) {
-      // Fallback navigation if logout fails
       navigation.reset({ index: 0, routes: [{ name: "Login" }] });
     }
   }, [logout, navigation]);
@@ -761,38 +665,15 @@ export default function ProfileScreen() {
 
   const handleChangeTheme = useCallback(() => {
     changeTheme();
-    // Use timeout to allow theme to switch before showing alert (smoother UI)
-    setTimeout(
-      () =>
-        showAlert(
-          "Theme Changed",
-          `Switched to ${!isDark ? "Dark" : "Light"} mode`,
-          "success"
-        ),
-      100
-    );
-  }, [changeTheme, isDark, showAlert]);
+  }, [changeTheme]);
 
   const handleShowComingSoon = useCallback(() => {
-    showAlert(
-      "Upcoming Feature",
-      "QR Payments will be available in the next update.",
-      "info"
-    );
+    showAlert("Stay Tuned", "This feature is arriving in the next update.", "info");
   }, [showAlert]);
 
-  // --- RENDER ---
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.background }
-      ]}
-    >
-      <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={theme.colors.card}
-      />
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       <ProfileScrollContent
         user={user}
@@ -808,377 +689,430 @@ export default function ProfileScreen() {
 
       <TopActionAlert
         config={alertConfig}
-        onHide={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+        onHide={() => setAlertConfig(p => ({ ...p, visible: false }))}
         onConfirm={confirmLogout}
-        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
+        topInset={insets.top}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   container: { flex: 1 },
-  // Alert
-  alertOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 9999,
+
+  // Responsive Professional Top Bar
+  responsiveTopBar: {
+    backgroundColor: "#FBFBFA",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderColor: "rgba(0,0,0,0.04)",
+    zIndex: 10,
+  },
+  topBarContent: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"
+    height: 48,
   },
-  alertContainer: {
-    width: width - 32,
-    left: 16,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 16,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 20,
-    elevation: 10,
-    position: "absolute",
-    zIndex: 9999,
-    overflow: "hidden"
-  },
-  alertStripe: { position: "absolute", left: 0, top: 0, bottom: 0, width: 5 },
-  alertContent: { flexDirection: "row", alignItems: "center" },
-  alertIconCircle: {
+  topBarBtn: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
+    backgroundColor: "#FFF",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  topBarTitleWrapper: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBarTitle: {
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 14,
+    color: "#1A1A1A",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  // Elite Integrated Member Pass
+  passContainer: {
+    marginBottom: 25,
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    elevation: 12,
+  },
+  eliteMemberPass: {
+    borderRadius: 24,
+    padding: 24,
+    overflow: "hidden",
+    position: "relative",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.8)",
+  },
+  passWatermark: {
+    position: "absolute",
+    top: -20,
+    right: -10,
+    opacity: 0.03,
+  },
+  watermarkText: {
+    fontSize: 120,
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    color: "#000",
+  },
+  passIdentityStrip: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 6,
+    backgroundColor: "#C8FF00",
+  },
+  passMainRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 20,
+    marginBottom: 28,
+  },
+  eliteAvatarBorder: {
+    padding: 3,
+    borderRadius: 20,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  eliteAvatarImg: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+  },
+  passEditIndicator: {
+    position: "absolute",
+    bottom: -4,
+    right: -4,
+    backgroundColor: "#1A1A1A",
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFF",
+  },
+  passInfoSide: {
+    flex: 1,
+  },
+  passIdentityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 2,
+  },
+  eliteNameText: {
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 18,
+    color: "#1A1A1A",
+    letterSpacing: 0.5,
+  },
+  eliteVerifiedBadge: {
+    backgroundColor: "#1A1A1A",
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  eliteEmailText: {
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontSize: 10,
+    color: "#606058",
+    letterSpacing: 1,
+    marginBottom: 10,
+    opacity: 0.6,
+  },
+  passStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  eliteTierBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    gap: 6,
+  },
+  eliteTierText: {
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 8,
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+  },
+  passSecurityRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+  },
+  securityItem: {
+    flex: 1,
+  },
+  securityLabel: {
+    fontFamily: "PlusJakartaSans_800ExtraBold",
+    fontSize: 7,
+    color: "#1A1A1A",
+    opacity: 0.3,
+    letterSpacing: 1.5,
+    marginBottom: 3,
+  },
+  securityValue: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 11,
+    color: "#1A1A1A",
+    letterSpacing: 0.5,
+  },
+
+  // Main Content
+  mainContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 15,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 16,
+    flexDirection: "column",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  statIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statValue: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 16,
+    marginBottom: 0,
+  },
+  statLabel: {
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontSize: 10,
+  },
+
+  // Sections
+  sectionHeader: {
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
+  sectionTitle: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    opacity: 0.5,
+  },
+  menuContainer: {
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+  },
+  menuItemBorder: {
+    borderBottomWidth: 1,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuItemText: {
+    fontFamily: "PlusJakartaSans_600SemiBold",
+    fontSize: 14,
+  },
+  menuItemSubtitle: {
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontSize: 11,
+    marginTop: 1,
+  },
+  rightContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  notificationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#FF4444",
+    marginRight: 8,
+  },
+
+  // Referral Card
+  referralCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: "column",
+    gap: 12,
+  },
+  referralContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  referralIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(200, 255, 0, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  referralTitle: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 14,
+    color: "#FFF",
+    marginBottom: 2,
+  },
+  referralDesc: {
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.6)",
+    lineHeight: 16,
+  },
+  referralBtn: {
+    backgroundColor: "#C8FF00",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  referralBtnText: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 13,
+    color: "#1A1A1A",
+  },
+
+  // Footer
+  footer: {
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 40,
+  },
+  versionText: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 10,
+    color: "#A0A09A",
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  legalText: {
+    fontFamily: "PlusJakartaSans_400Regular",
+    fontSize: 10,
+    color: "#B0AFA8",
+  },
+
+  // Alert
+  alertContainer: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    borderRadius: 20,
+    padding: 16,
+    zIndex: 1000,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 8 },
+        shadowRadius: 15,
+      },
+      android: { elevation: 12 },
+    }),
+  },
+  alertContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  alertIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
   },
   alertTextWrapper: { flex: 1 },
   alertTitle: {
+    fontFamily: "PlusJakartaSans_700Bold",
     fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 3,
-    letterSpacing: 0.3
+    marginBottom: 2,
   },
-  alertMessage: { fontSize: 13, fontWeight: "400", lineHeight: 18 },
+  alertMessage: {
+    fontFamily: "PlusJakartaSans_500Medium",
+    fontSize: 13,
+    lineHeight: 18,
+  },
   alertActionRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 18,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
+    marginTop: 16,
+    gap: 12,
   },
-  cancelBtn: { paddingVertical: 10, paddingHorizontal: 16, marginRight: 12 },
-  cancelBtnText: { fontSize: 14, fontWeight: "600" },
-  confirmBtn: { paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12 },
-  confirmBtnText: { color: "#FFF", fontSize: 14, fontWeight: "700" },
-  // Content
-  scrollContainer: { paddingTop: 20 },
-  backButtonContainer: { paddingHorizontal: 20, marginBottom: 10 },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center"
+  cancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  headerWrapper: { paddingHorizontal: 20, marginTop: 10, marginBottom: 20 },
-  membershipCard: {
-    borderRadius: 24,
-    padding: 22,
-    overflow: "hidden"
-  },
-  decorativeCircle: {
-    position: "absolute",
-    top: -60,
-    right: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110
-  },
-  cardHeader: { flexDirection: "row", alignItems: "center", marginBottom: 22 },
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 3,
-    borderColor: "#F5F7FA"
-  },
-  activeBadge: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 18,
-    height: 18,
-    backgroundColor: "#2ED573",
-    borderRadius: 9,
-    borderWidth: 3,
-    borderColor: "#FFF"
-  },
-  cardInfo: { flex: 1, marginLeft: 16 },
-  welcomeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginBottom: 2,
-    opacity: 0.8
-  },
-  userName: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
-  membershipBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(5, 150, 105, 0.08)",
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 100,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "rgba(5, 150, 105, 0.15)"
-  },
-  membershipText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#059669",
-    marginLeft: 4
-  },
-  trustBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F0F9FF',
-    marginHorizontal: 22,
-    marginTop: -10,
-    marginBottom: 20,
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E0F2FE'
-  },
-  trustLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10
-  },
-  trustTextWrapper: {
-    gap: 1
-  },
-  trustTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0369A1'
-  },
-  trustSubtitle: {
-    fontSize: 11,
-    color: '#0EA5E9',
-    opacity: 0.8
-  },
-  verifiedBadge: {
-    backgroundColor: '#0369A1',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6
-  },
-  verifiedText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#FFF',
-    letterSpacing: 0.5
-  },
-  promoCard: {
-    marginHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 10,
-    backgroundColor: '#0F172A',
-    borderRadius: 24,
-    padding: 20,
-    flexDirection: 'column',
-    gap: 15
-  },
-  promoContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15
-  },
-  promoTextContainer: {
-    flex: 1
-  },
-  promoTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '800'
-  },
-  promoDesc: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 2
-  },
-  promoBtn: {
-    backgroundColor: '#FFF',
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: 'center'
-  },
-  promoBtnText: {
-    color: '#0F172A',
+  cancelBtnText: {
+    fontFamily: "PlusJakartaSans_700Bold",
     fontSize: 14,
-    fontWeight: '800'
   },
-  editBtn: {
-    padding: 10,
-    backgroundColor: "rgba(0,0,0,0.04)",
-    borderRadius: 14
-  },
-  statusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(14, 165, 233, 0.05)',
-    marginHorizontal: 20,
-    marginTop: -10,
-    marginBottom: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.1)'
-  },
-  statusLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0369A1',
-    opacity: 0.8
-  },
-  completenessWrapper: {
-    alignItems: 'flex-end',
-    gap: 4
-  },
-  completenessText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#0369A1'
-  },
-  progressBarBg: {
-    width: 60,
-    height: 4,
-    backgroundColor: 'rgba(14, 165, 233, 0.2)',
-    borderRadius: 2,
-    overflow: 'hidden'
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#0EA5E9'
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.06)",
-    paddingTop: 18
-  },
-  walletLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    opacity: 0.7
-  },
-  walletValue: { fontSize: 26, fontWeight: "800", marginTop: 4 },
-  qrButton: { backgroundColor: "#000", padding: 12, borderRadius: 16 },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  confirmBtn: {
     paddingHorizontal: 20,
-    marginBottom: 25
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  statWidget: {
-    width: (width - 40 - 20) / 3,
-    padding: 16,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center"
+  confirmBtnText: {
+    fontFamily: "PlusJakartaSans_700Bold",
+    fontSize: 14,
+    color: "#FFF",
   },
-  statIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10
-  },
-  statValue: { fontSize: 17, fontWeight: "700", marginBottom: 2 },
-  statLabel: { fontSize: 11, fontWeight: "600" },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    marginLeft: 32,
-    marginBottom: 12,
-    marginTop: 15,
-    opacity: 0.4
-  },
-  menuGroup: {
-    marginHorizontal: 20,
-    borderRadius: 24,
-    marginBottom: 15,
-    overflow: "hidden"
-  },
-  menuItem: { flexDirection: "row", alignItems: "center", padding: 18 },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.04)"
-  },
-  iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16
-  },
-  menuTextContainer: { flex: 1 },
-  menuItemText: { fontSize: 15, fontWeight: "600" },
-  menuItemSubtitle: { fontSize: 12, marginTop: 3, opacity: 0.7 },
-  rightContainer: { flexDirection: "row", alignItems: "center" },
-  notificationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FF4757",
-    marginRight: 8
-  },
-  logoutWrapper: { marginTop: 25, paddingHorizontal: 20, alignItems: "center" },
-  logoutLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#666",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 12,
-    opacity: 0.8
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF8F8",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 50,
-    borderWidth: 1,
-    borderColor: "#FFCDD2",
-    marginBottom: 8
-  },
-  logoutText: {
-    color: "#D32F2F",
-    fontSize: 16,
-    fontWeight: "800",
-    letterSpacing: 0.5
-  },
-  versionText: { fontSize: 11, marginTop: 20, opacity: 0.4, fontWeight: "500" }
 });

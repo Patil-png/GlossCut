@@ -76,51 +76,38 @@ function calculateQueuePosition(allBookings, targetBooking) {
         return getScore(a) - getScore(b);
     });
 
-    // Find position of target booking
-    const position = activeBookings.findIndex(
-        (booking) => booking._id.toString() === targetBooking._id.toString()
-    );
+    // --- CALCULATE ACCURATE ESTIMATED WAIT TIME FOR EVERYONE ---
+    let runningWaitMinutes = 0;
+    const now = new Date();
 
-    // --- CALCULATE ACCURATE ESTIMATED WAIT TIME ---
-    let totalWaitMinutes = 0;
+    activeBookings.forEach((app, index) => {
+        // Arrival time is current time + running wait
+        const arrivalDate = new Date(now.getTime() + runningWaitMinutes * 60000);
+        app.estArrival = format(arrivalDate, 'hh:mm a');
 
-    // Only calculate time for people STRICTLY AHEAD of the target
-    for (let i = 0; i < position; i++) {
-        const aheadBooking = activeBookings[i];
-
-        // Sum expected duration of all services for this person
+        // Add this person's duration to the running total for the NEXT person
         let expectedDuration = 0;
-        if (aheadBooking.services && aheadBooking.services.length > 0) {
-            aheadBooking.services.forEach(s => {
-                const duration = parseInt(s.time) || parseInt(s.duration) || 15; // default 15 if missing
-                expectedDuration += duration;
+        if (app.services && app.services.length > 0) {
+            app.services.forEach(s => {
+                expectedDuration += (parseInt(s.time) || parseInt(s.duration) || 15);
             });
         } else {
-            expectedDuration = 30; // Fallback if no services are defined
+            expectedDuration = 30;
+        }
+        
+        // If they have a duration offset (already started/delayed), apply it
+        if (app.status === 'started' && app.startedAt) {
+            const elapsed = Math.floor((now - new Date(app.startedAt)) / 60000);
+            expectedDuration = Math.max(5, expectedDuration - elapsed);
         }
 
-        // Add any manual adjustments made by the barber
-        expectedDuration += (aheadBooking.durationOffset || 0);
+        runningWaitMinutes += expectedDuration;
+    });
 
-        if (aheadBooking.status === 'started' && aheadBooking.startedAt) {
-            // Calculate how much time has already passed for the person in the chair
-            const elapsedMs = Date.now() - new Date(aheadBooking.startedAt).getTime();
-            const elapsedMinutes = Math.floor(elapsedMs / 60000);
-
-            let remainingTime = expectedDuration - elapsedMinutes;
-
-            // If they are taking longer than expected, default to a small 5 min buffer
-            if (remainingTime < 0) remainingTime = 5;
-
-            totalWaitMinutes += remainingTime;
-        } else {
-            // For pending people, add their full expected duration + 5 min transition buffer
-            totalWaitMinutes += expectedDuration + 5;
-        }
-    }
-
-    // Default to at least 0
-    totalWaitMinutes = Math.max(0, totalWaitMinutes);
+    // Find position of target booking
+    const position = activeBookings.findIndex(
+        (b) => b._id.toString() === targetBooking._id.toString()
+    );
 
     // Calculate target booking's base duration
     let targetBaseDuration = 0;
@@ -138,12 +125,15 @@ function calculateQueuePosition(allBookings, targetBooking) {
         totalActive: activeBookings.length,
         peopleAhead: position,
         currentToken: allBookings.filter((b) => b.status === 'completed').length + 1,
-        estimatedWaitMinutes: totalWaitMinutes,
+        estimatedWaitMinutes: activeBookings[position] ? 
+            Math.max(0, Math.floor((new Date(`2000-01-01 ${activeBookings[position].estArrival}`).getTime() - new Date(`2000-01-01 ${format(now, 'hh:mm a')}`).getTime()) / 60000)) 
+            : 0,
         estimatedWaitRange: {
-            min: Math.max(0, totalWaitMinutes - 5),
-            max: totalWaitMinutes + 10
+            min: Math.max(0, runningWaitMinutes - 5),
+            max: runningWaitMinutes + 10
         },
-        targetBaseDuration
+        targetBaseDuration,
+        sortedQueue: activeBookings // Return the sorted array for the timeline
     };
 }
 
@@ -169,26 +159,28 @@ router.get('/track/:trackingId', async (req, res) => {
 
         // 1. Initial Booking Fetch - Optimized: Select only what we show on screen
         const booking = await Booking.findOne(query)
-            .populate('barberId', 'name')
+            .populate('barberId', 'name profilePicture phone')
             .populate('userId', 'name')
-            .select('queueTrackingId _id customerName isOfflineBooking services status time date durationOffset startedAt barberId userId');
+            .select('queueTrackingId _id customerName isOfflineBooking services status time date durationOffset startedAt barberId userId otp');
 
         if (!booking) {
             return res.status(404).json({ msg: 'Booking not found with this tracking ID' });
         }
 
-        // 2. Get Shop details - Optimized: Select only name/location
+        // 2. Get Shop details - Optimized: Select only name/location/address
         const shop = await Shop.findOne({
             $or: [
                 { owner: booking.barberId._id },
                 { staff: booking.barberId._id }
             ]
-        }).select('name location');
+        }).select('name location address');
 
         // 3. Calculate Current Token using Database-Side Counting
-        const formattedDate = format(new Date(booking.date), 'yyyy-MM-dd');
-        const startOfDay = new Date(formattedDate);
-        const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+        // 2. Get Shop details & Prepare Date Range
+        const startOfDay = new Date(booking.date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(booking.date);
+        endOfDay.setHours(23, 59, 59, 999);
 
         const currentToken = await Booking.countDocuments({
             barberId: booking.barberId._id,
@@ -202,11 +194,33 @@ router.get('/track/:trackingId', async (req, res) => {
             date: { $gte: startOfDay, $lt: endOfDay },
             status: { $in: ['confirmed', 'started', 'pending'] },
             paymentStatus: { $ne: 'failed' },
-        }).select('status appointmentType isPromoted tempDelayMinutes time services durationOffset startedAt createdAt');
+        }).select('status appointmentType isPromoted tempDelayMinutes time services durationOffset startedAt createdAt customerName userId')
+          .populate('userId', 'name');
+
+        // Helper to mask names safely (e.g., "John Doe" -> "John D.")
+        const maskName = (rawName) => {
+            const name = String(rawName || "Guest");
+            const parts = name.split(' ');
+            if (parts.length <= 1) return name;
+            return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
+        };
 
         // Calculate queue position and dynamic wait time
         const queueInfo = calculateQueuePosition(allBookings, booking);
-        queueInfo.currentToken = currentToken; // Use the optimized count
+        queueInfo.currentToken = currentToken; 
+
+        const queueList = (queueInfo.sortedQueue || []).map((app, idx) => {
+            const rawName = app.isOfflineBooking ? app.customerName : app.userId?.name;
+            return {
+                id: app._id,
+                name: maskName(rawName),
+                time: app.time || '--:--',
+                estArrival: app.estArrival || '--:--', // Add the live estimated arrival
+                rank: idx + 1,
+                status: String(app.status || 'confirmed'),
+                isTarget: app._id.toString() === booking._id.toString()
+            };
+        });
 
         // Prepare response
         const response = {
@@ -214,28 +228,29 @@ router.get('/track/:trackingId', async (req, res) => {
             data: {
                 trackingId: booking.queueTrackingId || booking._id,
                 bookingId: booking._id,
-                customerName: booking.isOfflineBooking
-                    ? booking.customerName?.split(' ')[0] + ' ' + booking.customerName?.split(' ').slice(-1)[0]?.charAt(0) + '.' // e.g., "John D."
-                    : booking.userId?.name?.split(' ')[0] + ' ' + booking.userId?.name?.split(' ').slice(-1)[0]?.charAt(0) + '.',
-                shopName: shop?.name || 'Barbershop',
+                customerName: booking.isOfflineBooking ? String(booking.customerName || "VIP") : String(booking.userId?.name || "VIP"),
+                shopName: String(shop?.name || 'Barbershop'),
+                shopAddress: String(shop?.address || 'India'),
                 barberName: booking.barberId?.name || 'Barber',
+                barberImage: booking.barberId?.profilePicture || null,
+                barberPhone: booking.barberId?.phone || '',
                 services: booking.services.map((s) => s.name),
                 status: booking.status,
                 queuePosition: queueInfo.position,
                 peopleAhead: queueInfo.peopleAhead,
                 totalInQueue: queueInfo.totalActive,
                 estimatedWaitMinutes: queueInfo.estimatedWaitMinutes,
-                estimatedWaitRange: queueInfo.estimatedWaitRange, // Returns {min, max}
+                estimatedWaitRange: queueInfo.estimatedWaitRange, 
                 bookingTime: booking.time,
                 bookingDate: format(new Date(booking.date), 'MMM dd, yyyy'),
                 currentToken: queueInfo.currentToken,
                 barberId: booking.barberId._id,
                 cancellationReason: booking.cancellationReason || '',
-
-                // Fields added for live started ticking:
                 durationOffset: booking.durationOffset || 0,
                 startedAt: booking.startedAt || null,
-                baseDuration: queueInfo.targetBaseDuration
+                baseDuration: queueInfo.targetBaseDuration,
+                otp: booking.otp || '----',
+                queueList // NEW: List of everyone in queue
             },
         };
 

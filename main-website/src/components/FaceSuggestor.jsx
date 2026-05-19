@@ -49,7 +49,7 @@ const FaceSuggestor = () => {
     const archetype = ARCHETYPE_MAP[analysis?.faceShape] || { title: analysis?.faceShape, rarity: 'Genetic' };
     const shareData = {
       title: 'My Neural Style Signature',
-      text: `My face geometry is "${archetype.title}" (${archetype.rarity} rarity). Just got my biometric analysis on SetKarr! Check your status!`,
+      text: `My face geometry is "${archetype.title}" (${archetype.rarity} rarity). Just got my biometric analysis on GlossCut! Check your status!`,
       url: window.location.href,
     };
 
@@ -318,12 +318,12 @@ const FaceSuggestor = () => {
             animate={{ y: 0, opacity: 1, x: '-50%', scale: 1 }}
             exit={{ y: -50, opacity: 0, x: '-50%', scale: 0.95 }}
             className={`fixed top-24 left-1/2 z-[3000] w-[90%] max-w-md rounded-2xl border border-white/10 bg-slate-900/90 backdrop-blur-2xl flex flex-col items-stretch shadow-2xl overflow-hidden ${alert.type === 'error' ? 'shadow-red-500/10' :
-                alert.type === 'success' ? 'shadow-amber-500/10' : 'shadow-slate-500/5'
+              alert.type === 'success' ? 'shadow-amber-500/10' : 'shadow-slate-500/5'
               }`}
           >
             <div className="p-4 md:p-5 flex items-center gap-4">
               <div className={`p-2 rounded-lg ${alert.type === 'error' ? 'bg-red-500/20 text-red-400' :
-                  alert.type === 'success' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-300'
+                alert.type === 'success' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700/50 text-slate-300'
                 }`}>
                 {alert.type === 'error' ? <AlertTriangle size={18} /> :
                   alert.type === 'success' ? <ShieldCheck size={18} className="animate-pulse" /> : <Info size={18} />}
@@ -350,7 +350,7 @@ const FaceSuggestor = () => {
               animate={{ scaleX: 0 }}
               transition={{ duration: 4, ease: "linear" }}
               className={`h-[3px] origin-left ${alert.type === 'error' ? 'bg-red-500' :
-                  alert.type === 'success' ? 'bg-amber-500' : 'bg-slate-500'
+                alert.type === 'success' ? 'bg-amber-500' : 'bg-slate-500'
                 }`}
             />
           </motion.div>
