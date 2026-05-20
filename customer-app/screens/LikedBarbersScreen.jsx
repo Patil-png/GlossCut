@@ -401,6 +401,17 @@ const LikedBarbersScreen = ({ navigation }) => {
 
           console.log('Liked providers from API:', providers.length);
 
+          let stats = {};
+          try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const statsRes = await api.get(`/api/booking/todays-stats?date=${todayStr}`, { timeout: 4000 });
+            if (statsRes.data) {
+              stats = statsRes.data;
+            }
+          } catch (statsErr) {
+            console.warn("Failed to fetch today's bookings stats in LikedBarbersScreen:", statsErr.message);
+          }
+
           if (providers.length > 0) {
             // Transform the liked providers data to match our expected format
             const transformedLikedBarbers = providers.map(provider => ({
@@ -411,15 +422,16 @@ const LikedBarbersScreen = ({ navigation }) => {
               address: provider.address,
               image: (typeof provider.image === 'string' && provider.image.includes('placeholder')) ? null : provider.image,
               rating: provider.rating,
-              reviews: provider.reviews || [],
-              reviewCount: provider.reviewCount || 0,
+              reviews: provider.reviews || 0,
+              reviewCount: (typeof provider.reviews === 'number' ? provider.reviews : 0) || provider.reviewCount || (Array.isArray(provider.reviews) ? provider.reviews.length : 0) || 0,
+              numberOfReviews: (typeof provider.reviews === 'number' ? provider.reviews : 0) || provider.numberOfReviews || provider.reviewCount || (Array.isArray(provider.reviews) ? provider.reviews.length : 0) || 0,
               services: provider.services || [],
               category: provider.category,
               tag: provider.tag,
               avgAppointmentTime: provider.avgAppointmentTime,
               totalServices: provider.totalServices || 0,
               isAvailable: provider.isAvailable,
-              todaysBookings: provider.todaysBookings || 0,
+              todaysBookings: stats[provider.barberId] || stats[provider._id] || provider.todaysBookings || 0,
               shopName: provider.shopName,
               type: 'barber',
               likedAt: provider.likedAt
@@ -483,35 +495,16 @@ const LikedBarbersScreen = ({ navigation }) => {
     <View
         style={[
           dynamicStyles.container,
-          { backgroundColor: theme.colors.background },
+          { backgroundColor: "#FFFFFF" },
         ]}
       >
-        <StatusBar barStyle="light-content" backgroundColor="#111111" translucent />
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
         <View style={[localStyles.toastWrapper, { top: insets.top + 10 }]}>
           <CustomToast visible={toast.visible} message={toast.message} type={toast.type} animatedValue={toastAnim} />
         </View>
 
-        {/* --- PREMIUM COMPACT TOP SECTION (SearchScreen Style) --- */}
-        <View style={{ backgroundColor: '#111111', paddingTop: insets.top + 10, paddingBottom: 15 }}>
-          {/* CONSOLIDATED HEADER */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: normalize(16), justifyContent: 'space-between' }}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.backBtn}>
-              <ChevronLeft size={normalize(22)} color="#FFF" strokeWidth={2.5} />
-            </TouchableOpacity>
-
-            <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: normalize(10), color: '#888888', fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-                Your Selection
-              </Text>
-              <Text style={{ fontSize: normalize(15), color: '#FFFFFF', fontWeight: '800', letterSpacing: -0.2, marginTop: 2 }}>
-                Saved Favorites ({likedBarbers.length})
-              </Text>
-            </View>
-
-            <View style={{ width: normalize(40) }} />
-          </View>
-        </View>
+        <Header onBack={() => navigation.goBack()} insets={insets} count={likedBarbers.length} />
 
         {loading ? (
           <View style={dynamicStyles.center}>
@@ -541,21 +534,14 @@ const LikedBarbersScreen = ({ navigation }) => {
             )}
             contentContainerStyle={dynamicStyles.list}
             ListHeaderComponent={
-              <View style={[dynamicStyles.listHeader, { borderBottomWidth: 1, borderBottomColor: theme.colors.border, paddingBottom: normalize(15), marginBottom: normalize(10) }]}>
-                <View style={dynamicStyles.listHeaderAccent} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: normalize(10), color: '#888888', fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' }}>
-                    Your Curated Selection
-                  </Text>
-                  <Text style={{ fontSize: normalize(16), color: theme.colors.text, fontWeight: '800', letterSpacing: -0.2, marginTop: 2 }}>
-                    Saved Experts
-                  </Text>
+              <View style={dynamicStyles.sectionHeader}>
+                <View style={dynamicStyles.headerPill}>
+                  <Text style={dynamicStyles.headerPillText}>Saved Professionals</Text>
                 </View>
-                <View style={[dynamicStyles.listHeaderBadge, { backgroundColor: theme.colors.primary + '18' }]}>
-                  <Text style={[dynamicStyles.listHeaderBadgeText, { color: theme.colors.primary }]}>{likedBarbers.length}</Text>
-                </View>
+                <View style={dynamicStyles.headerLine} />
               </View>
             }
+
             showsVerticalScrollIndicator={false}
             initialNumToRender={5}
             maxToRenderPerBatch={5}
@@ -594,28 +580,28 @@ const localStyles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: normalize(16),
     paddingBottom: normalize(12),
-    backgroundColor: "#111111",
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: "#222222"
+    borderBottomColor: "#F1F5F9"
   },
   headerTitle: {
     fontSize: normalize(15),
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#0F172A",
     letterSpacing: -0.5
   },
   headerSubtitle: {
     fontSize: normalize(10),
-    color: "#888888",
+    color: "#64748B",
     fontWeight: "600",
     marginTop: normalize(2)
   },
   backBtn: {
     padding: normalize(8),
     borderRadius: normalize(12),
-    backgroundColor: "#1A1A1A",
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: "#333333"
+    borderColor: "#F1F5F9"
   },
   toastWrapper: {
     position: "absolute",
@@ -654,7 +640,41 @@ const localStyles = StyleSheet.create({
 
 const getStyles = (theme, insets) =>
   StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, backgroundColor: "#FFFFFF" },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+      marginTop: 20,
+      paddingHorizontal: 0,
+    },
+    headerPill: {
+      backgroundColor: '#F8F9FA',
+      paddingHorizontal: 16,
+      paddingVertical: 6,
+      borderRadius: 100,
+      marginRight: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.06)',
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    headerPillText: {
+      color: '#1A1A1A',
+      fontSize: 12,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      fontWeight: '800'
+    },
+    headerLine: {
+      flex: 1,
+      height: 1.5,
+      backgroundColor: 'rgba(0, 0, 0, 0.08)',
+      borderRadius: 1
+    },
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -665,7 +685,7 @@ const getStyles = (theme, insets) =>
       width: normalize(42),
       height: normalize(42),
       borderRadius: normalize(21),
-      backgroundColor: theme.dark ? "#222" : "#F0F0F0",
+      backgroundColor: "#F8FAFC",
       justifyContent: "center",
       alignItems: "center",
       marginRight: normalize(15)
@@ -673,12 +693,12 @@ const getStyles = (theme, insets) =>
     headerTitle: {
       fontSize: normalize(26),
       fontWeight: "900",
-      color: theme.colors.text,
+      color: "#0F172A",
       letterSpacing: -1
     },
     secureText: {
       fontSize: normalize(10),
-      color: "#4ADE80",
+      color: "#10B981",
       fontWeight: "800",
       marginTop: normalize(2)
     },
@@ -688,12 +708,12 @@ const getStyles = (theme, insets) =>
       paddingHorizontal: normalize(20),
       paddingVertical: normalize(15),
       borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border
+      borderBottomColor: "#F1F5F9"
     },
     listHeaderAccent: {
       width: 4,
       height: 16,
-      backgroundColor: '#C8FF00',
+      backgroundColor: '#0F172A',
       borderRadius: 2,
       marginRight: 10
     },
@@ -706,10 +726,12 @@ const getStyles = (theme, insets) =>
       paddingHorizontal: normalize(10),
       paddingVertical: normalize(4),
       borderRadius: 12,
+      backgroundColor: "#F1F5F9"
     },
     listHeaderBadgeText: {
       fontSize: normalize(12),
-      fontWeight: '800'
+      fontWeight: '800',
+      color: "#0F172A"
     },
 
     // Empty State Styling
@@ -718,13 +740,14 @@ const getStyles = (theme, insets) =>
       justifyContent: "center",
       alignItems: "center",
       paddingHorizontal: normalize(40),
-      marginTop: normalize(-40)
+      marginTop: normalize(-40),
+      backgroundColor: "#FFFFFF"
     },
     iconCircle: {
       width: normalize(100),
       height: normalize(100),
       borderRadius: normalize(50),
-      backgroundColor: theme.colors.primary + "10",
+      backgroundColor: "#F1F5F9",
       justifyContent: "center",
       alignItems: "center",
       marginBottom: normalize(20)

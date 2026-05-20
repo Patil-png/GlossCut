@@ -237,7 +237,8 @@ export default function ScheduleNextAppointmentScreen({ navigation }) {
             largeIcon: Image.resolveAssetSource(require('../assets/ic_stat_notification_icon.png')).uri,
           },
           trigger: {
-            date: triggerDate,
+            type: 'date',
+            date: triggerDate.getTime(),
             channelId: 'reminders',
           },
         });

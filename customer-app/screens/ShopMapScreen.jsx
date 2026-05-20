@@ -84,7 +84,7 @@ const uberMapStyle = [
  * CUSTOM USER LOCATION MARKER
  */
 const UserLocationMarker = memo(({ location }) => {
-  if (!location) return null;
+  if (!location || !location.coords || typeof location.coords.latitude !== 'number' || typeof location.coords.longitude !== 'number' || isNaN(location.coords.latitude) || isNaN(location.coords.longitude)) return null;
 
   return (
     <Marker
@@ -111,12 +111,18 @@ const UserLocationMarker = memo(({ location }) => {
 const ShopMarker = memo(({ shop, onPress, isSelected }) => {
   const imageUrl = useMemo(() => getImageUrl(shop.image || shop.owner?.profilePicture), [shop.image, shop.owner]);
 
+  const coordinates = shop.location?.coordinates;
+  if (!coordinates || coordinates.length < 2) return null;
+  const latitude = parseFloat(coordinates[1]);
+  const longitude = parseFloat(coordinates[0]);
+  if (isNaN(latitude) || isNaN(longitude) || (latitude === 0 && longitude === 0)) return null;
+
   return (
     <Marker
-      coordinate={shop.location?.coordinates ? {
-        latitude: shop.location.coordinates[1],
-        longitude: shop.location.coordinates[0]
-      } : null}
+      coordinate={{
+        latitude: latitude,
+        longitude: longitude
+      }}
       onPress={() => onPress(shop)}
       tracksViewChanges={true}
       anchor={{ x: 0.5, y: 0.5 }}
@@ -134,6 +140,7 @@ const ShopMarker = memo(({ shop, onPress, isSelected }) => {
     </Marker>
   );
 });
+
 
 /**
  * Bottom Sheet Detail Content
@@ -339,11 +346,14 @@ const ShopDetailContent = memo(({
   }, [shop]);
 
   const handleFitRoute = useCallback(() => {
-    if (location && shop.location?.coordinates && mapRef.current) {
-      const shopLon = shop.location.coordinates[0];
-      const shopLat = shop.location.coordinates[1];
-      const userLat = location.coords.latitude;
-      const userLon = location.coords.longitude;
+    const shopCoords = shop.location?.coordinates;
+    const hasValidShopCoords = shopCoords && shopCoords.length === 2 && !isNaN(parseFloat(shopCoords[1])) && !isNaN(parseFloat(shopCoords[0]));
+
+    if (location && location.coords && !isNaN(parseFloat(location.coords.latitude)) && !isNaN(parseFloat(location.coords.longitude)) && hasValidShopCoords && mapRef.current) {
+      const shopLon = parseFloat(shopCoords[0]);
+      const shopLat = parseFloat(shopCoords[1]);
+      const userLat = parseFloat(location.coords.latitude);
+      const userLon = parseFloat(location.coords.longitude);
       
       mapRef.current.fitToCoordinates([
         { latitude: userLat, longitude: userLon },
@@ -352,10 +362,12 @@ const ShopDetailContent = memo(({
         edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
         animated: true
       });
-    } else if (shop.location?.coordinates && mapRef.current) {
+    } else if (hasValidShopCoords && mapRef.current) {
+      const shopLon = parseFloat(shopCoords[0]);
+      const shopLat = parseFloat(shopCoords[1]);
       mapRef.current.animateToRegion({
-        latitude: shop.location.coordinates[1],
-        longitude: shop.location.coordinates[0],
+        latitude: shopLat,
+        longitude: shopLon,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015
       }, 1000);
@@ -839,12 +851,17 @@ const ShopMapScreen = ({ route, navigation }) => {
       friction: 7
     }).start();
 
-    if (!location && shop.location?.coordinates) {
+    const shopCoords = shop.location?.coordinates;
+    const hasValidShopCoords = shopCoords && shopCoords.length === 2 && !isNaN(parseFloat(shopCoords[1])) && !isNaN(parseFloat(shopCoords[0]));
+
+    if (!location && hasValidShopCoords) {
       // Fallback offset slightly to center the shop pin if user location is not available
       const latOffset = 0.0025;
+      const shopLat = parseFloat(shopCoords[1]);
+      const shopLon = parseFloat(shopCoords[0]);
       mainMapRef.current?.animateToRegion({
-        latitude: shop.location.coordinates[1] - latOffset,
-        longitude: shop.location.coordinates[0],
+        latitude: shopLat - latOffset,
+        longitude: shopLon,
         latitudeDelta: 0.015,
         longitudeDelta: 0.015
       }, 1000);
@@ -866,7 +883,7 @@ const ShopMapScreen = ({ route, navigation }) => {
       console.log("Could not fetch full shop details:", e.message);
     }
 
-    if (location && shop.location?.coordinates) {
+    if (location && location.coords && hasValidShopCoords) {
       fetchRoute(location.coords, shop.location.coordinates);
     }
   }, [location, fetchRoute, remainingHeight, sheetHeight, navigation]);

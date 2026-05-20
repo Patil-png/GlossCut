@@ -66,6 +66,7 @@ import {
 import LottieView from "lottie-react-native";
 import api from "../utils/api";
 import BarberCard from "../src/components/BarberCard";
+import SalonCard from "../src/components/SalonCard";
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -1282,74 +1283,20 @@ const SearchScreen = ({ navigation, route }) => {
 
     // --- HOME SCREEN STYLE SHOP CARD ---
     return (
-      <BouncyCard
+      <SalonCard
+        name={item.name}
+        rating={item.rating || 0}
+        address={item.address}
+        image={item.image}
+        isAvailable={item.isAvailable}
+        category={item.category || 'Salon'}
+        todaysBookings={item.todaysBookings || 0}
+        listingTier={item.listingTier || 'standard'}
+        distance={dist}
+        isVerified={item.isVerified}
+        isPriority={item.isPriority}
         onPress={() => handleCardPress(item)}
-        style={[styles.hsPremiumCard, { backgroundColor: theme.colors.card }]}
-      >
-        <View style={styles.hsCardImageArea}>
-          <OptimizedImage
-            source={item.image}
-            style={styles.hsPremiumCardImage}
-            contentFit="cover"
-          />
-          <View style={styles.hsImageOverlay} />
-
-          {/* Top-right: Status badge */}
-          <View style={styles.hsBadgeTopRight}>
-            <View style={[styles.hsStatusBadge, { backgroundColor: item.isAvailable ? '#FFF' : '#000' }]}>
-              <PulseDot isAvailable={item.isAvailable} />
-              <Text style={[styles.hsStatusBadgeText, { color: item.isAvailable ? '#000' : '#FFF' }]}>
-                {item.isAvailable ? 'Open Now' : 'Closed'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Top-left: Category + Featured + Priority */}
-          <View style={styles.hsBadgeTopLeft}>
-            {item.isPriority && (
-              <View style={styles.hsFeaturedBadge}>
-                <Sparkles size={10} color="#FFF" />
-                <Text style={styles.hsFeaturedBadgeText}>FEATURED</Text>
-              </View>
-            )}
-            <View style={styles.hsCategoryBadge}>
-              <Text style={styles.hsCategoryBadgeText}>{item.category?.toUpperCase() || 'SALON'}</Text>
-            </View>
-          </View>
-
-          {/* Bottom-right: Distance pill */}
-          <View style={styles.distancePillOnImage}>
-            <NavigationIcon size={10} color="#FFF" />
-            <Text style={styles.distancePillText}>~{parseFloat(dist).toFixed(1)} km</Text>
-          </View>
-
-          {item.isVerified && (
-            <View style={styles.hsVerifiedBadge}>
-              <ShieldCheck size={12} color="#FFF" />
-              <Text style={styles.hsVerifiedText}>Verified</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.hsPremiumCardContent}>
-          <View style={styles.hsTitleRow}>
-            <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{item.name}</Text>
-            <View style={styles.hsRatingBadge}>
-              <Star size={12} color={theme.colors.text} fill={theme.colors.text} />
-              <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
-                {Number(item.rating) > 0 ? Number(item.rating).toFixed(1) : 'New'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={[styles.hsMetaRow, { alignItems: 'flex-start' }]}>
-            <MapPin size={14} color={theme.colors.textSecondary} style={{ marginTop: 2 }} />
-            <Text style={[styles.hsMetaText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {item.address}
-            </Text>
-          </View>
-        </View>
-      </BouncyCard>
+      />
     );
   }, [theme, styles, handleCardPress, roadDistances, airDistances, checkIsLiked, premiumAvailability, handleLikePress, handleCheckAppointment]);
 

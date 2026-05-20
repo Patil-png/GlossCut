@@ -97,7 +97,7 @@ const BarberCard = ({
 
     const isAvailable = item.isAvailable ?? true;
     const isPendingApproval = item.approvalStatus === 'pending';
-    const reviewCount = item.numberOfReviews || item.reviews?.length || 0;
+    const reviewCount = item.numberOfReviews || item.reviewCount || (typeof item.reviews === 'number' ? item.reviews : 0) || (Array.isArray(item.reviews) ? item.reviews.length : 0) || 0;
 
     const imageUri = useMemo(() => {
         let img = item.image?.uri || item.image || item.profilePicture;

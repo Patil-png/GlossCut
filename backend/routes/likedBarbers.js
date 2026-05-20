@@ -63,6 +63,7 @@ router.post('/add', auth, validate(schemas.addLikedProvider), async (req, res) =
     });
 
     await user.save();
+    likedBarbersCache.delete(`liked_barbers_${req.user.id}`);
 
     res.json({
       msg: 'Provider added to favorites',
@@ -97,6 +98,7 @@ router.delete('/remove/:providerId/:providerType', auth, async (req, res) => {
     const removed = initialCount - finalCount;
 
     await user.save();
+    likedBarbersCache.delete(`liked_barbers_${req.user.id}`);
 
     res.json({
       msg: removed > 0 ? 'Provider removed from favorites' : 'Provider was not in favorites',
@@ -139,7 +141,7 @@ router.get('/', auth, async (req, res) => {
     let barberCards = [];
     try {
       // FIXED: Removed .lean() so decryption works
-      barberCards = await BarberCard.find({ _id: { $in: barberCardIds } }).populate('shopId');
+      barberCards = await BarberCard.find({ _id: { $in: barberCardIds } }).populate('shopId').populate('barberId');
     } catch (err) {
       console.error('Error querying BarberCard collection:', err.stack || err.message);
       barberCards = [];
@@ -208,10 +210,10 @@ router.get('/', auth, async (req, res) => {
             providerData = {
               _id: barberCard._id,
               id: barberCard._id,
-              barberId: barberCard.barberId,
+              barberId: barberCard.barberId ? (barberCard.barberId._id || barberCard.barberId) : null,
               name: barberCard.name,
               address: barberCard.shopId ? barberCard.shopId.address : 'No address', // Safe check
-              image: barberCard.image,
+              image: barberCard.image || (barberCard.barberId && barberCard.barberId.profilePicture && barberCard.barberId.profilePicture !== "https://via.placeholder.com/150" ? barberCard.barberId.profilePicture : null),
               rating: barberCard.rating || 0,
               reviews: barberCard.reviews || [],
               reviewCount: barberCard.reviewCount || 0,
@@ -349,6 +351,7 @@ router.delete('/clear', auth, async (req, res) => {
 
     user.likedProviders = [];
     await user.save();
+    likedBarbersCache.delete(`liked_barbers_${req.user.id}`);
 
     res.json({
       msg: 'All liked providers cleared',

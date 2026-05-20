@@ -248,6 +248,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [customerReview, setCustomerReview] = useState(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   // Animations for Rating
   const emojiAnimations = useRef(
@@ -452,590 +453,519 @@ const BookingDetailScreen = ({ route, navigation }) => {
 
   const statusGradient = getStatusGradient(booking.status);
 
-  return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      {/* Custom Toast Overlay */}
-      <ToastNotification
-        visible={toast.visible}
-        message={toast.message}
-        type={toast.type}
-        onHide={hideToast}
-        topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
-      />
+    const isCompleted = booking.status === 'completed';
+    const isConfirmed = booking.status === 'confirmed';
+    const isCancelled = booking.status === 'cancelled';
+    const isPending = booking.status === 'pending';
 
+    return (
       <View
-        style={[styles.header, { backgroundColor: '#FFFFFF', paddingTop: Math.max(insets.top, 16), borderBottomWidth: 1, borderBottomColor: '#E2E8F0' }]}
+        style={[styles.container, { backgroundColor: '#F8FAFC' }]}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}
+        {/* Custom Toast Overlay */}
+        <ToastNotification
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          onHide={hideToast}
+          topInset={insets.top + (Platform.OS === 'android' ? 10 : 0)}
+        />
+
+        <View
+          style={[styles.header, { backgroundColor: '#FFFFFF', paddingTop: Math.max(insets.top, 16), borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }]}
         >
-          <ArrowLeft size={24} color="#0F172A" />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: '#0F172A', fontWeight: '800', fontSize: 18 }]}>
-          Booking Details
-        </Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[styles.contentContainer, { backgroundColor: '#F6F7FB' }]}
-        showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
-      >
-        <View style={{ height: 10 }} />
-        
-        {/* === STATUS BANNER === */}
-        <View style={[styles.statusBannerCard, { backgroundColor: statusGradient[0], borderColor: statusGradient[1] }]}>
-           <View style={styles.statusHeaderRow}>
-              <View style={[styles.statusIconCircle, { backgroundColor: booking.status === 'cancelled' ? '#EF4444' : '#16A34A' }]}>
-                 {booking.status === 'cancelled' ? <X size={18} color="#fff" /> : <Check size={18} color="#fff" />}
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                 <Text style={[styles.statusTitle, { color: booking.status === 'cancelled' ? '#991B1B' : '#166534' }]}>
-                    {booking.status.toUpperCase()}
-                 </Text>
-                 <Text style={styles.statusSubtitle}>
-                    {booking.status === 'confirmed' ? 'Your barber is ready for the session' : 
-                     booking.status === 'completed' ? 'Service finished successfully' : 'Booking was not successful'}
-                 </Text>
-              </View>
-              <View style={styles.miniLogoContainer}>
-                 <Text style={styles.miniLogoText}>GC</Text>
-              </View>
-           </View>
-
-           {booking.status === 'completed' && (
-             <TouchableOpacity style={styles.ratingPromptCard}>
-                <View style={styles.starCircle}>
-                   <Star size={20} color="#F59E0B" fill="#F59E0B" />
-                </View>
-                <Text style={styles.ratingPromptText}>How was your service experience?</Text>
-                <View style={styles.rateNowBtn}>
-                   <Text style={styles.rateNowText}>Rate now</Text>
-                </View>
-             </TouchableOpacity>
-           )}
-        </View>
-
-        {/* === ORDER SUMMARY === */}
-        <View style={styles.summaryCard}>
-           <View style={styles.summaryHeaderRow}>
-              <View style={styles.summaryIconCircle}>
-                 <Receipt size={22} color="#111" />
-              </View>
-              <View style={{ marginLeft: 14 }}>
-                 <Text style={styles.summaryTitle}>Bill Details</Text>
-                 <Text style={styles.summarySubtitle}>Receipt ID: SETKAR/2026/{booking._id?.slice(-6).toUpperCase()}</Text>
-              </View>
-           </View>
-           
-           <View style={styles.summaryContent}>
-              {booking.services?.map((s, i) => (
-                <View key={i} style={styles.summaryServiceRow}>
-                   <View style={styles.summaryBullet} />
-                   <Text style={styles.summaryServiceName}>{s.name}</Text>
-                   <Text style={styles.summaryServicePrice}>₹{s.price}</Text>
-                </View>
-              ))}
-              
-              <View style={styles.summaryDivider} />
-              
-              <View style={styles.billRow}>
-                 <Text style={styles.billLabel}>Item Total</Text>
-                 <Text style={styles.billValue}>₹{totalPrice}</Text>
-              </View>
-              {selectedTip?.amount && (
-                <View style={styles.billRow}>
-                   <Text style={styles.billLabel}>Barber Tip (Appreciation)</Text>
-                   <Text style={styles.billValue}>₹{selectedTip.amount}</Text>
-                </View>
-              )}
-              <View style={styles.billRow}>
-                 <Text style={styles.billLabel}>Convenience Fee</Text>
-                 <Text style={[styles.billValue, { color: '#16A34A' }]}>FREE</Text>
-              </View>
-              <View style={styles.billRow}>
-                 <Text style={styles.billLabel}>Payment Mode</Text>
-                 <Text style={styles.billValue}>{booking.paymentMethod?.toUpperCase() || "CASH"}</Text>
-              </View>
-              
-              <View style={styles.dashedDivider} />
-              
-              <View style={styles.summaryTotalRow}>
-                 <View>
-                    <Text style={styles.summaryTotalLabel}>Grand Total</Text>
-                    <Text style={styles.totalTaxesLabel}>Inclusive of all taxes</Text>
-                 </View>
-                 <Text style={[styles.summaryTotalValue, { color: '#000' }]}>
-                   ₹{(parseFloat(totalPrice) + (selectedTip?.amount || 0)).toFixed(2)}
-                 </Text>
-              </View>
-           </View>
-        </View>
-
-        {/* === TRACK APPOINTMENT (Live Queue Status) === */}
-        {(booking.status === "confirmed" || booking.status === "pending") && (
-          <View style={styles.trackingCard}>
-             <View style={styles.detailsHeaderRow}>
-                <View style={styles.detailsIconCircle}>
-                   <Clock size={20} color="#1A1A1A" />
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                   <Text style={styles.detailsTitle}>Track Appointment</Text>
-                   <Text style={styles.detailsSubtitle}>Live status of your booking</Text>
-                </View>
-                <View style={styles.liveBadge}>
-                   <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
-                   <Text style={styles.liveBadgeText}>LIVE</Text>
-                </View>
-             </View>
-
-             {/* Live Queue Dashboard */}
-             <View style={styles.liveQueueDashboard}>
-                <View style={styles.queueMetricBox}>
-                   <Text style={styles.queueMetricLabel}>Queue No.</Text>
-                   <Text style={styles.queueMetricValue}>
-                      #{queueInfo?.queuePosition || booking.queuePosition || "1"}
-                   </Text>
-                </View>
-                <View style={styles.queueMetricBox}>
-                   <Text style={styles.queueMetricLabel}>Ahead of You</Text>
-                   <Text style={styles.queueMetricValue}>
-                      {queueInfo?.peopleAhead !== undefined 
-                         ? `${queueInfo.peopleAhead} ${queueInfo.peopleAhead === 1 ? 'person' : 'people'}` 
-                         : "0 people"}
-                   </Text>
-                </View>
-                <View style={styles.queueMetricBox}>
-                   <Text style={styles.queueMetricLabel}>Est. Wait</Text>
-                   <Text style={styles.queueMetricValue}>
-                      {queueInfo?.estimatedWaitMinutes 
-                         ? `${queueInfo.estimatedWaitMinutes} mins` 
-                         : "10 mins"}
-                   </Text>
-                </View>
-             </View>
-
-             {/* Elegant Horizontal Progress Bar */}
-             <View style={styles.progressBarWrapper}>
-                <View style={styles.progressBarTrack}>
-                   <View 
-                      style={[
-                         styles.progressBarFill, 
-                         { 
-                            width: queueInfo?.peopleAhead === 0 
-                               ? '100%' 
-                               : queueInfo?.peopleAhead === 1 
-                                  ? '66%' 
-                                  : '33%' 
-                         }
-                      ]} 
-                   />
-                </View>
-                <View style={styles.progressBarSteps}>
-                   <View style={styles.progressStepItem}>
-                      <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
-                         <Check size={10} color="#1A1A1A" strokeWidth={3} />
-                      </View>
-                      <Text style={styles.stepLabel}>Booked</Text>
-                   </View>
-                   <View style={styles.progressStepItem}>
-                      <View 
-                         style={[
-                            styles.stepCircle, 
-                            queueInfo?.peopleAhead === undefined || queueInfo?.peopleAhead > 0 
-                               ? styles.stepCircleActive 
-                               : styles.stepCircleCompleted
-                         ]}
-                      >
-                         {queueInfo?.peopleAhead === 0 ? (
-                            <Check size={10} color="#1A1A1A" strokeWidth={3} />
-                         ) : (
-                            <View style={styles.stepDotInner} />
-                         )}
-                      </View>
-                      <Text style={styles.stepLabel}>In Queue</Text>
-                   </View>
-                   <View style={styles.progressStepItem}>
-                      <View 
-                         style={[
-                            styles.stepCircle, 
-                            queueInfo?.peopleAhead === 0 
-                               ? styles.stepCircleActive 
-                               : styles.stepCircleInactive
-                         ]}
-                      >
-                         {queueInfo?.peopleAhead === 0 && <View style={styles.stepDotInner} />}
-                      </View>
-                      <Text style={styles.stepLabel}>Ready</Text>
-                   </View>
-                </View>
-             </View>
-
-             <TouchableOpacity 
-                style={styles.trackLiveButton}
-                onPress={() => navigation.navigate('TrackQueue', { trackingId: booking.queueTrackingId || booking._id })}
-             >
-                <Text style={styles.trackLiveButtonText}>Track Live Status</Text>
-                <ChevronRight size={18} color="#C8FF00" strokeWidth={3} />
-             </TouchableOpacity>
-          </View>
-        )}
-
-        {/* === SALON & APPOINTMENT DETAILS === */}
-        <View style={styles.detailsMainCard}>
-           <View style={styles.detailsHeaderRow}>
-              <View style={styles.detailsIconCircle}>
-                 <Store size={20} color="#1A1A1A" />
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                 <Text style={styles.detailsTitle}>Salon & Service Details</Text>
-                 <Text style={styles.detailsSubtitle}>Location and booking details</Text>
-              </View>
-           </View>
-
-           {/* Detailed Information Grid */}
-           <View style={styles.detailsGrid}>
-             {/* Shop Details */}
-             <View style={styles.detailsGridItem}>
-               <View style={styles.detailIconSmall}>
-                  <Store size={18} color="#606058" />
-               </View>
-               <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.detailItemLabel}>Salon</Text>
-                  <Text style={styles.detailItemValue}>{shopName || "GlossCut Studio"}</Text>
-                  {booking.barberId?.shopAddress ? (
-                    <Text style={styles.detailItemSubText}>{booking.barberId.shopAddress}</Text>
-                  ) : null}
-                  {booking.barberId?.shopId ? (
-                    <TouchableOpacity 
-                      style={styles.inlineActionBtn}
-                      onPress={() => navigation.navigate('ShopMapScreen', { shopId: booking.barberId.shopId })}
-                    >
-                      <MapPin size={14} color="#1A1A1A" />
-                      <Text style={styles.inlineActionText}>View on Salon Map</Text>
-                    </TouchableOpacity>
-                  ) : null}
-               </View>
-             </View>
-
-             {/* Barber Details */}
-             {booking.barberId && (
-               <View style={styles.detailsGridItem}>
-                 <View style={styles.detailIconSmall}>
-                    <User size={18} color="#606058" />
-                 </View>
-                 <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.detailItemLabel}>Barber</Text>
-                    <Text style={styles.detailItemValue}>{barberName}</Text>
-                    {booking.barberId.phone ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 12 }}>
-                        <Text style={styles.detailItemSubText}>{booking.barberId.phone}</Text>
-                        <TouchableOpacity 
-                          style={styles.inlineCallIcon}
-                          onPress={() => callNumber(booking.barberId.phone)}
-                        >
-                           <PhoneCall size={12} color="#16A34A" />
-                        </TouchableOpacity>
-                      </View>
-                    ) : null}
-                 </View>
-               </View>
-             )}
-
-             {/* Booking Time */}
-             <View style={styles.detailsGridItem}>
-               <View style={styles.detailIconSmall}>
-                  <Calendar size={18} color="#606058" />
-               </View>
-               <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.detailItemLabel}>Appointment Time</Text>
-                  <Text style={styles.detailItemValue}>
-                    {booking.time} on {formattedDate}
-                  </Text>
-               </View>
-             </View>
-           </View>
-        </View>
-
-        {/* === HELP SECTION === */}
-        <TouchableOpacity 
-           style={styles.helpCard}
-           onPress={() => navigation.navigate("Chat")}
-        >
-           <View style={styles.helpIconCircle}>
-              <MessageSquare size={20} color="#666" />
-           </View>
-           <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.helpTitle}>Need help?</Text>
-              <Text style={styles.helpSubtitle}>Chat with us about any issue related to your booking</Text>
-           </View>
-           <ChevronRight size={20} color="#CCC" />
-        </TouchableOpacity>
-
-
-
-        {/* === TOKEN / OTP SECTION === */}
-        {booking.otp && booking.status === "confirmed" && (
-          <View style={styles.tokenWrapper}>
-            <View style={styles.tokenTop}>
-              <Text style={styles.tokenTitle}>Verification Code</Text>
-              <Text style={styles.tokenSub}>Share this with your barber to start session</Text>
-            </View>
-            
-            <View style={styles.ripContainer}>
-              <View style={styles.ripCircleLeft} />
-              <View style={styles.dotsContainer}>
-                {PERF_DOTS.map((_, i) => <View key={i} style={styles.perfDot} />)}
-              </View>
-              <View style={styles.ripCircleRight} />
-            </View>
-            
-            <View style={styles.tokenBottom}>
-              <View style={styles.otpVault}>
-                <Text style={styles.otpDigit}>{booking.otp}</Text>
-              </View>
-              <View style={styles.trustFooter}>
-                <ShieldCheck size={14} color="#166534" />
-                <Text style={styles.trustText}>Secure Verification</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* === ACTIONS === */}
-        {booking.paymentStatus === "pending" && booking.status === "confirmed" && (
           <TouchableOpacity
-            style={[styles.payBtnNew, { backgroundColor: theme.colors.primary }]}
-            onPress={() => {
-              navigation.navigate("PaymentConfirmation", {
-                providerName: barberName,
-                providerId: booking.barberId?._id,
-                selectedServices: booking.services,
-                totalPrice: booking.totalPrice,
-                bookingId: booking._id,
-                fromHistory: false
-              });
-            }}
+            onPress={() => navigation.goBack()}
+            style={styles.newBackButtonCircle}
+            activeOpacity={0.7}
           >
-            <Text style={styles.payBtnTextNew}>Proceed to Payment</Text>
+            <ArrowLeft size={20} color="#0F172A" strokeWidth={2.5} />
           </TouchableOpacity>
-        )}
+          <Text style={[styles.headerTitle, { color: '#0F172A', fontWeight: '900', fontSize: 18, letterSpacing: -0.5 }]}>
+            Booking Details
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-        {/* === REVIEW SECTION === */}
-        {booking.status === "completed" && (
-          <>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-              {hasReviewed ? "Your Experience" : "Rate Experience"}
-            </Text>
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border
-                },
-              ]}
-            >
-              {hasReviewed ? (
-                <View style={styles.reviewContainer}>
-                  <View
-                    style={[
-                      styles.submittedReviewBox,
-                      {
-                        backgroundColor: theme.colors.background,
-                        borderColor: theme.colors.border
-                      },
-                    ]}
-                  >
-                    <Text style={styles.reviewEmoji}>
-                      {RATING_EMOJIS[customerReview?.rating - 1]?.char || "⭐"}
-                    </Text>
-                    <Text
-                      style={[styles.reviewTitle, { color: theme.colors.text }]}
-                    >
-                      {customerReview?.title}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.reviewBody,
-                        { color: theme.colors.textSecondary },
-                      ]}
-                    >
-                      {customerReview?.comment}
-                    </Text>
-                  </View>
-                  {customerReview?.barberResponse && (
-                    <View
-                      style={[
-                        styles.barberResponse,
-                        {
-                          backgroundColor: theme.colors.card,
-                          borderLeftColor: theme.colors.primary
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.responseLabel,
-                          { color: theme.colors.primary },
-                        ]}
-                      >
-                        Response from Barber
-                      </Text>
-                      <Text
-                        style={[
-                          styles.responseText,
-                          { color: theme.colors.text },
-                        ]}
-                      >
-                        {customerReview.barberResponse}
-                      </Text>
-                    </View>
-                  )}
+        <ScrollView
+          contentContainerStyle={[styles.contentContainer, { backgroundColor: '#F8FAFC' }]}
+          showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+        >
+          <View style={{ height: 16 }} />
+          
+          {/* === STATUS BANNER === */}
+          <View style={styles.statusBannerCard}>
+             <LinearGradient 
+               colors={
+                 isCancelled ? ['#2A1212', '#140808'] : 
+                 isCompleted ? ['#0B1F13', '#050F09'] : 
+                 isPending ? ['#241A0B', '#120D05'] : ['#18181B', '#09090B']
+               } 
+               start={{ x: 0, y: 0 }} 
+               end={{ x: 1, y: 1 }}
+               style={styles.cardGradientBg}
+             />
+             <View style={styles.statusHeaderRow}>
+                <View style={[
+                  styles.statusIconCircle, 
+                  { 
+                    backgroundColor: 
+                      isCancelled ? '#EF4444' : 
+                      isCompleted ? '#10B981' : 
+                      isPending ? '#F59E0B' : '#C8FF00' 
+                  }
+                ]}>
+                   {isCancelled ? (
+                     <X size={16} color="#FFF" strokeWidth={3} />
+                   ) : isCompleted ? (
+                     <Check size={16} color="#FFF" strokeWidth={3} />
+                   ) : isPending ? (
+                     <Clock size={16} color="#FFF" strokeWidth={3} />
+                   ) : (
+                     <Check size={16} color="#000" strokeWidth={3} />
+                   )}
                 </View>
-              ) : (
-                <View style={styles.reviewContainer}>
-                  {/* Emoji Rating Row */}
-                  <View style={styles.emojiRow}>
-                    {RATING_EMOJIS.map((item) => (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.emojiContainer}
-                        onPress={() => handleRating(item.id)}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          style={[
-                            styles.emojiChar,
-                            rating > 0 &&
-                            rating !== item.id && { opacity: 0.4 },
-                          ]}
-                        >
-                          {item.char}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  {/* Dynamic Feedback Text */}
-                  {rating > 0 && (
-                    <View style={styles.ratingFeedbackContainer}>
-                      <Text
-                        style={[
-                          styles.ratingFeedbackText,
-                          { color: theme.colors.primary },
-                        ]}
-                      >
-                        {RATING_EMOJIS[rating - 1].label}!
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Quick Tags */}
-                  <Text
-                    style={[styles.tagsLabel, { color: theme.colors.text }]}
-                  >
-                    What went well?
-                  </Text>
-                  <View style={styles.tagsContainer}>
-                    {QUICK_TAGS.map((tag) => {
-                      const isSelected = selectedTags.includes(tag);
-                      return (
-                        <TouchableOpacity
-                          key={tag}
-                          style={[
-                            styles.tagChip,
-                            {
-                              backgroundColor: theme.colors.background,
-                              borderColor: theme.colors.border
-                            },
-                            isSelected && {
-                              backgroundColor: theme.colors.primary + "15",
-                              borderColor: theme.colors.primary
-                            },
-                          ]}
-                          onPress={() => toggleTag(tag)}
-                        >
-                          <Text
-                            style={[
-                              styles.tagText,
-                              { color: theme.colors.textSecondary },
-                              isSelected && {
-                                color: theme.colors.primary,
-                                fontWeight: "700"
-                              },
-                            ]}
-                          >
-                            {tag}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: theme.colors.background,
-                        color: theme.colors.text,
-                        borderColor: theme.colors.border
-                      },
-                    ]}
-                    placeholder="Title (Optional)"
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={title}
-                    onChangeText={setTitle}
-                  />
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.textArea,
-                      {
-                        backgroundColor: theme.colors.background,
-                        color: theme.colors.text,
-                        borderColor: theme.colors.border
-                      },
-                    ]}
-                    placeholder="Share more details (Optional)..."
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={comment}
-                    onChangeText={setComment}
-                    multiline
-                  />
-
-                  <TouchableOpacity
-                    style={[
-                      styles.submitBtn,
-                      {
-                        backgroundColor: theme.colors.primary,
-                        shadowColor: theme.colors.primary
-                      },
-                      rating === 0 && { opacity: 0.5 },
-                    ]}
-                    onPress={handleReviewSubmit}
-                    disabled={rating === 0}
-                  >
-                    <Text style={styles.submitBtnText}>Submit Feedback</Text>
-                  </TouchableOpacity>
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                   <Text style={[
+                     styles.statusTitle, 
+                     { 
+                       color: 
+                         isCancelled ? '#FCA5A5' : 
+                         isCompleted ? '#A7F3D0' : 
+                         isPending ? '#FDE68A' : '#C8FF00' 
+                     }
+                   ]}>
+                      {booking.status.toUpperCase()}
+                   </Text>
+                   <Text style={styles.statusSubtitleDark}>
+                      {isConfirmed ? 'Your barber is ready for the session' : 
+                       isCompleted ? 'Service finished successfully' : 
+                       isPending ? 'Waiting for barber confirmation' : 
+                       booking.cancellationReason || 'Booking was not successful'}
+                   </Text>
                 </View>
-              )}
+                <View style={[styles.miniLogoContainer, { borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]}>
+                   <Text style={styles.miniLogoText}>GC</Text>
+                </View>
+             </View>
+
+             {isCompleted && !hasReviewed && !showReviewForm && (
+               <TouchableOpacity 
+                 style={styles.ratingPromptCardDark} 
+                 activeOpacity={0.8}
+                 onPress={() => setShowReviewForm(true)}
+               >
+                  <View style={styles.starCircleDark}>
+                     <Star size={18} color="#F59E0B" fill="#F59E0B" />
+                  </View>
+                  <Text style={styles.ratingPromptTextDark}>How was your service experience?</Text>
+                  <View style={styles.rateNowBtnDark}>
+                     <Text style={styles.rateNowTextDark}>Rate now</Text>
+                  </View>
+               </TouchableOpacity>
+             )}
+          </View>
+
+          {/* === ORDER SUMMARY === */}
+          <View style={styles.summaryCard}>
+             <View style={styles.summaryHeaderRow}>
+                <View style={styles.summaryIconCircle}>
+                   <Receipt size={20} color="#0F172A" />
+                </View>
+                <View style={{ marginLeft: 12 }}>
+                   <Text style={styles.summaryTitle}>Receipt & Payment</Text>
+                   <Text style={styles.summarySubtitle}>ID: SETKAR/2026/{booking._id?.slice(-6).toUpperCase()}</Text>
+                </View>
+             </View>
+             
+             <View style={styles.summaryContent}>
+                {booking.services?.map((s, i) => (
+                  <View key={i} style={styles.summaryServiceRow}>
+                     <View style={styles.summaryBullet} />
+                     <Text style={styles.summaryServiceName}>{s.name}</Text>
+                     <Text style={styles.summaryServicePrice}>₹{s.price}</Text>
+                  </View>
+                ))}
+                
+                <View style={styles.summaryDivider} />
+                
+                <View style={styles.billRow}>
+                   <Text style={styles.billLabel}>Item Total</Text>
+                   <Text style={styles.billValue}>₹{totalPrice}</Text>
+                </View>
+                {selectedTip?.amount && (
+                  <View style={styles.billRow}>
+                     <Text style={styles.billLabel}>Barber Tip</Text>
+                     <Text style={[styles.billValue, { color: '#10B981' }]}>+ ₹{selectedTip.amount}</Text>
+                  </View>
+                )}
+                <View style={styles.billRow}>
+                   <Text style={styles.billLabel}>Convenience Fee</Text>
+                   <Text style={[styles.billValue, { color: '#10B981', fontWeight: '800' }]}>FREE</Text>
+                </View>
+                <View style={styles.billRow}>
+                   <Text style={styles.billLabel}>Payment Mode</Text>
+                   <Text style={[styles.billValue, { textTransform: 'uppercase' }]}>{booking.paymentMethod || "CASH"}</Text>
+                </View>
+                
+                <View style={styles.dashedDivider} />
+                
+                <View style={styles.summaryTotalRowContainer}>
+                   <LinearGradient 
+                     colors={['#F8FAFC', '#F1F5F9']} 
+                     style={styles.totalRowGradient}
+                   />
+                   <View>
+                      <Text style={styles.summaryTotalLabel}>Total Amount</Text>
+                      <Text style={styles.totalTaxesLabel}>PAY AT SHOP</Text>
+                   </View>
+                   <Text style={styles.summaryTotalValue}>
+                     ₹{(parseFloat(totalPrice) + (selectedTip?.amount || 0)).toFixed(2)}
+                   </Text>
+                </View>
+             </View>
+          </View>
+
+          {/* === TRACK APPOINTMENT (Live Queue Status) === */}
+          {(isConfirmed || isPending) && (
+            <View style={styles.trackingCard}>
+               <View style={styles.detailsHeaderRow}>
+                  <View style={styles.detailsIconCircle}>
+                     <Clock size={20} color="#0F172A" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                     <Text style={styles.detailsTitle}>Live Queue Position</Text>
+                     <Text style={styles.detailsSubtitle}>Track your turn in real time</Text>
+                  </View>
+                  <View style={styles.liveBadge}>
+                     <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
+                     <Text style={styles.liveBadgeText}>LIVE MONITOR</Text>
+                  </View>
+               </View>
+
+               {/* Live Queue Dashboard */}
+               <View style={styles.liveQueueDashboard}>
+                  <View style={styles.queueMetricBox}>
+                     <Text style={styles.queueMetricLabel}>Your Rank</Text>
+                     <Text style={styles.queueMetricValue}>
+                        #{queueInfo?.queuePosition || booking.queuePosition || "1"}
+                     </Text>
+                  </View>
+                  <View style={styles.queueMetricBox}>
+                     <Text style={styles.queueMetricLabel}>People Ahead</Text>
+                     <Text style={styles.queueMetricValue}>
+                        {queueInfo?.peopleAhead !== undefined 
+                           ? queueInfo.peopleAhead 
+                           : "0"}
+                     </Text>
+                  </View>
+                  <View style={styles.queueMetricBox}>
+                     <Text style={styles.queueMetricLabel}>Est. Wait</Text>
+                     <Text style={[styles.queueMetricValue, { color: '#10B981' }]}>
+                        {queueInfo?.estimatedWaitMinutes 
+                           ? `${queueInfo.estimatedWaitMinutes}m` 
+                           : "10m"}
+                     </Text>
+                  </View>
+               </View>
+
+               {/* Elegant Horizontal Progress Bar */}
+               <View style={styles.progressBarWrapper}>
+                  <View style={styles.progressBarTrack}>
+                     <View 
+                        style={[
+                           styles.progressBarFill, 
+                           { 
+                              width: queueInfo?.peopleAhead === 0 
+                                 ? '100%' 
+                                 : queueInfo?.peopleAhead === 1 
+                                    ? '66%' 
+                                    : '33%' 
+                           }
+                        ]} 
+                     />
+                  </View>
+                  <View style={styles.progressBarSteps}>
+                     <View style={styles.progressStepItem}>
+                        <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
+                           <Check size={10} color="#000" strokeWidth={3} />
+                        </View>
+                        <Text style={styles.stepLabel}>Booked</Text>
+                     </View>
+                     <View style={styles.progressStepItem}>
+                        <View 
+                           style={[
+                              styles.stepCircle, 
+                              queueInfo?.peopleAhead === undefined || queueInfo?.peopleAhead > 0 
+                                 ? styles.stepCircleActive 
+                                 : styles.stepCircleCompleted
+                           ]}
+                        >
+                           {queueInfo?.peopleAhead === 0 ? (
+                              <Check size={10} color="#000" strokeWidth={3} />
+                           ) : (
+                              <View style={styles.stepDotInner} />
+                           )}
+                        </View>
+                        <Text style={styles.stepLabel}>In Queue</Text>
+                     </View>
+                     <View style={styles.progressStepItem}>
+                        <View 
+                           style={[
+                              styles.stepCircle, 
+                              queueInfo?.peopleAhead === 0 
+                                 ? styles.stepCircleActive 
+                                 : styles.stepCircleInactive
+                           ]}
+                        >
+                           {queueInfo?.peopleAhead === 0 && <View style={styles.stepDotInner} />}
+                      </View>
+                        <Text style={styles.stepLabel}>Ready</Text>
+                     </View>
+                  </View>
+               </View>
+
+               <TouchableOpacity 
+                  style={styles.trackLiveButton}
+                  onPress={() => navigation.navigate('TrackQueue', { trackingId: booking.queueTrackingId || booking._id })}
+                  activeOpacity={0.9}
+               >
+                  <LinearGradient 
+                    colors={['#1E293B', '#0F172A']} 
+                    start={{ x: 0, y: 0 }} 
+                    end={{ x: 1, y: 0 }} 
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                  <Text style={styles.trackLiveButtonText}>View Live Pass</Text>
+                  <ChevronRight size={16} color="#C8FF00" strokeWidth={3.5} />
+               </TouchableOpacity>
             </View>
-          </>
-        )}
-      </ScrollView>
-    </View>
-  );
+          )}
+
+
+
+          {/* === HELP SECTION === */}
+          <TouchableOpacity 
+             style={styles.helpCard}
+             onPress={() => navigation.navigate("Chat")}
+             activeOpacity={0.7}
+          >
+             <View style={styles.helpIconCircle}>
+                <MessageSquare size={18} color="#475569" />
+             </View>
+             <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.helpTitle}>Support & Help</Text>
+                <Text style={styles.helpSubtitle}>Have an issue? Chat with support</Text>
+             </View>
+             <ChevronRight size={18} color="#94A3B8" />
+          </TouchableOpacity>
+
+          {/* === TOKEN / OTP SECTION === */}
+          {booking.otp && isConfirmed && (
+            <View style={styles.tokenWrapper}>
+              <View style={[styles.tokenTop, { backgroundColor: '#18181B', borderColor: 'rgba(255,255,255,0.1)' }]}>
+                <Text style={[styles.tokenTitle, { color: '#C8FF00' }]}>Verification Code</Text>
+                <Text style={[styles.tokenSub, { color: '#FFF' }]}>Share this with your barber to start session</Text>
+              </View>
+              
+              <View style={[styles.ripContainer, { backgroundColor: '#18181B', borderColor: 'rgba(255,255,255,0.1)' }]}>
+                <View style={[styles.ripCircleLeft, { backgroundColor: '#F8FAFC', borderColor: 'rgba(255,255,255,0.1)' }]} />
+                <View style={styles.dotsContainer}>
+                  {PERF_DOTS.map((_, i) => <View key={i} style={[styles.perfDot, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />)}
+                </View>
+                <View style={[styles.ripCircleRight, { backgroundColor: '#F8FAFC', borderColor: 'rgba(255,255,255,0.1)' }]} />
+              </View>
+              
+              <View style={[styles.tokenBottom, { backgroundColor: '#09090B', borderColor: 'rgba(255,255,255,0.1)' }]}>
+                <View style={[styles.otpVault, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]}>
+                  <Text style={[styles.otpDigit, { color: '#FFF' }]}>{booking.otp}</Text>
+                </View>
+                <View style={[styles.trustFooter, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <ShieldCheck size={14} color="#10B981" />
+                  <Text style={[styles.trustText, { color: '#10B981', fontWeight: '800' }]}>SECURE ACCESS VERIFIED</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* === ACTIONS === */}
+          {booking.paymentStatus === "pending" && isConfirmed && (
+            <TouchableOpacity
+              style={styles.proceedPaymentBtn}
+              onPress={() => {
+                navigation.navigate("PaymentConfirmation", {
+                  providerName: barberName,
+                  providerId: booking.barberId?._id,
+                  selectedServices: booking.services,
+                  totalPrice: booking.totalPrice,
+                  bookingId: booking._id,
+                  fromHistory: false
+                });
+              }}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#1E293B', '#0F172A']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <Text style={styles.proceedPaymentBtnText}>Proceed to Payment</Text>
+              <ChevronRight size={18} color="#C8FF00" strokeWidth={3} />
+            </TouchableOpacity>
+          )}
+
+          {/* === REVIEW SECTION === */}
+          {isCompleted && (hasReviewed || showReviewForm) && (
+            <View style={{ marginTop: 8 }}>
+              <View style={styles.reviewSectionHeader}>
+                <View style={styles.reviewHeaderPill}>
+                  <Text style={styles.reviewHeaderPillText}>
+                    {hasReviewed ? "Your Review" : "Share Your Feedback"}
+                  </Text>
+                </View>
+                <View style={styles.reviewHeaderLine} />
+              </View>
+              <View style={styles.reviewMainCard}>
+                {hasReviewed ? (
+                  <View style={styles.reviewContainer}>
+                    <View style={styles.submittedReviewBox}>
+                      <Text style={styles.reviewEmoji}>
+                        {RATING_EMOJIS[customerReview?.rating - 1]?.char || "⭐"}
+                      </Text>
+                      <Text style={styles.reviewTitleText}>
+                        {customerReview?.title || "Rating Submitted"}
+                      </Text>
+                      <Text style={styles.reviewBodyText}>
+                        {customerReview?.comment}
+                      </Text>
+                    </View>
+                    {customerReview?.barberResponse && (
+                      <View style={styles.barberResponseBox}>
+                        <View style={styles.barberResponseHeader}>
+                          <MessageSquare size={14} color="#1E293B" />
+                          <Text style={styles.responseLabelText}>Response from Barber</Text>
+                        </View>
+                        <Text style={styles.responseTextText}>
+                          {customerReview.barberResponse}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.reviewContainer}>
+                    {/* Emoji Rating Row */}
+                    <View style={styles.emojiContainerRow}>
+                      {RATING_EMOJIS.map((item) => {
+                        const isSelected = rating === item.id;
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            style={[
+                              styles.emojiTouch,
+                              isSelected && styles.emojiTouchSelected
+                            ]}
+                            onPress={() => handleRating(item.id)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[
+                              styles.emojiChar,
+                              rating > 0 && !isSelected && { opacity: 0.35, transform: [{ scale: 0.9 }] }
+                            ]}>
+                              {item.char}
+                            </Text>
+                             <Text style={[
+                               styles.emojiLabelText,
+                               { color: isSelected ? '#FFF' : '#94A3B8', fontWeight: isSelected ? '800' : '500' }
+                             ]}>
+                              {item.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+
+
+                    {/* Quick Tags */}
+                    <Text style={styles.feedbackSectionTitle}>What went well?</Text>
+                    <ScrollView 
+                      horizontal 
+                      showsHorizontalScrollIndicator={false} 
+                      contentContainerStyle={styles.tagsHorizontalScroll}
+                      style={{ marginBottom: 20 }}
+                    >
+                      {QUICK_TAGS.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <TouchableOpacity
+                            key={tag}
+                            style={[
+                              styles.tagChipNew,
+                              isSelected && styles.tagChipSelected
+                            ]}
+                            onPress={() => toggleTag(tag)}
+                          >
+                            <Text style={[
+                              styles.tagChipText,
+                              isSelected && styles.tagChipTextSelected
+                            ]}>
+                              {tag}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+
+                    <TextInput
+                      style={styles.reviewTextInput}
+                      placeholder="Title for your review (e.g. Great haircut!)"
+                      placeholderTextColor="#94A3B8"
+                      value={title}
+                      onChangeText={setTitle}
+                    />
+
+
+                    <TouchableOpacity
+                      style={[
+                        styles.submitFeedbackBtn,
+                        rating === 0 && { opacity: 0.5 }
+                      ]}
+                      onPress={handleReviewSubmit}
+                      disabled={rating === 0}
+                      activeOpacity={0.9}
+                    >
+                      <LinearGradient 
+                        colors={['#1E293B', '#0F172A']} 
+                        start={{ x: 0, y: 0 }} 
+                        end={{ x: 1, y: 0 }} 
+                        style={StyleSheet.absoluteFillObject}
+                      />
+                      <Text style={styles.submitFeedbackBtnText}>Submit Review</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F6F7FB'
+    backgroundColor: '#F8FAFC'
+  },
+  newBackButtonCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backButtonCircle: {
     width: normalize(40),
@@ -1050,43 +980,49 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3
   },
+  cardGradientBg: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: normalize(20),
+  },
   statusBannerCard: {
     borderRadius: normalize(20),
     padding: normalize(18),
     marginBottom: normalize(16),
-    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 2
+    elevation: 4
   },
   statusHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: normalize(12)
+    zIndex: 2,
   },
   statusIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center'
   },
   statusTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.5
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.5
   },
-  statusSubtitle: {
-    fontSize: 14,
-    color: '#555',
+  statusSubtitleDark: {
+    fontSize: 13,
+    color: '#94A3B8',
     marginTop: 4,
-    lineHeight: 20
+    lineHeight: 18,
+    fontWeight: '500'
   },
   miniLogoContainer: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: 10,
     backgroundColor: '#000',
     alignItems: 'center',
@@ -1094,52 +1030,46 @@ const styles = StyleSheet.create({
   },
   miniLogoText: {
     color: '#C8FF00',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '900'
   },
-  ratingPromptCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 14,
+  ratingPromptCardDark: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 14,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2
+    borderColor: 'rgba(255,255,255,0.1)',
+    zIndex: 2,
   },
-  starCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFBEB',
+  starCircleDark: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12
+    marginRight: 10
   },
-  ratingPromptText: {
+  ratingPromptTextDark: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#222'
-  },
-  rateNowBtn: {
-    backgroundColor: '#16A34A',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10
-  },
-  rateNowText: {
-    color: '#fff',
     fontSize: 13,
-    fontWeight: '800'
+    fontWeight: '700',
+    color: '#FFF'
   },
-
-  // Partner Card
+  rateNowBtnDark: {
+    backgroundColor: '#C8FF00',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8
+  },
+  rateNowTextDark: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '900'
+  },
   partnerCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -1191,8 +1121,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#F0FDF4'
   },
-
-  // Tip Section
   tipSectionCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -1275,8 +1203,6 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     textTransform: 'uppercase'
   },
-
-  // Details Card
   detailsMainCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -1284,35 +1210,34 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E8E7E2'
+    borderColor: '#F1F5F9'
   },
   detailsHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 26
+    marginBottom: 20
   },
   detailsIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F8FAFC',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E8E7E2'
+    justifyContent: 'center'
   },
   detailsTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
-    letterSpacing: -0.5
+    color: '#0F172A',
+    letterSpacing: -0.3
   },
   detailsSubtitle: {
-    fontSize: 13,
-    color: '#606058',
+    fontSize: 12,
+    color: '#64748B',
     marginTop: 2
   },
   trackingCard: {
@@ -1322,46 +1247,46 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 3,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#E8E7E2'
+    borderColor: '#F1F5F9'
   },
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0EFE9',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E8E7E2',
+    borderColor: 'rgba(16, 185, 129, 0.15)',
   },
   liveBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#1A1A1A',
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#10B981',
     letterSpacing: 0.5,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#10B981',
     marginRight: 6,
   },
   liveQueueDashboard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
     marginBottom: 20,
   },
   queueMetricBox: {
     flex: 1,
-    backgroundColor: '#FDFDFD',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E8E7E2',
+    borderColor: '#E2E8F0',
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
@@ -1370,7 +1295,7 @@ const styles = StyleSheet.create({
   queueMetricLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#606058',
+    color: '#64748B',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -1378,7 +1303,7 @@ const styles = StyleSheet.create({
   queueMetricValue: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#1A1A1A',
+    color: '#0F172A',
   },
   progressBarWrapper: {
     marginBottom: 20,
@@ -1386,23 +1311,19 @@ const styles = StyleSheet.create({
   },
   progressBarTrack: {
     height: 6,
-    backgroundColor: '#F0EFE9',
+    backgroundColor: '#F1F5F9',
     borderRadius: 3,
     position: 'relative',
     marginBottom: 12,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#0F172A',
     borderRadius: 3,
   },
   progressBarSteps: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  progressStepItem: {
-    alignItems: 'center',
-    width: 60,
   },
   stepCircle: {
     width: 20,
@@ -1413,121 +1334,106 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepCircleCompleted: {
-    borderColor: '#1A1A1A',
+    borderColor: '#0F172A',
     backgroundColor: '#C8FF00',
   },
   stepCircleActive: {
-    borderColor: '#1A1A1A',
+    borderColor: '#0F172A',
     backgroundColor: '#fff',
   },
   stepCircleInactive: {
-    borderColor: '#E8E7E2',
-    backgroundColor: '#FDFDFD',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
   },
   stepDotInner: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#0F172A',
   },
   stepLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#606058',
+    color: '#64748B',
     marginTop: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   trackLiveButton: {
-    height: normalize(50),
-    backgroundColor: '#1A1A1A',
+    height: 50,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    overflow: 'hidden',
+    position: 'relative',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowRadius: 8,
     elevation: 3,
   },
   trackLiveButtonText: {
     color: '#fff',
-    fontSize: normalize(13),
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
+    zIndex: 2,
   },
-  detailsGrid: {
+  detailsList: {
     marginTop: 8,
-    gap: 20,
   },
-  detailsGridItem: {
+  detailListItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    paddingVertical: 14,
   },
-  detailItemSubText: {
-    fontSize: 14,
-    color: '#606058',
-    marginTop: 2,
-    lineHeight: 18,
-  },
-  inlineActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#F0EFE9',
+  detailIconContainer: {
+    width: 32,
+    height: 32,
     borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  inlineActionText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  inlineCallIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
-  detailItemRow: {
-    flexDirection: 'row',
-    marginBottom: 26
-  },
-  detailIconSmall: {
-    marginTop: 4,
-    width: 24,
-    alignItems: 'center'
-  },
-  detailItemLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#606058',
+  detailItemLabelText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#94A3B8',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6
+    letterSpacing: 0.5,
+    marginBottom: 2,
   },
-  detailItemValue: {
-    fontSize: 16,
-    color: '#1A1A1A',
-    fontWeight: '700',
-    lineHeight: 22
-  },
-  detailItemSubValue: {
+  detailItemValueText: {
     fontSize: 14,
-    color: '#606058',
-    marginTop: 4,
-    lineHeight: 20
+    fontWeight: '700',
+    color: '#0F172A',
   },
-
-  // Help Card
+  detailItemAddressText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  detailActionLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  detailActionLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+    textDecorationLine: 'underline',
+  },
+  detailDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+  },
   helpCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
@@ -1537,63 +1443,66 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 3
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
   },
   helpIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center'
   },
   helpTitle: {
-    fontSize: 16,
-    fontWeight: '800'
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A'
   },
   helpSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
     marginTop: 4
   },
-
-  // Summary Card
   summaryCard: {
     backgroundColor: '#fff',
     borderRadius: 24,
     padding: 24,
-    marginBottom: 24,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 3
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F1F5F9'
   },
   summaryHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 26
+    marginBottom: 20
   },
   summaryIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F8FAFC',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#F1F5F9'
+    justifyContent: 'center'
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
-    letterSpacing: -0.5
+    color: '#0F172A',
+    letterSpacing: -0.3
   },
   summarySubtitle: {
-    fontSize: 13,
-    color: '#666'
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2
   },
   summaryContent: {
     marginTop: 4
@@ -1601,30 +1510,30 @@ const styles = StyleSheet.create({
   summaryServiceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14
+    marginBottom: 12
   },
   summaryBullet: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: '#CBD5E1',
-    marginRight: 14
+    marginRight: 12
   },
   summaryServiceName: {
     flex: 1,
-    fontSize: 15,
-    color: '#334155',
+    fontSize: 14,
+    color: '#475569',
     fontWeight: '600'
   },
   summaryServicePrice: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#0F172A'
   },
   summaryDivider: {
     height: 1,
     backgroundColor: '#F1F5F9',
-    marginVertical: 18
+    marginVertical: 14
   },
   billRow: {
     flexDirection: 'row',
@@ -1632,122 +1541,56 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   billLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
     fontWeight: '600'
   },
   billValue: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#1E293B',
     fontWeight: '700'
   },
-  summaryTotalRow: {
+  summaryTotalRowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 6,
+  },
+  totalRowGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
   summaryTotalLabel: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '900',
-    color: '#0F172A'
+    color: '#0F172A',
+    zIndex: 2,
   },
   summaryTotalValue: {
-    fontSize: 22,
-    fontWeight: '900'
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    zIndex: 2,
   },
   totalTaxesLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#94A3B8',
     fontWeight: '600',
-    marginTop: 2
+    marginTop: 2,
+    zIndex: 2,
   },
   dashedDivider: {
     height: 1,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderStyle: 'dashed',
-    marginVertical: 20,
+    marginVertical: 16,
     borderRadius: 1
-  },
-
-  // OTP & Pay
-  otpCardNew: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: '#F1F5F9',
-    borderStyle: 'dashed'
-  },
-  otpLabelNew: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 14,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 2
-  },
-  otpValueNew: {
-    fontSize: 42,
-    fontWeight: '900',
-    letterSpacing: 12,
-    color: '#0F172A'
-  },
-  payBtnNew: {
-    borderRadius: 20,
-    paddingVertical: 20,
-    alignItems: 'center',
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6
-  },
-  payBtnTextNew: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 0.5
-  },
-  legacyReviewTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    marginBottom: 16,
-    paddingHorizontal: 4,
-    color: '#0F172A'
-  },
-  // Toast Styles
-  toastContainer: {
-    position: "absolute",
-    top: 0,
-    left: 20,
-    right: 20,
-    zIndex: 9999,
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1
-  },
-  toastIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12
-  },
-  toastTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 2
-  },
-  toastMessage: {
-    fontSize: 13,
-    opacity: 0.9
   },
   header: {
     flexDirection: "row",
@@ -1762,31 +1605,26 @@ const styles = StyleSheet.create({
     marginBottom: normalize(20)
   },
   tokenTop: {
-    backgroundColor: '#FFF',
     borderTopLeftRadius: normalize(20),
     borderTopRightRadius: normalize(20),
     padding: normalize(20),
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderBottomWidth: 0
   },
   tokenTitle: {
     fontSize: normalize(12),
-    fontWeight: '800',
-    color: '#64748B',
+    fontWeight: '900',
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: normalize(4)
   },
   tokenSub: {
     fontSize: normalize(13),
-    color: '#0F172A',
     fontWeight: '600'
   },
   ripContainer: {
     height: normalize(20),
-    backgroundColor: '#FFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1796,25 +1634,20 @@ const styles = StyleSheet.create({
     marginTop: -1,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: '#E2E8F0'
   },
   ripCircleLeft: {
     width: normalize(20),
     height: normalize(20),
     borderRadius: normalize(10),
-    backgroundColor: '#F6F7FB',
     marginLeft: normalize(-10),
     borderWidth: 1,
-    borderColor: '#E2E8F0'
   },
   ripCircleRight: {
     width: normalize(20),
     height: normalize(20),
     borderRadius: normalize(10),
-    backgroundColor: '#F6F7FB',
     marginRight: normalize(-10),
     borderWidth: 1,
-    borderColor: '#E2E8F0'
   },
   dotsContainer: {
     flex: 1,
@@ -1827,28 +1660,23 @@ const styles = StyleSheet.create({
     width: normalize(4),
     height: normalize(4),
     borderRadius: normalize(2),
-    backgroundColor: '#E2E8F0',
     marginHorizontal: normalize(2)
   },
   tokenBottom: {
-    backgroundColor: '#F8FAFC',
     borderBottomLeftRadius: normalize(20),
     borderBottomRightRadius: normalize(20),
     padding: normalize(20),
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     borderTopWidth: 0
   },
   otpVault: {
-    backgroundColor: '#FFF',
     width: '100%',
     paddingVertical: normalize(12),
     borderRadius: normalize(12),
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     marginBottom: normalize(12),
     flexDirection: 'row'
   },
@@ -1856,96 +1684,263 @@ const styles = StyleSheet.create({
     fontSize: normalize(28),
     fontWeight: '900',
     letterSpacing: normalize(6),
-    color: '#0F172A',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
   },
   trustFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E6F4EA',
     paddingHorizontal: normalize(12),
     paddingVertical: normalize(6),
     borderRadius: normalize(20)
+  },
+  trustText: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginLeft: 6,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "900"
   },
-  headerPlaceholder: {
-    width: 40
-  },
   contentContainer: {
     paddingHorizontal: 16,
     paddingBottom: 40
   },
-  reviewContainer: { paddingTop: 5 },
-  emojiRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-    paddingHorizontal: 10
-  },
-  emojiContainer: { alignItems: "center", width: 50 },
-  emojiChar: { fontSize: 32 },
-  emojiLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: 4,
-    textAlign: "center"
-  },
-  ratingFeedbackContainer: { alignItems: "center", marginBottom: 20 },
-  ratingFeedbackText: { fontSize: 16, fontWeight: "700" },
-  tagsLabel: { fontSize: 14, fontWeight: "600", marginBottom: 10 },
-  tagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  proceedPaymentBtn: {
+    height: 54,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    marginBottom: 20
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  tagChip: {
-    paddingHorizontal: 12,
+  proceedPaymentBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    zIndex: 2,
+  },
+  reviewSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 12,
+  },
+  reviewHeaderPill: {
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 100,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.06)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  reviewHeaderPillText: {
+    color: '#1A1A1A',
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    fontWeight: '800',
+  },
+  reviewHeaderLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    borderRadius: 1,
+  },
+  reviewMainCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  reviewContainer: {
+    paddingTop: 4,
+  },
+  submittedReviewBox: {
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  reviewEmoji: {
+    fontSize: 44,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  reviewTitleText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  reviewBodyText: {
+    fontSize: 14,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  barberResponseBox: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    borderLeftWidth: 4,
+    borderLeftColor: '#0F172A',
+  },
+  barberResponseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  responseLabelText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  responseTextText: {
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 18,
+  },
+  emojiContainerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  emojiTouch: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  emojiTouchSelected: {
+    backgroundColor: '#0F172A',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  emojiChar: {
+    fontSize: 34,
+  },
+  emojiLabelText: {
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  ratingFeedbackBox: {
+    backgroundColor: '#F0FDF4',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  ratingFeedbackTextBox: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  feedbackSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 10,
+  },
+  tagsHorizontalScroll: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 10,
+  },
+  tagChipNew: {
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1
-  },
-  tagText: { fontSize: 12, fontWeight: "500" },
-  input: {
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 15,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    marginBottom: 12
+    borderColor: '#F1F5F9',
   },
-  textArea: { minHeight: 100, textAlignVertical: "top" },
-  submitBtn: {
+  tagChipSelected: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  tagChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  tagChipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  reviewTextInput: {
     borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    color: '#0F172A',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  reviewTextAreaInput: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  submitFeedbackBtn: {
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    marginTop: 8,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  submitBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  submittedReviewBox: { padding: 20, borderRadius: 16, borderWidth: 1 },
-  reviewEmoji: { fontSize: 40, textAlign: "center", marginBottom: 10 },
-  reviewTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-    marginBottom: 6
-  },
-  reviewBody: { fontSize: 15, textAlign: "center", lineHeight: 22 },
-  barberResponse: {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 12,
-    borderLeftWidth: 3
-  },
-  responseLabel: { fontSize: 12, fontWeight: "700", marginBottom: 4 },
-  responseText: { fontSize: 14, lineHeight: 20 }
+  submitFeedbackBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    zIndex: 2,
+  }
 });
 
 export default BookingDetailScreen;

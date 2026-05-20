@@ -497,7 +497,7 @@ const NotificationDetailScreen = () => {
                 activeOpacity={0.8}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('BookingDetailScreen', { booking: liveBooking });
+                  navigation.navigate('BookingDetail', { booking: liveBooking });
                 }}
                 style={[styles.cardActionBtn, { backgroundColor: isDark ? '#2E2E2E' : '#1A1A1A' }]}
               >

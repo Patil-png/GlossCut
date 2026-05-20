@@ -27,6 +27,7 @@ const TrackQueueScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isFocused, setIsFocused] = useState(false);
+  const isCompleted = queueData?.status === 'completed' || queueData?.status === 'success';
 
   const toastAnim = useRef(new Animated.Value(-100)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -270,66 +271,79 @@ const TrackQueueScreen = ({ route, navigation }) => {
                 <View style={styles.lanyardSlot}>
                   <View style={styles.slotInnerShadow} />
                 </View>
-                <View style={styles.idCard}>
-                  <LinearGradient colors={['#18181B', '#09090B']} style={styles.cardBg} />
-                  <View style={styles.idTopRow}>
-                    <View style={styles.idLogo}><Zap size={20} color="#FFF" strokeWidth={2.5} /></View>
-                    <View style={styles.rankBadge}>
-                      <Text style={styles.rankBadgeLabel}>RANK</Text>
-                      <Text style={styles.rankBadgeNumber}>#{queueData.queuePosition}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.idMainTitle}>SALON PASS</Text>
-                  <View style={styles.idMetaGrid}>
-                    <View style={styles.idMetaCol}>
-                      <Text style={styles.idMetaLabel}>LOCATION</Text>
-                      <Text style={styles.idShopName} numberOfLines={1}>{safeUpper(queueData.shopName)}</Text>
-                      <Text style={styles.idShopAddress} numberOfLines={1} ellipsizeMode="tail">
-                        {safeUpper(queueData.shopAddress) || "INDIA"}
-                      </Text>
-                    </View>
-                    <View style={styles.idMetaCol}>
-                      <Text style={styles.idMetaLabel}>BARBER</Text>
-                      <Text style={styles.idMetaValue}>{safeUpper(queueData.barberName) || "MASTER"}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.idDivider} />
-                  <View style={styles.idHolderBox}>
-                    <Text style={styles.idMetaLabel}>@HOLDER</Text>
-                    <Text style={styles.idHolderName}>{safeUpper(queueData.customerName) || "VIP"}</Text>
-                  </View>
-                  <View style={styles.idFooter}>
-                    <View style={styles.idQrContainer}>
-                      <Image 
-                        source={{ uri: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://www.instagram.com/glosscut.india/&color=ffffff&bgcolor=09090b' }} 
-                        style={styles.realQrImage} 
-                      />
-                    </View>
-                    <View style={styles.idBottomMeta}>
-                      <View style={styles.idBottomMetaRow}>
-                        <Text style={styles.idMetaLabel}>EST. ARRIVAL</Text>
-                        <Text style={[styles.idBottomValue, { fontSize: 16, color: '#00C896' }]}>
-                          {queueData.queueList?.find(i => i.isTarget)?.estArrival || "SCHEDULED"}
+                  <View style={styles.idCard}>
+                    <LinearGradient colors={['#18181B', '#09090B']} style={styles.cardBg} />
+                    <View style={styles.idTopRow}>
+                      <View style={styles.idLogo}><Zap size={20} color="#FFF" strokeWidth={2.5} /></View>
+                      <View style={styles.rankBadge}>
+                        <Text style={styles.rankBadgeLabel}>{isCompleted ? 'STATUS' : 'RANK'}</Text>
+                        <Text style={[styles.rankBadgeNumber, isCompleted && { fontSize: 13, color: '#C8FF00', fontWeight: '900' }]}>
+                          {isCompleted ? 'DONE' : `#${queueData.queuePosition}`}
                         </Text>
                       </View>
-                      <View style={styles.idBottomMetaRow}>
-                        <Text style={styles.idMetaLabel}>PASS STATUS</Text>
-                        <Text style={styles.idBottomValue}>VERIFIED ACCESS</Text>
+                    </View>
+                    <Text style={styles.idMainTitle}>SALON PASS</Text>
+
+                    {isCompleted && (
+                      <View style={styles.completedPassBanner}>
+                        <CheckCircle2 size={16} color="#C8FF00" strokeWidth={3} />
+                        <Text style={styles.completedPassBannerText}>YOUR TODAY APPOINTMENT IS COMPLETED</Text>
                       </View>
-                      <View style={styles.idBottomMetaRow}>
-                        <Text style={styles.idMetaLabel}>QUEUE RANK</Text>
-                        <Text style={[styles.idBottomValue, { fontSize: 16 }]}>#{queueData.queuePosition}</Text>
+                    )}
+
+                    <View style={styles.idMetaGrid}>
+                      <View style={styles.idMetaCol}>
+                        <Text style={styles.idMetaLabel}>LOCATION</Text>
+                        <Text style={styles.idShopName} numberOfLines={1}>{safeUpper(queueData.shopName)}</Text>
+                        <Text style={styles.idShopAddress} numberOfLines={1} ellipsizeMode="tail">
+                          {safeUpper(queueData.shopAddress) || "INDIA"}
+                        </Text>
+                      </View>
+                      <View style={styles.idMetaCol}>
+                        <Text style={styles.idMetaLabel}>BARBER</Text>
+                        <Text style={styles.idMetaValue}>{safeUpper(queueData.barberName) || "MASTER"}</Text>
                       </View>
                     </View>
-                  </View>
-                  <View style={styles.idStudioRow}>
-                    <View style={styles.studioIconBox}><View style={styles.studioBar1} /><View style={styles.studioBar2} /></View>
-                    <Text style={styles.studioText}>GLOSSCUT STUDIO</Text>
+                    <View style={styles.idDivider} />
+                    <View style={styles.idHolderBox}>
+                      <Text style={styles.idMetaLabel}>@HOLDER</Text>
+                      <Text style={styles.idHolderName}>{safeUpper(queueData.customerName) || "VIP"}</Text>
+                    </View>
+                    <View style={styles.idFooter}>
+                      <View style={styles.idQrContainer}>
+                        <Image 
+                          source={{ uri: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://www.instagram.com/glosscut.india/&color=ffffff&bgcolor=09090b' }} 
+                          style={styles.realQrImage} 
+                        />
+                      </View>
+                      <View style={styles.idBottomMeta}>
+                        <View style={styles.idBottomMetaRow}>
+                          <Text style={styles.idMetaLabel}>EST. ARRIVAL</Text>
+                          <Text style={[styles.idBottomValue, { fontSize: 16, color: '#C8FF00' }]}>
+                            {isCompleted ? "COMPLETED" : (queueData.queueList?.find(i => i.isTarget)?.estArrival || "SCHEDULED")}
+                          </Text>
+                        </View>
+                        <View style={styles.idBottomMetaRow}>
+                          <Text style={styles.idMetaLabel}>PASS STATUS</Text>
+                          <Text style={[styles.idBottomValue, isCompleted && { color: '#EF4444' }]}>
+                            {isCompleted ? "EXPIRED / USED" : "VERIFIED ACCESS"}
+                          </Text>
+                        </View>
+                        <View style={styles.idBottomMetaRow}>
+                          <Text style={styles.idMetaLabel}>QUEUE RANK</Text>
+                          <Text style={[styles.idBottomValue, { fontSize: 16 }]}>
+                            {isCompleted ? "COMPLETED" : `#${queueData.queuePosition}`}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.idStudioRow}>
+                      <View style={styles.studioIconBox}><View style={styles.studioBar1} /><View style={styles.studioBar2} /></View>
+                      <Text style={styles.studioText}>GLOSSCUT STUDIO</Text>
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              {/* --- LIVE QUEUE --- */}
               <View style={styles.dashboardSection}>
                 <View style={styles.sectionHeader}>
                   <Users size={16} color="#111" />
@@ -549,7 +563,27 @@ const styles = StyleSheet.create({
   policyText: { fontFamily: 'PlusJakartaSans_500Medium', fontSize: 12, color: '#666' },
 
   assistanceBtn: { backgroundColor: '#FFF', height: 60, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, borderWidth: 1, borderColor: '#E9ECEF', borderStyle: 'dashed', marginTop: 10 },
-  assistanceText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 14, color: '#111' }
+  assistanceText: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 14, color: '#111' },
+  completedPassBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(200, 255, 0, 0.08)',
+    borderColor: 'rgba(200, 255, 0, 0.2)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 20,
+    gap: 8,
+  },
+  completedPassBannerText: {
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontSize: SCREEN_WIDTH > 360 ? 11 : 9.5,
+    color: '#C8FF00',
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    flex: 1,
+  }
 });
 
 export default TrackQueueScreen;

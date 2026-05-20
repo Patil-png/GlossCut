@@ -1,10 +1,8 @@
 import React, { useRef, useEffect, memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Colors } from '../theme/colors';
-import { Typography } from '../theme/typography';
-import { Layout } from '../theme/layout';
-import { Star, MapPin } from 'lucide-react-native';
+import { Star, MapPin, Sparkles, ShieldCheck, Navigation as NavigationIcon } from 'lucide-react-native';
 import OptimizedImage from '../../components/OptimizedImage';
+import { useTheme } from '../../contexts/ThemeContext.jsx';
 
 const PulseDot = ({ isAvailable }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -25,14 +23,14 @@ const PulseDot = ({ isAvailable }) => {
         <Animated.View
           style={[
             styles.pulseCircle,
-            { transform: [{ scale: pulseAnim }], backgroundColor: Colors.STATUS_OPEN },
+            { transform: [{ scale: pulseAnim }], backgroundColor: '#10B981' },
           ]}
         />
       )}
       <View
         style={[
           styles.staticDot,
-          { backgroundColor: isAvailable ? Colors.STATUS_OPEN : Colors.TEXT_MUTED },
+          { backgroundColor: isAvailable ? '#10B981' : '#64748B' },
         ]}
       />
     </View>
@@ -82,62 +80,85 @@ const SalonCard = ({
   todaysBookings = 0,
   listingTier = 'standard',
   distance,
-  onPress }) => {
+  isVerified,
+  isPriority,
+  onPress
+}) => {
+  const { theme } = useTheme();
+
+  // If distance is numeric or string, format it nicely
+  const formattedDistance = distance 
+    ? (typeof distance === 'string' && distance.includes('km') 
+        ? distance 
+        : `~${parseFloat(distance).toFixed(1)} km`)
+    : null;
 
   return (
     <BouncyCard onPress={onPress}>
-      <View style={styles.shadowWrapper}>
-        <View style={styles.container}>
-          <View style={styles.imageArea}>
-            <OptimizedImage source={image} style={styles.image} contentFit="cover" />
+      <View style={[styles.hsPremiumCard, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.hsCardImageArea}>
+          <OptimizedImage
+            source={image}
+            style={styles.hsPremiumCardImage}
+            contentFit="cover"
+          />
+          <View style={styles.hsImageOverlay} />
 
-            <View style={styles.statusBadge}>
+          {/* Top-right: Status badge */}
+          <View style={styles.hsBadgeTopRight}>
+            <View style={[styles.hsStatusBadge, { backgroundColor: isAvailable ? '#FFF' : '#000', borderColor: isAvailable ? '#F1F5F9' : 'transparent' }]}>
               <PulseDot isAvailable={isAvailable} />
-              <Text style={styles.statusText}>{isAvailable ? 'Open' : 'Closed'}</Text>
+              <Text style={[styles.hsStatusBadgeText, { color: isAvailable ? '#000' : '#FFF' }]}>
+                {isAvailable ? 'Open Now' : 'Closed'}
+              </Text>
             </View>
-
-            <View style={styles.badgeColumn}>
-              {listingTier === 'premium' && (
-                <View style={styles.featuredBadge}>
-                  <Text style={styles.featuredText}>FEATURED</Text>
-                </View>
-              )}
-              {todaysBookings >= 5 && (
-                <View style={styles.trendingBadge}>
-                  <Text style={styles.trendingText}>Popular</Text>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{category.toUpperCase()}</Text>
-            </View>
-
-            {distance && (
-              <View style={styles.distanceBadge}>
-                <MapPin size={10} color={Colors.TEXT_ON_DARK} />
-                <Text style={styles.distanceText}>{distance}</Text>
-              </View>
-            )}
           </View>
 
-          <View style={styles.infoArea}>
-            <View style={styles.titleRow}>
-              <Text style={styles.name} numberOfLines={1}>
-                {name}
-              </Text>
-              <View style={styles.ratingBox}>
-                <Star size={12} color={Colors.TEXT_PRIMARY} fill={Colors.TEXT_PRIMARY} />
-                <Text style={styles.ratingText}>{rating > 0 ? rating.toFixed(1) : 'New'}</Text>
+          {/* Top-left: Category + Featured + Priority */}
+          <View style={styles.hsBadgeTopLeft}>
+            {(isPriority || listingTier === 'premium') && (
+              <View style={styles.hsFeaturedBadge}>
+                <Sparkles size={10} color="#FFF" />
+                <Text style={styles.hsFeaturedBadgeText}>FEATURED</Text>
               </View>
+            )}
+            <View style={styles.hsCategoryBadge}>
+              <Text style={styles.hsCategoryBadgeText}>{category?.toUpperCase() || 'SALON'}</Text>
             </View>
+          </View>
 
-            <View style={styles.locationRow}>
-              <MapPin size={12} color={Colors.TEXT_MUTED} />
-              <Text style={styles.address} numberOfLines={1}>
-                {address}
+          {/* Bottom-right: Distance pill */}
+          {formattedDistance && (
+            <View style={styles.distancePillOnImage}>
+              <NavigationIcon size={10} color="#FFF" />
+              <Text style={styles.distancePillText}>{formattedDistance}</Text>
+            </View>
+          )}
+
+          {isVerified && (
+            <View style={styles.hsVerifiedBadge}>
+              <ShieldCheck size={12} color="#FFF" />
+              <Text style={styles.hsVerifiedText}>Verified</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.hsPremiumCardContent}>
+          <View style={styles.hsTitleRow}>
+            <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{name}</Text>
+            <View style={[styles.hsRatingBadge, { backgroundColor: theme.colors.border }]}>
+              <Star size={12} color={theme.colors.text} fill={theme.colors.text} />
+              <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
+                {rating > 0 ? rating.toFixed(1) : 'New'}
               </Text>
             </View>
+          </View>
+
+          <View style={[styles.hsMetaRow, { alignItems: 'flex-start' }]}>
+            <MapPin size={14} color={theme.colors.textSecondary} style={{ marginTop: 2 }} />
+            <Text style={[styles.hsMetaText, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+              {address}
+            </Text>
           </View>
         </View>
       </View>
@@ -146,56 +167,25 @@ const SalonCard = ({
 };
 
 const styles = StyleSheet.create({
-  shadowWrapper: {
-    backgroundColor: '#FFFFFF',
+  hsPremiumCard: {
     borderRadius: 24,
-    // Soft, high-end professional shadow
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.04)',
+    // Strong Luxury Shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 10,
+    shadowRadius: 15,
+    elevation: 8
+  },
+  hsCardImageArea: { height: 210, position: 'relative', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+  hsPremiumCardImage: { width: '100%', height: '100%' },
+  hsImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.1)' },
 
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  container: {
-    width: '100%',
-    borderRadius: Layout.radiusCard,
-    overflow: 'hidden',
-  },
-  imageArea: {
-    height: 210,
-    position: 'relative',
-    backgroundColor: Colors.BG_IMAGE_PLACEHOLDER,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.BORDER_CARD
-  },
-  image: {
-    width: '100%',
-    height: '100%'
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.BG_CARD,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: Colors.BORDER_CARD
-  },
-  statusText: {
-    ...Typography.MICRO_LABEL,
-    fontSize: 9,
-    color: Colors.TEXT_PRIMARY,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
-  },
+  hsBadgeTopRight: { position: 'absolute', top: 12, right: 12 },
+  hsStatusBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  
   dotContainer: {
     width: 8,
     height: 8,
@@ -215,110 +205,29 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     opacity: 0.35
   },
-  badgeColumn: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    gap: 6
-  },
-  featuredBadge: {
-    backgroundColor: Colors.CTA_BUTTON,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: Layout.radiusTag
-  },
-  featuredText: {
-    color: Colors.TEXT_ON_DARK,
-    fontSize: 8,
-    fontFamily: 'DMSans_700Bold'
-  },
-  trendingBadge: {
-    backgroundColor: 'rgba(26,26,26,0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: Layout.radiusTag
-  },
-  trendingText: {
-    color: Colors.TEXT_ON_DARK,
-    fontSize: 8,
-    fontFamily: 'DMSans_700Bold'
-  },
-  categoryBadge: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    backgroundColor: 'rgba(26,26,26,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
-  },
-  categoryText: {
-    color: Colors.TEXT_ON_DARK,
-    fontSize: 8,
-    fontFamily: 'DMSans_700Bold',
-    letterSpacing: 0.8
-  },
-  distanceBadge: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    backgroundColor: 'rgba(26,26,26,0.65)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4
-  },
-  distanceText: {
-    color: Colors.TEXT_ON_DARK,
-    fontSize: 10,
-    fontFamily: 'DMSans_700Bold'
-  },
-  infoArea: {
-    paddingHorizontal: 16,
-    paddingVertical: 14
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 0 // Reduced from 4 for tighter typography
-  },
-  name: {
-    fontFamily: 'DMSans_700Bold', // Bolder professional look
-    fontSize: 22,
-    color: Colors.TEXT_PRIMARY,
-    letterSpacing: -0.6, // Tighter tracking for premium feel
-    flex: 1,
-    marginRight: 8
-  },
-  ratingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: Colors.BG_TAG,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6
-  },
-  ratingText: {
-    fontSize: 12,
-    fontFamily: 'DMSans_700Bold',
-    color: Colors.TEXT_PRIMARY
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 6
-  },
-  address: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 12,
-    color: Colors.TEXT_MUTED,
-    flex: 1
-  }
+
+  hsStatusBadgeText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  hsBadgeTopLeft: { position: 'absolute', top: 12, left: 12, gap: 6 },
+  hsFeaturedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F59E0B', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  hsFeaturedBadgeText: { color: '#FFF', fontSize: 9, fontWeight: '900', marginLeft: 4, letterSpacing: 1 },
+  hsCategoryBadge: { backgroundColor: '#0F172A', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  hsCategoryBadgeText: { fontSize: 9, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1.2 },
+
+  hsVerifiedBadge: { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: '#3B82F6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  hsVerifiedText: { color: '#FFF', fontSize: 10, fontWeight: '800', marginLeft: 4 },
+
+  hsPremiumCardContent: { padding: 16 },
+  hsTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
+  hsPremiumTitle: { fontSize: 19, fontWeight: '800', letterSpacing: -0.5, flex: 1, marginRight: 10 },
+  hsRatingBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  hsRatingText: { fontSize: 12, fontWeight: '800', marginLeft: 4 },
+
+  hsMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  hsMetaText: { fontSize: 13, marginLeft: 6, flex: 1, lineHeight: 18 },
+
+  distancePillOnImage: { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20, gap: 4 },
+  distancePillText: { fontSize: 10, fontWeight: '800', color: '#FFF' },
 });
 
 export default memo(SalonCard, (prev, next) => {
@@ -329,6 +238,9 @@ export default memo(SalonCard, (prev, next) => {
     prev.image === next.image &&
     prev.isAvailable === next.isAvailable &&
     prev.todaysBookings === next.todaysBookings &&
-    prev.listingTier === next.listingTier
+    prev.listingTier === next.listingTier &&
+    prev.distance === next.distance &&
+    prev.isVerified === next.isVerified &&
+    prev.isPriority === next.isPriority
   );
 });

@@ -549,6 +549,8 @@ const HomeScreen = ({ navigation }) => {
                 (getDistance(userCoords.latitude, userCoords.longitude, item.location.coordinates[1], item.location.coordinates[0]) / 1000).toFixed(1) + " km"
                 : null
               }
+              isVerified={item.isVerified}
+              isPriority={item.isPriority}
               onPress={() => {
                 const routeName = item.category === "Pet Care" ? "PetCareSearch" :
                                  item.category === "Women's Salon" ? "WomenSalonSearch" : "BarberSearch";
@@ -569,7 +571,7 @@ const HomeScreen = ({ navigation }) => {
 const getStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background
+    backgroundColor: '#FFFFFF'
   },
 
   // --- TOP SECTION (Redesigned matching SearchScreen) ---

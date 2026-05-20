@@ -375,7 +375,16 @@ const NotificationsScreen = ({ navigation }) => {
 
     try {
       const res = await api.get("/api/notifications");
-      setNotifications(res.data);
+      const filtered = (res.data || []).filter(n => {
+        const title = (n.title || "").toLowerCase();
+        const message = (n.message || "").toLowerCase();
+        const isCoinEarned = title.includes("coin earned") || 
+                             message.includes("coin earned") || 
+                             (title.includes("coin") && title.includes("earned")) ||
+                             (message.includes("coin") && message.includes("earned"));
+        return !isCoinEarned;
+      });
+      setNotifications(filtered);
     } catch (err) {
       console.log("Fetch failed", err);
     } finally {
