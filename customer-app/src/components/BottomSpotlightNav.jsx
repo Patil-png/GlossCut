@@ -87,7 +87,7 @@ const BottomSpotlightNav = () => {
     'EditEmail', 'PersonalInfo', 'ChangePassword', 'ManageNotifications',
     'AboutGlossCut', 'RefundPolicy', 'Chat', 'LikedBarbers', 'FaceSuggestor',
     'PrivacyCheckup', 'Notifications', 'ScheduleNextAppointment',
-    'BookingDetail'
+    'BookingDetail', 'NotificationDetail'
   ];
   const isShopSelected = currentRouteParams?.isShopSelected;
 

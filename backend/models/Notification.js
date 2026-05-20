@@ -27,6 +27,15 @@ const notificationSchema = new mongoose.Schema({
     get: decrypt,
   },
   // =========================================================
+  relatedId: {
+    type: String,
+    required: false,
+  },
+  type: {
+    type: String,
+    required: false,
+    default: 'system',
+  },
 
   date: {
     type: Date,

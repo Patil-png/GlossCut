@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "customer-app",
+    "name": "GlossCut",
     "slug": "customer-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/GlossCut.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "host": "tunnel",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/GlossCut.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F7F9F8"
     },
     "ios": {
       "supportsTablet": true,
@@ -47,8 +47,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/GlossCut.png",
+        "backgroundColor": "#F7F9F8"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.thakurthansen.customerapp"

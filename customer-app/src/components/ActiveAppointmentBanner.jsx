@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Activity, Zap, MoveRight, Navigation, Clock } from 'lucide-react-native';
+import { Clock, Key, ArrowRight, Calendar } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const resScale = (size) => (SCREEN_WIDTH / 375) * size;
-const mScale = (size, factor = 0.5) => size + (resScale(size) - size) * factor;
+const scale = Math.min(SCREEN_WIDTH / 375, 1.25);
+const normalize = (size) => Math.round(size * scale);
 
 const formatOrdinal = (n) => {
   if (!n || n === 0) return '---';
@@ -17,29 +16,15 @@ const formatOrdinal = (n) => {
 
 const ActiveAppointmentBanner = ({ appointment }) => {
   const navigation = useNavigation();
-  const [protocolIdx, setProtocolIdx] = useState(0);
-  const slideAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  const PROTOCOLS = ["ON TIME", "PROCEED", "READY", "BOARDING"];
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 0.7, duration: 1500, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
       ])
     ).start();
-
-    const interval = setInterval(() => {
-      Animated.timing(slideAnim, { toValue: -mScale(14), duration: 500, useNativeDriver: true }).start(() => {
-        setProtocolIdx((prev) => (prev + 1) % PROTOCOLS.length);
-        slideAnim.setValue(mScale(14));
-        Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }).start();
-      });
-    }, 4500);
-
-    return () => clearInterval(interval);
   }, []);
 
   if (!appointment) return null;
@@ -47,76 +32,65 @@ const ActiveAppointmentBanner = ({ appointment }) => {
   const realPosition = appointment.queuePosition;
 
   return (
-    <View style={styles.masterWrapper}>
-      {/* GUARANTEED SYNCED SUSPENSION SYSTEM */}
-      <View style={styles.suspensionSystem}>
-        <View style={styles.ropeGroup}>
-          <View style={styles.ropeLine} />
-          <View style={styles.hookBlock} />
-        </View>
-        <View style={styles.ropeGroup}>
-          <View style={styles.ropeLine} />
-          <View style={styles.hookBlock} />
-        </View>
-      </View>
-
+    <View style={styles.container}>
       <TouchableOpacity
-        activeOpacity={0.95}
-        style={styles.signageBoard}
-        onPress={() => navigation.navigate('TrackQueue', { trackingId: appointment.trackingId })}
+        activeOpacity={0.9}
+        onPress={() => {
+          navigation.navigate('TrackQueue', { trackingId: appointment.trackingId });
+        }}
+        style={styles.bannerCard}
       >
-        <View style={styles.signageInner}>
-          <View style={styles.leftSection}>
-            <View style={styles.brandGroup}>
-              <Navigation size={mScale(20)} color="#0A2520" style={{ transform: [{ rotate: '45deg' }] }} />
-              <View>
-                <Text style={styles.shopText} numberOfLines={1}>{appointment.shopName?.toUpperCase()}</Text>
-                <View style={styles.timeRow}>
-                   {appointment.time && appointment.time.includes(' ') && (
-                      <View style={styles.timeAmPmContainer}>
-                         <Text style={styles.timeAmPmText}>{appointment.time.split(' ')[1]}</Text>
-                      </View>
-                   )}
-                   <Text style={styles.timeText}>
-                      {appointment.time ? (appointment.time.includes(' ') ? appointment.time.split(' ')[0] : appointment.time) : 'NOW'}
-                   </Text>
-                </View>
+        {/* Glow indicator at the left border */}
+        <View style={styles.glowLine} />
+
+        <View style={styles.mainContent}>
+          {/* Left Info Column: Shop & Time */}
+          <View style={styles.leftCol}>
+            <View style={styles.shopRow}>
+              <View style={styles.iconWrapper}>
+                <Calendar size={normalize(14)} color="#C8FF00" strokeWidth={2.5} />
               </View>
+              <View style={styles.shopTextContainer}>
+                <Text style={styles.appointmentBadgeText}>TODAY'S APPOINTMENT</Text>
+                <Text style={styles.shopName} numberOfLines={1}>
+                  {appointment.shopName}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.timeBadgeContainer}>
+              <Clock size={normalize(11)} color="#A1A1AA" />
+              <Text style={styles.timeText}>
+                {appointment.time || 'Scheduled'}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
-
-          <View style={styles.rightSection}>
-            <View style={styles.statusGroup}>
-              <View style={styles.infoLabelGroup}>
-                <Text style={styles.subLabel}>QUEUE POSITION</Text>
-                <View style={styles.statusRow}>
-                  <View style={[styles.liveDot, { backgroundColor: realPosition ? '#10B981' : 'rgba(10,37,32,0.4)' }]} />
-                  <View>
-                    <Text style={[styles.statusMainText, { color: realPosition ? '#10B981' : 'rgba(10,37,32,0.6)' }]}>
-                      {!realPosition ? 'SYNCING...' : realPosition === 1 ? 'NEXT UP' : `${formatOrdinal(realPosition)} IN LINE`}
-                    </Text>
-                  </View>
-                </View>
+          {/* Right Info Column: Queue Position & Access OTP */}
+          <View style={styles.rightCol}>
+            {/* Live Queue Position Badge */}
+            <View style={styles.statusBox}>
+              <View style={styles.liveIndicatorRow}>
+                <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
+                <Text style={styles.liveLabel}>LIVE QUEUE</Text>
               </View>
-              <Animated.View style={[styles.statusCircle, { opacity: pulseAnim, backgroundColor: realPosition ? '#EF4444' : '#D1D5DB' }]}>
-                <Text style={[styles.circleText, { color: realPosition ? '#FFF' : '#4B5563' }]}>{realPosition || '-'}</Text>
-              </Animated.View>
-              <MoveRight size={mScale(18)} color="#0A2520" strokeWidth={2.5} />
+              <Text style={styles.queueValue}>
+                {!realPosition ? 'SYNCING...' : realPosition === 1 ? 'NEXT UP' : `${formatOrdinal(realPosition)}`}
+              </Text>
             </View>
 
-            <View style={styles.otpGroup}>
-              <View style={styles.infoLabelGroup}>
-                <Text style={styles.subLabel}>SECURE GATE</Text>
-                <Text style={styles.otpLabel}>ACCESS CODE</Text>
-              </View>
-              <View style={styles.otpBox}>
-                <Text style={styles.otpValueText}>{appointment.otp}</Text>
-              </View>
-              <MoveRight size={mScale(18)} color="#0A2520" strokeWidth={2.5} />
+            {/* OTP Access Box */}
+            <View style={styles.otpBox}>
+              <Key size={normalize(11)} color="#FCD34D" style={{ marginRight: 4 }} />
+              <Text style={styles.otpValueText}>{appointment.otp}</Text>
             </View>
           </View>
+        </View>
+
+        {/* Interactive Action Footer */}
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>Tap to open real-time tracking</Text>
+          <ArrowRight size={normalize(12)} color="#C8FF00" strokeWidth={2.5} />
         </View>
       </TouchableOpacity>
     </View>
@@ -124,207 +98,156 @@ const ActiveAppointmentBanner = ({ appointment }) => {
 };
 
 const styles = StyleSheet.create({
-  masterWrapper: {
-    paddingHorizontal: mScale(12),
-    paddingTop: mScale(28), // Room for ropes + hooks
-    paddingBottom: mScale(15),
+  container: {
+    paddingHorizontal: normalize(16),
+    marginTop: normalize(8),
+    marginBottom: normalize(12),
     width: '100%',
-    alignItems: 'center',
   },
-  suspensionSystem: {
-    position: 'absolute',
-    top: 0,
-    width: '60%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignSelf: 'center',
-    zIndex: 10,
-  },
-  ropeGroup: {
-    alignItems: 'center', // This guarantees rope feeds into hook center
-  },
-  ropeLine: {
-    width: 1.5,
-    height: mScale(26),
-    backgroundColor: '#CCCCCC',
-  },
-  hookBlock: {
-    width: mScale(5),
-    height: mScale(5),
-    backgroundColor: '#0A2520',
-    borderRadius: mScale(2.5),
-    borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.1)',
-    marginTop: -mScale(2), // Overlap onto the banner frame
-  },
-  signageBoard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: mScale(50),
-    borderWidth: mScale(3),
-    borderColor: '#0A2520',
-    minHeight: mScale(100),
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 10,
+  bannerCard: {
+    backgroundColor: '#121214',
+    borderRadius: normalize(16),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     overflow: 'hidden',
-    transform: [{ perspective: 1000 }, { rotateX: '5deg' }],
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  signageInner: {
+  glowLine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    backgroundColor: '#C8FF00',
+  },
+  mainContent: {
     flexDirection: 'row',
-    padding: mScale(15),
-    paddingHorizontal: mScale(25),
+    padding: normalize(16),
+    paddingLeft: normalize(20), // offset for the left indicator bar
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  leftCol: {
+    flex: 1.2,
+    gap: normalize(8),
+  },
+  shopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: normalize(10),
+  },
+  iconWrapper: {
+    width: normalize(28),
+    height: normalize(28),
+    borderRadius: normalize(8),
+    backgroundColor: 'rgba(200, 255, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(200, 255, 0, 0.2)',
+  },
+  shopTextContainer: {
     flex: 1,
   },
-  leftSection: {
-    flex: 1.2,
-    justifyContent: 'center',
+  appointmentBadgeText: {
+    fontSize: normalize(8),
+    fontWeight: '800',
+    color: '#A1A1AA',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
-  brandGroup: {
+  shopName: {
+    fontSize: normalize(14),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: normalize(2),
+    letterSpacing: -0.3,
+  },
+  timeBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: mScale(12),
-  },
-  shopText: {
-    fontFamily: Platform.OS === 'ios' ? 'Helvetica' : 'sans-serif-condensed',
-    fontSize: mScale(16),
-    fontWeight: '900',
-    color: '#0A2520',
-    letterSpacing: -0.2,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 4,
-    backgroundColor: '#1A1A1A', 
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    paddingHorizontal: normalize(8),
+    paddingVertical: normalize(4),
+    borderRadius: normalize(6),
     alignSelf: 'flex-start',
+    gap: normalize(6),
     borderWidth: 1,
-    borderColor: '#333',
-  },
-  timeAmPmContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 2,
-  },
-  timeAmPmText: {
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: mScale(5.5),
-    color: '#39FF14',
-    fontWeight: '900',
-    lineHeight: 7,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   timeText: {
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: mScale(13),
-    color: '#39FF14', 
-    fontWeight: '900',
-    letterSpacing: 1,
-    textShadowColor: 'rgba(57, 255, 20, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
+    fontSize: normalize(10),
+    fontWeight: '700',
+    color: '#E4E4E7',
   },
-  divider: {
-    width: 1,
-    height: '70%',
-    backgroundColor: 'rgba(10, 37, 32, 0.1)',
-    marginHorizontal: mScale(10),
-  },
-  rightSection: {
-    flex: 1.8,
-    justifyContent: 'space-between',
-    gap: mScale(8),
-  },
-  statusGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: mScale(10),
-  },
-  otpGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: mScale(10),
-  },
-  infoLabelGroup: {
-    alignItems: 'flex-end',
+  rightCol: {
     flex: 1,
+    alignItems: 'flex-end',
+    gap: normalize(8),
   },
-  subLabel: {
-    fontSize: mScale(7.5),
-    fontWeight: '900',
-    color: 'rgba(10, 37, 32, 0.4)',
-    letterSpacing: 0.5,
+  statusBox: {
+    alignItems: 'flex-end',
   },
-  statusRow: {
+  liveIndicatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: mScale(16),
-    overflow: 'hidden',
+    gap: normalize(4),
+    marginBottom: normalize(2),
   },
   liveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#C8FF00',
   },
-  statusMainText: {
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: mScale(12),
-    fontWeight: '900',
+  liveLabel: {
+    fontSize: normalize(8),
+    fontWeight: '800',
+    color: '#C8FF00',
+    letterSpacing: 0.5,
   },
-  otpLabel: {
-    fontSize: mScale(9),
-    fontWeight: '700',
-    color: '#0A2520',
-  },
-  statusCircle: {
-    width: mScale(26),
-    height: mScale(26),
-    borderRadius: mScale(13),
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circleText: {
-    color: '#FFF',
-    fontSize: mScale(12),
-    fontWeight: '900',
+  queueValue: {
+    fontSize: normalize(13),
+    fontWeight: '950',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
   },
   otpBox: {
-    backgroundColor: '#1A1A1A',
-    paddingHorizontal: mScale(10),
-    paddingVertical: mScale(3),
-    borderRadius: mScale(4),
-    minWidth: mScale(50),
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(252, 211, 77, 0.1)',
+    paddingHorizontal: normalize(8),
+    paddingVertical: normalize(4),
+    borderRadius: normalize(8),
+    borderWidth: 1,
+    borderColor: 'rgba(252, 211, 77, 0.2)',
   },
   otpValueText: {
-    color: '#FCD34D',
-    fontSize: mScale(12),
+    fontSize: normalize(11),
     fontWeight: '900',
-    letterSpacing: 1,
-  },
-  tickerLine: {
-    backgroundColor: 'rgba(10, 37, 32, 0.03)',
-    paddingVertical: mScale(4),
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(10, 37, 32, 0.05)',
-  },
-  tickerText: {
-    fontSize: mScale(7),
-    fontWeight: '800',
-    color: 'rgba(10, 37, 32, 0.3)',
+    color: '#FCD34D',
     letterSpacing: 0.5,
-  }
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    paddingVertical: normalize(8),
+    paddingHorizontal: normalize(16),
+    paddingLeft: normalize(20),
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  footerText: {
+    fontSize: normalize(9),
+    fontWeight: '600',
+    color: '#A1A1AA',
+  },
 });
 
 export default ActiveAppointmentBanner;

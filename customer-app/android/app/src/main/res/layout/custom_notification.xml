@@ -16,7 +16,7 @@
             android:id="@+id/app_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SetKarr • now"
+            android:text="GlossCut • now"
             android:textColor="#94A3B8"
             android:textSize="12sp"
             android:textStyle="bold" />

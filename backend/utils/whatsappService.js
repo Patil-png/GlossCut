@@ -133,22 +133,8 @@ ${selectedFooter}
             }
             const chatId = `${formattedPhone}@c.us`;
 
-            // Minimal randomized delay for instant delivery (200-500ms)
-            const randomDelay = Math.floor(Math.random() * (500 - 200 + 1) + 200);
-            console.log(`⏳ Waiting ${randomDelay}ms before sending OTP to ${formattedPhone}...`);
-            await this.sleep(randomDelay);
-
-            // Attempt to send with retry logic for Puppeteer stability
+            // Direct send to ensure instant delivery without blocking on getChatById (which causes 10-30s timeouts on new numbers)
             return await this._executeWithRetry(async () => {
-                try {
-                    // Try to simulate "Typing" state to look more human, but without blocking sleep
-                    const chat = await this.client.getChatById(chatId);
-                    await chat.sendStateTyping();
-                } catch (typingError) {
-                    console.warn('⚠️ Typing simulation failed, falling back to direct send:', typingError.message);
-                }
-
-                // Main send action - this is more robust in wwebjs
                 const message = this.generateMessage(otp);
                 await this.client.sendMessage(chatId, message);
                 

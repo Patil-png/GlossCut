@@ -329,6 +329,8 @@ router.post('/verify', auth, validate(schemas.verifyPayment), async (req, res) =
           userId: barber._id,
           title: 'New Booking (Paid)',
           message: `Payment of ₹${booking.totalPrice} received from ${finalCustomerName} for ${booking.services.length} service(s). Status: Confirmed.`,
+          relatedId: booking._id.toString(),
+          type: 'booking'
         });
         await newNotification.save();
 
@@ -467,6 +469,8 @@ router.post('/dummy-payment', auth, validate(schemas.dummyPayment), async (req, 
         userId: barber._id,
         title: 'New Booking (Paid)',
         message: `Payment (Dummy) of ₹${booking.totalPrice} received from ${finalCustomerName}. Status: Confirmed.`,
+        relatedId: booking._id.toString(),
+        type: 'booking'
       });
       await newNotification.save();
 
@@ -565,6 +569,8 @@ router.post('/book-without-payment', auth, validate(schemas.bookWithoutPayment),
         userId: barber._id,
         title: 'New Booking',
         message: `New booking from ${userName} for ${services.map(s => s.name).join(', ')} on ${date}.`,
+        relatedId: newBooking._id.toString(),
+        type: 'booking'
       });
       await newNotification.save();
     }

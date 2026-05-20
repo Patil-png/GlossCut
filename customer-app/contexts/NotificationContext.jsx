@@ -123,7 +123,7 @@ const getBlinkitProgressDetails = (title = '', message = '') => {
   return {
     progress: 0.5,
     timeText: 'Update received',
-    statusText: 'SetKarr Live',
+    statusText: 'GlossCut Live',
     iconType: 'bell',
     illustrationText: title,
     subMessage: message
@@ -147,8 +147,8 @@ const triggerLocalNotification = async (title, body) => {
         const progressValue = Math.round(details.progress * 100);
 
         const channelId = await notifee.createChannel({
-          id: 'setkarr-tracking',
-          name: 'SetKarr Live Tracking',
+          id: 'glosscut-tracking',
+          name: 'GlossCut Live Tracking',
           importance: AndroidImportance.HIGH,
         });
 
@@ -240,7 +240,7 @@ export const NotificationProvider = ({ children }) => {
               setNotifications(prev => [notification, ...prev]);
 
               triggerLocalNotification(
-                notification.title || "SetKarr Update",
+                notification.title || "GlossCut Update",
                 notification.message || notification.body || ""
               );
             });

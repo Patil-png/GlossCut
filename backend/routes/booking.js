@@ -245,7 +245,7 @@ router.get('/history', auth, async (req, res) => {
         { owner: { $in: barberIds } },
         { staff: { $in: barberIds } }
       ]
-    }).select('name address phone owner staff');
+    }).select('name address phone location owner staff');
 
     // Create a fast-lookup map for shop details mapped by barber ID
     const shopMap = new Map();
@@ -272,6 +272,9 @@ router.get('/history', auth, async (req, res) => {
           bObj.barberId.shopAddress = shop.address;
           bObj.barberId.shopPhone = shop.phone;
           bObj.barberId.shopId = shop._id;
+          if (shop.location && shop.location.coordinates) {
+            bObj.barberId.shopCoordinates = shop.location.coordinates;
+          }
         }
       }
       bookingsObj.push(bObj);
@@ -313,12 +316,15 @@ router.get('/active', auth, async (req, res) => {
           { owner: activeBookingObj.barberId._id },
           { staff: activeBookingObj.barberId._id }
         ]
-      }).select('name address phone');
+      }).select('name address phone location');
       if (shop) {
         activeBookingObj.barberId.shopName = shop.name;
         activeBookingObj.barberId.shopAddress = shop.address;
         activeBookingObj.barberId.shopPhone = shop.phone;
         activeBookingObj.barberId.shopId = shop._id;
+        if (shop.location && shop.location.coordinates) {
+          activeBookingObj.barberId.shopCoordinates = shop.location.coordinates;
+        }
       }
     }
 
@@ -537,12 +543,15 @@ router.get('/:id', auth, async (req, res) => {
           { owner: bookingObj.barberId._id },
           { staff: bookingObj.barberId._id }
         ]
-      }).select('name address phone');
+      }).select('name address phone location');
       if (shop) {
         bookingObj.barberId.shopName = shop.name;
         bookingObj.barberId.shopAddress = shop.address;
         bookingObj.barberId.shopPhone = shop.phone;
         bookingObj.barberId.shopId = shop._id;
+        if (shop.location && shop.location.coordinates) {
+          bookingObj.barberId.shopCoordinates = shop.location.coordinates;
+        }
       }
     }
 
@@ -567,7 +576,7 @@ router.put('/accept/:id', auth, async (req, res) => {
     const user = await User.findById(booking.userId);
     if (user) {
       // req.user.name is from auth middleware (User model), so it is decrypted automatically by the getter
-      const notification = new Notification({ userId: user._id, title: 'Booking Confirmed', message: `Your booking with ${req.user.name} has been confirmed.` });
+      const notification = new Notification({ userId: user._id, title: 'Booking Confirmed', message: `Your booking with ${req.user.name} has been confirmed.`, relatedId: booking._id.toString(), type: 'booking' });
       await notification.save();
       const io = req.app.get('io');
       if (io) {
@@ -625,7 +634,7 @@ router.post('/verify-otp-and-start/:id', auth, validate(schemas.verifyBookingOtp
     const updatedBooking = await Booking.findById(req.params.id).populate('userId', 'name email profilePicture phone gender language');
     const user = await User.findById(booking.userId);
     if (user) {
-      const notification = new Notification({ userId: user._id, title: 'Booking Started', message: `Your booking with ${req.user.name} has started.` });
+      const notification = new Notification({ userId: user._id, title: 'Booking Started', message: `Your booking with ${req.user.name} has started.`, relatedId: booking._id.toString(), type: 'booking' });
       await notification.save();
     }
     res.json(updatedBooking);
@@ -681,7 +690,8 @@ router.put('/decline/:id', auth, validate(schemas.declineBooking), async (req, r
     const user = await User.findById(booking.userId);
     if (user) {
       // cancellationReason is also encrypted in model, but accessed here via Mongoose getter, so it is a string
-      const n = new Notification({ userId: user._id, title: 'Booking Cancelled', message: `Your booking was cancelled: ${booking.cancellationReason}` });
+      const n = new Notification({ userId: user._id, title: 'Booking Cancelled', message: `Your booking was cancelled: ${booking.cancellationReason}`, relatedId: booking._id.toString(), type: 'booking' });
+      await n.save();
       if (io) {
         io.to(`user_${booking.userId}`).emit('notification', n.toObject());
         // NEW: Notify barber room to refresh UI
@@ -831,7 +841,7 @@ router.put('/complete/:id', auth, async (req, res) => {
       const tx = new SetkarCoinTransaction({ userId: user._id, type: 'recharge', amount: 1, description: 'Completion Reward' });
       await tx.save();
 
-      const n = new Notification({ userId: user._id, title: 'Booking Completed', message: 'Booking completed. 1 Coin earned.' });
+      const n = new Notification({ userId: user._id, title: 'Booking Completed', message: 'Booking completed. 1 Coin earned.', relatedId: booking._id.toString(), type: 'booking' });
       await n.save();
       const io = req.app.get('io');
       if (io) {
@@ -848,7 +858,13 @@ router.put('/complete/:id', auth, async (req, res) => {
       const rawIdentifier = updatedBooking.isOfflineBooking ? updatedBooking.customerName : updatedBooking.userId.name;
       // Use decrypt() to ensure we get the string, even if the model getter missed it somehow (which it shouldn't, but this is safer)
       const identifier = decrypt(rawIdentifier);
-      const bn = new Notification({ userId: barber._id, title: 'Booking Completed', message: `Booking for ${identifier} completed.` });
+      const bn = new Notification({ 
+        userId: barber._id, 
+        title: 'Booking Completed', 
+        message: `Booking for ${identifier} completed.`,
+        relatedId: booking._id.toString(),
+        type: 'booking'
+      });
       await bn.save();
     }
 
@@ -941,7 +957,9 @@ router.put('/:id/almost-done', auth, async (req, res) => {
         const n = new Notification({
           userId: user._id,
           title: "You're Up Next!",
-          message: "Your barber is almost ready. Please head to the shop immediately to keep your spot!"
+          message: "Your barber is almost ready. Please head to the shop immediately to keep your spot!",
+          relatedId: nextBooking._id.toString(),
+          type: 'booking'
         });
         await n.save();
 
@@ -1057,8 +1075,14 @@ router.put('/swap-down/:id', auth, async (req, res) => {
         await txn.save();
         await user.save();
 
-        const n = new Notification({ userId: user._id, title: 'Booking Cancelled', message: 'Booking cancelled due to too many delays.' });
-        await n.save();
+         const n = new Notification({ 
+           userId: user._id, 
+           title: 'Booking Cancelled', 
+           message: 'Booking cancelled due to too many delays.',
+           relatedId: booking._id.toString(),
+           type: 'booking'
+         });
+         await n.save();
       }
       return res.json({ msg: 'Booking cancelled due to maximum skips', booking, status: 'cancelled' });
     }
@@ -1182,7 +1206,13 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
           const add = toCancel.appointmentType === 'Express' ? 20 : 7;
           cUser.setkarCoins = (cUser.setkarCoins || 0) + add;
           await cUser.save();
-          const notif = new Notification({ userId: cUser._id, title: 'Booking Cancelled', message: 'Higher priority booking displaced you.' });
+          const notif = new Notification({ 
+            userId: cUser._id, 
+            title: 'Booking Cancelled', 
+            message: 'Higher priority booking displaced you.',
+            relatedId: toCancel._id.toString(),
+            type: 'booking'
+          });
           await notif.save();
         }
       } else {
@@ -1252,7 +1282,9 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       const customerNotification = new Notification({ 
         userId: req.user.id, 
         title: 'Booking Confirmed', 
-        message: `Your booking with ${barber.name} is confirmed.` 
+        message: `Your booking with ${barber.name} is confirmed.`,
+        relatedId: saved._id.toString(),
+        type: 'booking'
       });
       await customerNotification.save();
 
@@ -1260,7 +1292,9 @@ router.post('/', auth, validate(schemas.createBooking), async (req, res) => {
       const barberNotification = new Notification({ 
         userId: barber._id, 
         title: 'New Booking', 
-        message: `New booking from ${req.user.name}` 
+        message: `New booking from ${req.user.name}`,
+        relatedId: saved._id.toString(),
+        type: 'booking'
       });
       await barberNotification.save();
 
