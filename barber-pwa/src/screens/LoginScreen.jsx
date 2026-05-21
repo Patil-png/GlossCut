@@ -139,7 +139,7 @@ const LoginScreen = () => {
                     >
                         <div className="w-[110px] h-[110px] rounded-full bg-white/90 flex items-center justify-center mb-4 shadow-lg shadow-[#8B4513]/20 border border-[#D4AF37]/50 overflow-hidden relative">
                             <div className="absolute inset-0 rounded-full border border-[#D4AF37]/50 pointer-events-none"></div>
-                            <img src="/LoginLogo.png" alt="Logo" className="w-[70%] h-[70%] object-contain" />
+                            <img src="/GlossCut.png" alt="Logo" className="w-[70%] h-[70%] object-contain" />
                         </div>
 
                         <div className="flex flex-col items-center mb-1.5">

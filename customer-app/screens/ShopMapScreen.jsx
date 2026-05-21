@@ -790,7 +790,7 @@ const ShopMapScreen = ({ route, navigation }) => {
   const fetchRoute = useCallback(async (userCoords, shopCoords) => {
     try {
       const [shopLng, shopLat] = shopCoords;
-      const url = `http://router.project-osrm.org/route/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopLng},${shopLat}?overview=full&geometries=geojson`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${userCoords.longitude},${userCoords.latitude};${shopLng},${shopLat}?overview=full&geometries=geojson`;
       const res = await fetch(url);
       const data = await res.json();
 

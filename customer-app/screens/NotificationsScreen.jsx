@@ -19,7 +19,8 @@ import {
   Platform,
   LayoutAnimation,
   ScrollView,
-  Pressable
+  Pressable,
+  Image
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
@@ -264,7 +265,11 @@ const NotificationCard = memo(({ item, theme, onPress, isFirst, isLast }) => {
             }
           ]}
         >
-          <Icon size={normalize(18)} color={nTheme.color} strokeWidth={2.5} />
+          <Image 
+            source={require("../assets/GlossCutAppIcon.png")} 
+            style={{ width: '100%', height: '100%', borderRadius: normalize(16) }} 
+            resizeMode="cover" 
+          />
         </View>
 
         <View style={styles.cardMain}>

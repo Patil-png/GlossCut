@@ -12,7 +12,7 @@ import { setItem, getItem } from '../utils/idb';
 
 const NotificationIcon = ({ size = 18, grayscale = false }) => (
     <img
-        src="/GlossCutQr.png"
+        src="/GlossCut.png"
         className={`w-full h-full object-cover ${grayscale ? 'grayscale opacity-50' : ''}`}
         alt="Notification"
     />
@@ -284,9 +284,9 @@ const NotificationSettingsScreen = () => {
                             <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${enabled ? 'bg-indigo-500' : 'bg-transparent'
                                 }`} />
                             {enabled ? (
-                                <img src="/SetKarr.png" className="w-full h-full object-cover rounded-full" alt="Notification" />
+                                <img src="/GlossCut.png" className="w-full h-full object-cover rounded-full" alt="Notification" />
                             ) : (
-                                <img src="/SetKarr.png" className="w-full h-full object-cover rounded-full grayscale opacity-50" alt="Notification" />
+                                <img src="/GlossCut.png" className="w-full h-full object-cover rounded-full grayscale opacity-50" alt="Notification" />
                             )}
                         </motion.div>
                         <h2 className="text-2xl font-black text-[#1C1C1E] mb-2">Push Notifications</h2>
@@ -358,7 +358,7 @@ const NotificationSettingsScreen = () => {
 
                             <div className="p-5 flex gap-4 items-start bg-white">
                                 <div className="w-11 h-11 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-inner border border-indigo-100 overflow-hidden">
-                                    <img src="/SetKarr.png" className="w-8 h-8 object-contain" alt="Brand Icon" />
+                                    <img src="/GlossCut.png" className="w-8 h-8 object-contain" alt="Brand Icon" />
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start mb-0.5">

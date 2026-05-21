@@ -559,7 +559,7 @@ const MapScreen = ({ navigation }) => {
 
       setIsLoadingRoute(true);
       try {
-        const url = `http://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${shopLng},${shopLat}?overview=full&geometries=geojson`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${shopLng},${shopLat}?overview=full&geometries=geojson`;
         const response = await fetch(url);
         const data = await response.json();
 

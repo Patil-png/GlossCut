@@ -509,7 +509,7 @@ const SignupScreen = () => {
                     <div className="flex flex-col items-center mb-6">
                         <div className="mb-4 shadow-xl shadow-[#5D4037]/20 rounded-[32px] p-[2px] bg-[#D4AF37]">
                             <div className="w-[72px] h-[72px] rounded-[25px] bg-[#FAF7F2] border border-[#E6DCCA] flex items-center justify-center">
-                                <img src="/SetKarr.png" alt="Logo" className="w-[50px] h-[50px] object-contain" />
+                                <img src="/GlossCut.png" alt="Logo" className="w-[50px] h-[50px] object-contain" />
                             </div>
                         </div>
                         <div className="text-center">

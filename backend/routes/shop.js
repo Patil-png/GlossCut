@@ -745,15 +745,13 @@ router.get('/all', redisCache(600), async (req, res) => {
         shopsRaw.push(...nearResults);
       }
 
-      // Conditionally populate based on slim requirement
+      // Always include fields required for computed stats (rating, bookings, maxAppointments)
       const populateFields = [
-        { path: 'owner', select: 'name profilePicture isAvailable' },
-        { path: 'staff', select: 'name profilePicture isAvailable' }
+        { path: 'owner', select: 'name profilePicture isAvailable maxAppointmentsPerDay rating reviews' },
+        { path: 'staff', select: 'name profilePicture isAvailable maxAppointmentsPerDay rating reviews' }
       ];
 
       if (!isSlim) {
-        populateFields[0].select += ' maxAppointmentsPerDay rating reviews';
-        populateFields[1].select += ' maxAppointmentsPerDay rating reviews';
         populateFields.push({
           path: 'selectedListingPlaces',
           populate: { path: 'lockedBy', select: 'name profilePicture' }

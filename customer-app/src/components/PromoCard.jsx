@@ -128,8 +128,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   logo: {
-    width: '80%',
-    height: '80%'
+    width: '110%',
+    height: '110%',
+    marginLeft: 4 // Shifted to the right by 12 pixels
   },
   cardGradient: {
     flex: 1,

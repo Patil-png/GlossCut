@@ -99,7 +99,7 @@ const NotificationDetailScreen = () => {
                         {/* Status Chip */}
                         <div className="flex justify-between items-start mb-8">
                             <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center border border-gray-100 shadow-sm overflow-hidden">
-                                <img src="/GlossCutQr.png" className="w-full h-full object-cover" alt="Notification" />
+                                <img src="/GlossCut.png" className="w-full h-full object-cover" alt="Notification" />
                             </div>
                             {isRead && (
                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100">

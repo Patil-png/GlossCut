@@ -538,7 +538,7 @@ const HomeScreen = ({ navigation }) => {
           <View style={{ paddingHorizontal: Layout.screenPadding }}>
             <SalonCard
               name={item.name}
-              rating={item.rating || 0}
+              rating={item.shopRating || item.rating || 0}
               address={item.address}
               image={getImageUrl(item.image || item.owner?.profilePicture)}
               isAvailable={item.isAvailable}

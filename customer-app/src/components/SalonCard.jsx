@@ -147,7 +147,7 @@ const SalonCard = ({
           <View style={styles.hsTitleRow}>
             <Text style={[styles.hsPremiumTitle, { color: theme.colors.text }]} numberOfLines={1}>{name}</Text>
             <View style={[styles.hsRatingBadge, { backgroundColor: theme.colors.border }]}>
-              <Star size={12} color={theme.colors.text} fill={theme.colors.text} />
+              <Star size={12} color="yellow" fill="#F59E0B" />
               <Text style={[styles.hsRatingText, { color: theme.colors.text }]}>
                 {rating > 0 ? rating.toFixed(1) : 'New'}
               </Text>
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 8
   },
-  hsCardImageArea: { height: 210, position: 'relative', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+  hsCardImageArea: { height: 225, position: 'relative', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
   hsPremiumCardImage: { width: '100%', height: '100%' },
   hsImageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.1)' },
 

@@ -79,11 +79,7 @@ const ActiveAppointmentBanner = ({ appointment }) => {
               </Text>
             </View>
 
-            {/* OTP Access Box */}
-            <View style={styles.otpBox}>
-              <Key size={normalize(11)} color="#FCD34D" style={{ marginRight: 4 }} />
-              <Text style={styles.otpValueText}>{appointment.otp}</Text>
-            </View>
+
           </View>
         </View>
 
@@ -216,22 +212,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.2,
   },
-  otpBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(252, 211, 77, 0.1)',
-    paddingHorizontal: normalize(8),
-    paddingVertical: normalize(4),
-    borderRadius: normalize(8),
-    borderWidth: 1,
-    borderColor: 'rgba(252, 211, 77, 0.2)',
-  },
-  otpValueText: {
-    fontSize: normalize(11),
-    fontWeight: '900',
-    color: '#FCD34D',
-    letterSpacing: 0.5,
-  },
+
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

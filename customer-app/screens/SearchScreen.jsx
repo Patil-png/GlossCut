@@ -614,14 +614,7 @@ const ShopDetailsSheet = memo(({ visible, shop, onClose, theme, styles, onLike, 
 
             {/* Hero Content Overlay (Compact & Responsive) */}
             <View style={[styles.heroContent, { position: 'relative', marginTop: 15, paddingLeft: 24, paddingRight: 60 }]}>
-              <View style={styles.badgeRow}>
-                {shop.shopRating > 0 && (
-                  <View style={styles.heroRatingBadge}>
-                    <Star size={10} color="#FFD700" fill="#FFD700" style={{ marginRight: 4 }} />
-                    <Text style={styles.heroRatingText}>{Number(shop.shopRating).toFixed(1)}</Text>
-                  </View>
-                )}
-              </View>
+
 
               <Text style={styles.heroTitle} numberOfLines={1} ellipsizeMode="tail">{shop.name}</Text>
 

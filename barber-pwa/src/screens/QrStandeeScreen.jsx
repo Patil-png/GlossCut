@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -84,7 +84,7 @@ const QrStandeeScreen = () => {
                                 level="H"
                                 includeMargin={true}
                                 imageSettings={{
-                                    src: "/GlossCutQr.png",
+                                    src: "/GlossCut.png",
                                     height: 55,
                                     width: 55,
                                     excavate: true,
@@ -92,7 +92,7 @@ const QrStandeeScreen = () => {
                             />
                             {/* ROUNDED LOGO OVERLAY */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[55px] h-[55px] bg-white rounded-2xl p-1 shadow-md flex items-center justify-center">
-                                <img src="/GlossCutQr.png" alt="logo" className="w-full h-full object-contain rounded-xl" />
+                                <img src="/GlossCut.png" alt="logo" className="w-full h-full object-contain rounded-xl" />
                             </div>
                         </div>
 
@@ -131,7 +131,7 @@ const QrStandeeScreen = () => {
                 </div>
             </main>
 
-            {/* PRINT ONLY LAYOUT — BUSINESS CARD STYLE */}
+            {/* PRINT ONLY LAYOUT � BUSINESS CARD STYLE */}
             <div className="hidden print:block print:w-full print:m-0 print:p-0">
                 <style>{`
                     @media print {
@@ -294,7 +294,7 @@ const QrStandeeScreen = () => {
                                     {/* LEFT: Logo + Name */}
                                     <div className="card-left">
                                         <div className="card-logo-circle">
-                                            <img src="/GlossCutQr.png" alt="GlossCut" />
+                                            <img src="/GlossCut.png" alt="GlossCut" />
                                         </div>
                                         <div className="card-brand-label">GlossCut Partner</div>
                                         <div className="card-shop-name">{cleanShopName}</div>
@@ -324,14 +324,14 @@ const QrStandeeScreen = () => {
                                                 level="H"
                                                 includeMargin={false}
                                                 imageSettings={{
-                                                    src: "/GlossCutQr.png",
+                                                    src: "/GlossCut.png",
                                                     height: 34,
                                                     width: 34,
                                                     excavate: true,
                                                 }}
                                             />
                                             <div className="card-logo-overlay">
-                                                <img src="/GlossCutQr.png" alt="logo" />
+                                                <img src="/GlossCut.png" alt="logo" />
                                             </div>
                                         </div>
                                         <div className="card-url">glosscut.com/checkin</div>

@@ -164,7 +164,7 @@ const TrackQueueScreen = ({ route, navigation }) => {
         </View>
       </Animated.View>
 
-      <View style={[styles.premiumHeader, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.premiumHeader, { paddingTop: Math.max(insets.top, 10) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerActionBtn}>
           <ArrowLeft size={20} color="#111" strokeWidth={3} />
         </TouchableOpacity>
@@ -179,11 +179,11 @@ const TrackQueueScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 60, paddingBottom: insets.bottom + 40 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 50, paddingBottom: insets.bottom + 40 }}>
         <View style={styles.bottomRegion}>
           {!queueData ? (
             <>
-              <Animated.View style={[styles.inputCard, { transform: [{ translateX: shakeAnim }], marginTop: 80 }]}>
+              <Animated.View style={[styles.inputCard, { transform: [{ translateX: shakeAnim }], marginTop: 30 }]}>
                 <View style={styles.inputHeader}>
                   <View style={styles.iconBox}><QrCode size={18} color="#111" strokeWidth={2.5} /></View>
                   <View><Text style={styles.inputTitle}>Live Tracking</Text><Text style={styles.inputTag}>SECURE GATEWAY</Text></View>
@@ -392,8 +392,8 @@ const styles = StyleSheet.create({
   headerPrimaryTitle: { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 13, color: '#111', fontWeight: '800', letterSpacing: 1.5 },
   headerStatusBox: { width: 40, alignItems: 'flex-end' },
   statusPulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00C896', shadowColor: '#00C896', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 5 },
-  bottomRegion: { paddingHorizontal: 20 },
-  inputCard: { backgroundColor: '#FFF', borderRadius: 32, padding: 25, borderWidth: 1.5, borderColor: '#F2F4F7', shadowColor: '#000', shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.05, shadowRadius: 30, elevation: 10 },
+  bottomRegion: { paddingHorizontal: SCREEN_WIDTH > 400 ? 30 : 20, width: '100%', maxWidth: 500, alignSelf: 'center' },
+  inputCard: { backgroundColor: '#FFF', borderRadius: 32, padding: SCREEN_WIDTH > 360 ? 25 : 20, borderWidth: 1.5, borderColor: '#F2F4F7', shadowColor: '#000', shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.05, shadowRadius: 30, elevation: 10, width: '100%' },
   inputHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 15 },
   iconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#F8F9FA', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E9ECEF' },
   inputTitle: { fontFamily: 'PlusJakartaSans_800ExtraBold', fontSize: 16, color: '#111' },

@@ -139,7 +139,7 @@ const MobileOnlyGuard = ({ children }) => {
                                             level="H"
                                             includeMargin={false}
                                             imageSettings={{
-                                                src: "/LoginLogo.png",
+                                                src: "/GlossCut.png",
                                                 height: 32,
                                                 width: 32,
                                                 excavate: true,
@@ -179,7 +179,7 @@ const MobileOnlyGuard = ({ children }) => {
             {/* Premium Branding Footer */}
             <div className="absolute bottom-6 md:bottom-10 left-0 w-full px-8 md:px-12 flex justify-between items-center opacity-40 z-50">
                 <div className="flex items-center gap-3 md:gap-4">
-                    <img src="/LoginLogo.png" alt="Logo" className="h-5 md:h-6 grayscale" />
+                    <img src="/GlossCut.png" alt="Logo" className="h-5 md:h-6 grayscale" />
                     <div className="w-px h-5 bg-gray-300"></div>
                     <span className="text-[10px] md:text-xs font-black text-gray-900 tracking-widest uppercase">Glosscut Partners</span>
                 </div>

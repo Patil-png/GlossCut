@@ -11,7 +11,8 @@ import {
   Dimensions,
   Clipboard,
   ActivityIndicator,
-  Linking
+  Linking,
+  Image
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext.jsx";
 import { useNavigation, useRoute, useIsFocused } from "@react-navigation/native";
@@ -35,7 +36,8 @@ import {
   Check,
   ChevronRight,
   TrendingUp,
-  XCircle
+  XCircle,
+  User
 } from "lucide-react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { format, parseISO, addMinutes } from "date-fns";
@@ -424,7 +426,7 @@ const NotificationDetailScreen = () => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 72, paddingBottom: 130 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 72, paddingBottom: Math.max(insets.bottom + 20, 40) }]}
       >
         {/* --- PROFESSIONAL TICKET CARD --- */}
         <Animated.View style={[
@@ -452,7 +454,11 @@ const NotificationDetailScreen = () => {
               {isCancelled ? (
                 <XCircle size={18} color="#EF4444" strokeWidth={2.2} />
               ) : (
-                <TypeIcon size={18} color={isDark ? nTheme.color : '#1A1A1A'} strokeWidth={2.2} />
+                <Image 
+                  source={require("../assets/GlossCutAppIcon.png")} 
+                  style={{ width: '100%', height: '100%', borderRadius: 21 }} 
+                  resizeMode="cover" 
+                />
               )}
             </View>
             <View style={styles.headerTextCol}>
@@ -476,36 +482,7 @@ const NotificationDetailScreen = () => {
               </Text>
             </View>
 
-            {/* LIVE ACTION TRIGGER BUTTON INSIDE CARD */}
-            {liveBooking && (isPending || isConfirmed) && (
-              <TouchableOpacity 
-                activeOpacity={0.8}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('TrackQueue', { trackingId: liveBooking.queueTrackingId || liveBooking._id });
-                }}
-                style={[styles.cardActionBtn, { backgroundColor: isDark ? '#2E2E2E' : '#1A1A1A' }]}
-              >
-                <TrendingUp size={14} color="#C8FF00" />
-                <Text style={styles.cardActionBtnText}>Track Queue in Real-Time</Text>
-                <ChevronRight size={14} color="#C8FF00" />
-              </TouchableOpacity>
-            )}
 
-            {liveBooking && isCompleted && (
-              <TouchableOpacity 
-                activeOpacity={0.8}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  navigation.navigate('BookingDetail', { booking: liveBooking });
-                }}
-                style={[styles.cardActionBtn, { backgroundColor: isDark ? '#2E2E2E' : '#1A1A1A' }]}
-              >
-                <ClipboardList size={14} color="#C8FF00" />
-                <Text style={styles.cardActionBtnText}>View Invoice & Review</Text>
-                <ChevronRight size={14} color="#C8FF00" />
-              </TouchableOpacity>
-            )}
           </View>
 
           {isBooking && (
@@ -521,11 +498,23 @@ const NotificationDetailScreen = () => {
               <View style={styles.tableSection}>
                 <View style={styles.tableRow}>
                   <View style={styles.rowLabelCol}>
-                    <Calendar size={13} color={theme.colors.textSecondary} />
-                    <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>Shop / Barber</Text>
+                    <MapPin size={13} color={theme.colors.textSecondary} />
+                    <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>Shop Name</Text>
                   </View>
                   <Text style={[styles.rowValue, { color: theme.colors.text }]} numberOfLines={1}>
-                    {displayShop} • {displayBarber}
+                    {displayShop}
+                  </Text>
+                </View>
+
+                <View style={[styles.rowDivider, { backgroundColor: theme.colors.border }]} />
+
+                <View style={styles.tableRow}>
+                  <View style={styles.rowLabelCol}>
+                    <User size={13} color={theme.colors.textSecondary} />
+                    <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>Barber</Text>
+                  </View>
+                  <Text style={[styles.rowValue, { color: theme.colors.text }]} numberOfLines={1}>
+                    {displayBarber}
                   </Text>
                 </View>
 
@@ -534,10 +523,10 @@ const NotificationDetailScreen = () => {
                 <View style={styles.tableRow}>
                   <View style={styles.rowLabelCol}>
                     <Clock size={13} color={theme.colors.textSecondary} />
-                    <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>Time & Services</Text>
+                    <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>Time</Text>
                   </View>
                   <Text style={[styles.rowValue, { color: theme.colors.text }]} numberOfLines={1}>
-                    {liveBooking?.time || timeLogged} ({displayServices})
+                    {liveBooking?.time || timeLogged}
                   </Text>
                 </View>
 
@@ -545,24 +534,15 @@ const NotificationDetailScreen = () => {
 
                 <View style={styles.tableRow}>
                   <View style={styles.rowLabelCol}>
-                    <ClipboardList size={13} color={theme.colors.textSecondary} />
-                    <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>Verification OTP</Text>
+                    <CheckCircle size={13} color={theme.colors.textSecondary} />
+                    <Text style={[styles.rowLabel, { color: theme.colors.textSecondary }]}>Services</Text>
                   </View>
-                  <TouchableOpacity 
-                    activeOpacity={0.7} 
-                    onPress={copyToClipboard}
-                    style={[styles.copyableBadge, { backgroundColor: isDark ? '#1C1C1E' : '#F0EFE9', borderColor: theme.colors.border }]}
-                  >
-                    <Text style={[styles.rowValueMonospace, { color: theme.colors.text }]}>
-                      {liveBooking?.otp || notification?.otp || 'N/A'}
-                    </Text>
-                    {copied ? (
-                      <Check size={11} color="#C8FF00" strokeWidth={3} />
-                    ) : (
-                      <Copy size={10} color={theme.colors.textSecondary} />
-                    )}
-                  </TouchableOpacity>
+                  <Text style={[styles.rowValue, { color: theme.colors.text }]} numberOfLines={1}>
+                    {displayServices}
+                  </Text>
                 </View>
+
+
 
                 <View style={[styles.rowDivider, { backgroundColor: theme.colors.border }]} />
 
@@ -586,71 +566,40 @@ const NotificationDetailScreen = () => {
           )}
         </Animated.View>
 
-        {isBooking && (
-          /* --- LIVE DHL-STYLE TIMELINE --- */
-          <Animated.View style={[styles.progressSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>LIVE TIMELINE</Text>
-            <View style={[styles.progressCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-              <TimelineStep
-                time={timeLogged}
-                title="Notification Logged"
-                desc="GlossCut registered and confirmed transaction log activity."
-                completed
-                theme={theme}
-                isDark={isDark}
-              />
 
-              {isCancelled ? (
-                <TimelineStep
-                  time={timeCancelled}
-                  title="Booking Cancelled"
-                  desc="The appointment reservation was cancelled and slot released."
-                  completed={false}
-                  current={false}
-                  isErrorState
-                  last
-                  theme={theme}
-                  isDark={isDark}
-                />
-              ) : (
-                <>
-                  <TimelineStep
-                    time={timeConfirmed}
-                    title={isPending ? "Awaiting Confirmation" : "Booking Confirmed"}
-                    desc={isPending ? "Connecting with professional specialist..." : "Appointment accepted and scheduled."}
-                    completed={isConfirmed}
-                    current={isPending}
-                    theme={theme}
-                    isDark={isDark}
-                  />
-                  <TimelineStep
-                    time={isStarted ? (getFormattedTime(liveBooking?.startedAt) || timeConfirmed) : '--:--'}
-                    title={isCompleted ? "Session Started" : (status === 'started' ? "Grooming In Progress" : "Grooming Session")}
-                    desc={isCompleted ? "Your grooming session was successfully completed." : (status === 'started' ? "Your grooming session is underway!" : "Please head to the chair when called.")}
-                    completed={isStarted}
-                    current={status === 'confirmed'}
-                    theme={theme}
-                    isDark={isDark}
-                  />
-                  <TimelineStep
-                    time={timeCompleted}
-                    title="Session Finalized"
-                    desc="All booking records and service logs are compiled."
-                    completed={isCompleted}
-                    current={status === 'started'}
-                    last
-                    theme={theme}
-                    isDark={isDark}
-                  />
-                </>
-              )}
+
+        {/* --- STATIC NOTES & INFORMATION --- */}
+        <View style={styles.helpSection}>
+          <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 24 }]}>
+            <View style={[styles.headerPill, { backgroundColor: isDark ? '#1C1C1E' : '#F8F9FA', borderColor: theme.colors.border }]}>
+              <Text style={[styles.headerPillText, { color: theme.colors.text }]}>IMPORTANT INFORMATION</Text>
             </View>
-          </Animated.View>
-        )}
+            <View style={[styles.headerLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)' }]} />
+          </View>
+          <View style={[styles.infoCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <View style={styles.infoRow}>
+              <Info size={14} color={isDark ? '#C8FF00' : theme.colors.primary} />
+              <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
+                This record is purely informational and generated automatically. Please refer to your booking dashboard for live updates.
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <CheckCircle size={14} color={isDark ? '#C8FF00' : theme.colors.primary} />
+              <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
+                All prices and times listed above are estimated and may change based on the professional's final assessment.
+              </Text>
+            </View>
+          </View>
+        </View>
 
         {/* --- ASSISTANCE LINKS --- */}
         <View style={styles.helpSection}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>CUSTOMER ASSISTANCE</Text>
+          <View style={[styles.sectionHeader, { marginBottom: 12, marginTop: 24 }]}>
+            <View style={[styles.headerPill, { backgroundColor: isDark ? '#1C1C1E' : '#F8F9FA', borderColor: theme.colors.border }]}>
+              <Text style={[styles.headerPillText, { color: theme.colors.text }]}>CUSTOMER ASSISTANCE</Text>
+            </View>
+            <View style={[styles.headerLine, { backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)' }]} />
+          </View>
           <View style={styles.helpGrid}>
             <TouchableOpacity 
               activeOpacity={0.85} 
@@ -674,32 +623,6 @@ const NotificationDetailScreen = () => {
           </View>
         </View>
       </ScrollView>
-
-      {/* --- STICKY FOOTER --- */}
-      <BlurView
-        tint={isDark ? "dark" : "light"}
-        intensity={98}
-        style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), borderTopColor: theme.colors.border }]}
-      >
-        <TouchableOpacity 
-          activeOpacity={0.9} 
-          style={styles.primaryAction} 
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            navigation.navigate('Home');
-          }}
-        >
-          <LinearGradient
-            colors={isDark ? ['#C8FF00', '#D4FF40'] : ['#1A1A1A', '#2E2E2E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradient}
-          >
-            <Text style={[styles.actionText, { color: isDark ? '#1A1A1A' : '#FFFFFF' }]}>Return to Dashboard</Text>
-            <Zap size={14} color={isDark ? '#1A1A1A' : '#C8FF00'} fill={isDark ? '#1A1A1A' : '#C8FF00'} />
-          </LinearGradient>
-        </TouchableOpacity>
-      </BlurView>
     </View>
   );
 };
@@ -730,22 +653,22 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   navTitle: {
-    fontSize: 13,
-    fontWeight: "900",
+    fontSize: 14,
+    fontWeight: "700",
     letterSpacing: -0.2
   },
   scrollContent: {
     paddingHorizontal: 16
   },
   ticketCard: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.02,
-    shadowRadius: 24,
-    elevation: 3
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.06,
+    shadowRadius: 32,
+    elevation: 6
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -766,14 +689,14 @@ const styles = StyleSheet.create({
     flex: 1
   },
   cardTag: {
-    fontSize: 8.5,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    marginBottom: 2
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    marginBottom: 3
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: "900",
+    fontSize: 17,
+    fontWeight: "700",
     letterSpacing: -0.3
   },
   descriptionSection: {
@@ -781,11 +704,16 @@ const styles = StyleSheet.create({
     paddingBottom: 16
   },
   calloutBox: {
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
+    padding: 14,
     flexDirection: "row",
-    overflow: "hidden"
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1
   },
   accentBar: {
     width: 3,
@@ -794,9 +722,9 @@ const styles = StyleSheet.create({
   },
   calloutText: {
     flex: 1,
-    fontSize: 12.5,
-    lineHeight: 18,
-    fontWeight: "500"
+    fontSize: 13.5,
+    lineHeight: 20,
+    fontWeight: "400"
   },
   cardActionBtn: {
     flexDirection: "row",
@@ -852,7 +780,8 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+    paddingVertical: 5
   },
   rowLabelCol: {
     flexDirection: "row",
@@ -860,13 +789,31 @@ const styles = StyleSheet.create({
     gap: 6
   },
   rowLabel: {
-    fontSize: 11.5,
-    fontWeight: "600"
+    fontSize: 12.5,
+    fontWeight: "500"
   },
   rowValue: {
+    flex: 1,
+    fontSize: 12.5,
+    fontWeight: "600",
+    textAlign: "right",
+    marginLeft: 16
+  },
+  stackedValueContainer: {
+    flex: 1,
+    marginLeft: 16,
+    alignItems: "flex-end",
+    gap: 2
+  },
+  rowValueMain: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    textAlign: "right"
+  },
+  rowValueSub: {
     fontSize: 11.5,
-    fontWeight: "800",
-    maxWidth: width * 0.5
+    fontWeight: "400",
+    textAlign: "right"
   },
   copyableBadge: {
     flexDirection: "row",
@@ -911,15 +858,44 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4
   },
-  progressCard: {
-    borderRadius: 14,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 4
+  },
+  headerPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 100,
+    marginRight: 10,
     borderWidth: 1,
-    padding: 14,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.01,
-    shadowRadius: 10,
-    elevation: 1
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  headerPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase'
+  },
+  headerLine: {
+    flex: 1,
+    height: 1.5,
+    borderRadius: 1
+  },
+  progressCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.03,
+    shadowRadius: 16,
+    elevation: 2
   },
   stepRow: {
     flexDirection: "row",
@@ -1000,39 +976,63 @@ const styles = StyleSheet.create({
     elevation: 1
   },
   helpBtnText: {
-    fontSize: 11.5,
-    fontWeight: "800",
+    fontSize: 12.5,
+    fontWeight: "600",
   },
   footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     borderTopWidth: 1,
   },
   primaryAction: {
-    height: 46,
-    borderRadius: 12,
+    height: 52,
+    borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 4
   },
   gradient: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6
+    gap: 8
   },
   actionText: {
-    fontSize: 13.5,
-    fontWeight: "900",
-    letterSpacing: -0.2
+    fontSize: 15.5,
+    fontWeight: "700",
+    letterSpacing: 0.2
+  },
+  infoCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12,
+    marginTop: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1
+  },
+  infoRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "flex-start"
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: "400",
+    marginTop: -1
   }
 });
 

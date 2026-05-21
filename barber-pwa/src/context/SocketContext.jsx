@@ -50,7 +50,7 @@ export const SocketProvider = ({ children }) => {
             if ('Notification' in window && Notification.permission === 'granted') {
                 const options = {
                     body: bodyText,
-                    icon: '/GlossCutQr.png',
+                    icon: '/GlossCut.png',
                     badge: '/ic_stat_notification_icon.png',
                     vibrate: [200, 100, 200, 100, 200, 100, 200],
                     requireInteraction: true,

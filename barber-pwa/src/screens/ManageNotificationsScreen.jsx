@@ -7,7 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NotificationIcon = ({ size = 18 }) => (
-    <img src="/GlossCutQr.png" className="w-full h-full object-cover" alt="Notification" />
+    <img src="/GlossCut.png" className="w-full h-full object-cover" alt="Notification" />
 );
 
 
@@ -89,7 +89,7 @@ const ManageNotificationsScreen = () => {
                             <div className={`w-full h-full rounded-[40px] flex items-center justify-center relative z-10 shadow-xl border-4 border-white ${notificationsEnabled ? 'bg-white text-emerald-500 shadow-emerald-100' : 'bg-gray-100 text-gray-400'
                                 }`}>
                                 <img
-                                    src="/GlossCutQr.png"
+                                    src="/GlossCut.png"
                                     className={`w-full h-full object-cover ${notificationsEnabled ? '' : 'grayscale opacity-50'}`}
                                     alt="Notification"
                                 />

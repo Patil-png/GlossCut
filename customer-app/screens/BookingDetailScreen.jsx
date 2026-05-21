@@ -631,100 +631,45 @@ const BookingDetailScreen = ({ route, navigation }) => {
           {(isConfirmed || isPending) && (
             <View style={styles.trackingCard}>
                <View style={styles.detailsHeaderRow}>
-                  <View style={styles.detailsIconCircle}>
+                  <LinearGradient colors={['rgba(200, 255, 0, 0.2)', 'rgba(200, 255, 0, 0.05)']} style={[styles.detailsIconCircle, { borderColor: 'rgba(200, 255, 0, 0.4)', borderWidth: 1 }]}>
                      <Clock size={20} color="#0F172A" />
-                  </View>
+                  </LinearGradient>
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                     <Text style={styles.detailsTitle}>Live Queue Position</Text>
-                     <Text style={styles.detailsSubtitle}>Track your turn in real time</Text>
+                     <Text style={[styles.detailsTitle, { fontSize: 16, fontWeight: '900' }]}>Live Queue Status</Text>
+                     <Text style={[styles.detailsSubtitle, { color: '#64748B' }]}>Track your turn in real time</Text>
                   </View>
-                  <View style={styles.liveBadge}>
-                     <Animated.View style={[styles.liveDot, { opacity: pulseAnim }]} />
-                     <Text style={styles.liveBadgeText}>LIVE MONITOR</Text>
+                  <View style={[styles.liveBadge, { backgroundColor: '#10B981', borderColor: 'transparent', shadowColor: '#10B981', shadowOffset: {width:0, height:4}, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4 }]}>
+                     <Animated.View style={[styles.liveDot, { backgroundColor: '#FFF', opacity: pulseAnim }]} />
+                     <Text style={[styles.liveBadgeText, { color: '#FFF' }]}>LIVE</Text>
                   </View>
                </View>
 
                {/* Live Queue Dashboard */}
                <View style={styles.liveQueueDashboard}>
-                  <View style={styles.queueMetricBox}>
+                  <LinearGradient colors={['#F8FAFC', '#F1F5F9']} style={styles.queueMetricBox}>
                      <Text style={styles.queueMetricLabel}>Your Rank</Text>
-                     <Text style={styles.queueMetricValue}>
+                     <Text style={[styles.queueMetricValue, { color: '#0F172A' }]}>
                         #{queueInfo?.queuePosition || booking.queuePosition || "1"}
                      </Text>
-                  </View>
-                  <View style={styles.queueMetricBox}>
+                  </LinearGradient>
+                  <LinearGradient colors={['#F8FAFC', '#F1F5F9']} style={styles.queueMetricBox}>
                      <Text style={styles.queueMetricLabel}>People Ahead</Text>
-                     <Text style={styles.queueMetricValue}>
+                     <Text style={[styles.queueMetricValue, { color: '#0F172A' }]}>
                         {queueInfo?.peopleAhead !== undefined 
                            ? queueInfo.peopleAhead 
                            : "0"}
                      </Text>
-                  </View>
-                  <View style={styles.queueMetricBox}>
-                     <Text style={styles.queueMetricLabel}>Est. Wait</Text>
-                     <Text style={[styles.queueMetricValue, { color: '#10B981' }]}>
+                  </LinearGradient>
+                  <LinearGradient colors={['rgba(16,185,129,0.08)', 'rgba(16,185,129,0.02)']} style={[styles.queueMetricBox, { borderColor: 'rgba(16,185,129,0.2)' }]}>
+                     <Text style={[styles.queueMetricLabel, { color: '#10B981' }]}>Est. Wait</Text>
+                     <Text style={[styles.queueMetricValue, { color: '#10B981', fontSize: 20 }]}>
                         {queueInfo?.estimatedWaitMinutes 
                            ? `${queueInfo.estimatedWaitMinutes}m` 
                            : "10m"}
                      </Text>
-                  </View>
+                  </LinearGradient>
                </View>
 
-               {/* Elegant Horizontal Progress Bar */}
-               <View style={styles.progressBarWrapper}>
-                  <View style={styles.progressBarTrack}>
-                     <View 
-                        style={[
-                           styles.progressBarFill, 
-                           { 
-                              width: queueInfo?.peopleAhead === 0 
-                                 ? '100%' 
-                                 : queueInfo?.peopleAhead === 1 
-                                    ? '66%' 
-                                    : '33%' 
-                           }
-                        ]} 
-                     />
-                  </View>
-                  <View style={styles.progressBarSteps}>
-                     <View style={styles.progressStepItem}>
-                        <View style={[styles.stepCircle, styles.stepCircleCompleted]}>
-                           <Check size={10} color="#000" strokeWidth={3} />
-                        </View>
-                        <Text style={styles.stepLabel}>Booked</Text>
-                     </View>
-                     <View style={styles.progressStepItem}>
-                        <View 
-                           style={[
-                              styles.stepCircle, 
-                              queueInfo?.peopleAhead === undefined || queueInfo?.peopleAhead > 0 
-                                 ? styles.stepCircleActive 
-                                 : styles.stepCircleCompleted
-                           ]}
-                        >
-                           {queueInfo?.peopleAhead === 0 ? (
-                              <Check size={10} color="#000" strokeWidth={3} />
-                           ) : (
-                              <View style={styles.stepDotInner} />
-                           )}
-                        </View>
-                        <Text style={styles.stepLabel}>In Queue</Text>
-                     </View>
-                     <View style={styles.progressStepItem}>
-                        <View 
-                           style={[
-                              styles.stepCircle, 
-                              queueInfo?.peopleAhead === 0 
-                                 ? styles.stepCircleActive 
-                                 : styles.stepCircleInactive
-                           ]}
-                        >
-                           {queueInfo?.peopleAhead === 0 && <View style={styles.stepDotInner} />}
-                      </View>
-                        <Text style={styles.stepLabel}>Ready</Text>
-                     </View>
-                  </View>
-               </View>
 
                <TouchableOpacity 
                   style={styles.trackLiveButton}
@@ -1316,10 +1261,14 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 12,
   },
-  progressBarFill: {
+  progressBarFillGradient: {
     height: '100%',
-    backgroundColor: '#0F172A',
     borderRadius: 3,
+    shadowColor: '#C8FF00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 2
   },
   progressBarSteps: {
     flexDirection: 'row',
