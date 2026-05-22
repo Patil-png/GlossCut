@@ -266,52 +266,52 @@ const ServiceItem = React.memo(({ item, meta, onEdit, onDelete, isLocked }) => {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="bg-white border border-gray-100 rounded-2xl flex flex-col shadow-sm cursor-pointer active:scale-[0.99] transition-transform relative overflow-hidden group"
+            className="bg-white flex flex-col cursor-pointer hover:bg-slate-50/40 transition-colors duration-200 relative overflow-hidden group py-3.5 px-3 first:rounded-t-[28px] last:rounded-b-[28px]"
         >
-            <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: meta.color }} />
+            <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: meta.color }} />
 
-            <div className="flex items-center justify-between p-4 flex-1">
-                <div className="flex items-center gap-3 flex-1 overflow-hidden">
+            <div className="flex items-center justify-between flex-1 pl-2.5">
+                <div className="flex items-center gap-3.5 flex-1 min-w-0 overflow-hidden">
                     {!isLocked && (
                         <div
-                            className="w-6 flex items-center justify-center opacity-20 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none"
+                            className="w-6 flex items-center justify-center opacity-25 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 touch-none flex-shrink-0"
                             onPointerDown={(e) => controls.start(e)}
                         >
-                            <GripVertical size={20} className="text-gray-400" />
+                            <GripVertical size={18} className="text-slate-400" />
                         </div>
                     )}
                     <div
-                        className={`flex items-center gap-3 flex-1 overflow-hidden ${isLocked ? 'pl-2' : ''}`}
+                        className={`flex items-center gap-3.5 flex-1 min-w-0 overflow-hidden ${isLocked ? 'pl-2' : ''}`}
                         onClick={() => setIsExpanded(!isExpanded)}
                     >
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 text-lg flex-shrink-0">
+                        <div className="w-10 h-10 rounded-[14px] flex items-center justify-center bg-slate-50 border border-slate-100 text-lg flex-shrink-0 shadow-sm">
                             {meta.emoji}
                         </div>
-                        <div className="overflow-hidden">
-                            <h4 className="text-[15px] font-bold text-[#1C1C1E] truncate inline-flex items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                            <h4 className="text-[14px] font-extrabold text-slate-800 truncate inline-flex items-center gap-2 leading-snug">
                                 {item.name}
                                 {item.isInherited && (
-                                    <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+                                    <span className="text-[8px] font-black bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider border border-amber-150">
                                         Shop Master
                                     </span>
                                 )}
                             </h4>
                             <div className="flex items-center gap-2 mt-0.5">
                                 {item.category && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{item.category}</span>
+                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 uppercase tracking-wider">{item.category}</span>
                                 )}
-                                <span className="text-xs text-gray-400">{item.time} min</span>
-                                <ChevronRight size={12} className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                <span className="text-xs font-bold text-slate-400">{item.time} min</span>
+                                <ChevronRight size={12} strokeWidth={2.5} className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                             </div>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3 ml-2">
-                    <span className="text-base font-bold text-[#1C1C1E]">₹{item.price}</span>
+                <div className="flex items-center gap-2.5 ml-2 flex-shrink-0">
+                    <span className="text-[15px] font-black text-slate-800 mr-1">₹{item.price}</span>
                     {!item.isInherited && !isLocked && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onDelete(item); }}
-                            className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors"
+                            className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 hover:bg-rose-100 transition-colors border border-rose-100/50 shadow-sm"
                         >
                             <Trash size={14} />
                         </button>
@@ -319,9 +319,9 @@ const ServiceItem = React.memo(({ item, meta, onEdit, onDelete, isLocked }) => {
                     {!isLocked && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${item.isInherited ? 'bg-amber-50 text-amber-600' : 'bg-indigo-50 text-[#6366F1] hover:bg-indigo-100'}`}
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors shadow-sm ${item.isInherited ? 'bg-amber-50 text-amber-600 border border-amber-100/50 hover:bg-amber-100' : 'bg-indigo-50 text-[#6366F1] hover:bg-indigo-100 border border-indigo-100/50'}`}
                         >
-                            {item.isInherited ? <Sparkles size={14} /> : <ChevronRight size={14} />}
+                            {item.isInherited ? <Sparkles size={14} /> : <ChevronRight size={14} strokeWidth={2.5} />}
                         </button>
                     )}
                 </div>
@@ -333,10 +333,10 @@ const ServiceItem = React.memo(({ item, meta, onEdit, onDelete, isLocked }) => {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden border-t border-gray-50 bg-gray-50/30"
+                        className="overflow-hidden bg-slate-50/50 border-t border-slate-100/50 mt-3"
                     >
-                        <div className="px-14 pb-4 pt-2">
-                            <p className="text-sm text-gray-500 font-medium italic leading-relaxed">
+                        <div className="px-14 pb-4 pt-3">
+                            <p className="text-[12px] text-slate-550 font-medium italic leading-relaxed">
                                 "{item.description}"
                             </p>
                         </div>
@@ -397,6 +397,7 @@ const CreateBarberCardScreen = () => {
     const [loading, setLoading] = useState(false);
     const [existingCard, setExistingCard] = useState(!!barberCard);
     const [shopData, setShopData] = useState(null);
+    const [originalData, setOriginalData] = useState(null);
 
     // Toast State
     const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
@@ -441,9 +442,14 @@ const CreateBarberCardScreen = () => {
                 setShopData(shopRes.data);
                 if (catRes.data) setCategories(catRes.data);
 
+                let data = null;
                 if (cardRes && cardRes.data) {
-                    const data = cardRes.data;
+                    data = cardRes.data;
+                } else if (barberCard) {
+                    data = barberCard;
+                }
 
+                if (data) {
                     // HYDRATION: Restore category from master list since backend doesn't persist it
                     const rawServices = data.pendingChanges?.services || data.services || [];
                     const hydratedServices = rawServices.map(s => {
@@ -476,6 +482,17 @@ const CreateBarberCardScreen = () => {
                     setCategoryOrder(currentData.categoryOrder);
                     setApprovalStatus(data.approvalStatus);
                     setExistingCard(true);
+
+                    // Set baseline original data directly from database state (ignoring location.state overrides)
+                    setOriginalData({
+                        name: data.pendingChanges?.name || data.name || user?.name || "",
+                        services: hydratedServices,
+                        avgAppointmentTime: data.pendingChanges?.avgAppointmentTime || data.avgAppointmentTime,
+                        maxAppointments: data.pendingChanges?.maxAppointments || data.maxAppointments || user?.maxAppointmentsPerDay || "",
+                        isAvailable: data.pendingChanges?.isAvailable !== undefined ? data.pendingChanges.isAvailable : data.isAvailable,
+                        image: data.pendingChanges?.image || data.image,
+                        categoryOrder: data.categoryOrder || [],
+                    });
 
                     if (shopRes.data) {
                         setIsSyncEnabled(shopRes.data.forceStaffServiceSync);
@@ -677,6 +694,41 @@ const CreateBarberCardScreen = () => {
         if (selectedMainTab === 'All') return genderMatched;
         return genderMatched.filter(s => s.category === selectedMainTab);
     }, [services, selectedMainTab, selectedMainGender]);
+
+    const showSaveButton = useMemo(() => {
+        if (!existingCard) return true;
+        if (!originalData) return false;
+
+        if (name.trim() !== originalData.name.trim()) return true;
+        if (isAvailable !== originalData.isAvailable) return true;
+
+        const currentMax = maxAppointments !== null && maxAppointments !== undefined ? String(maxAppointments) : "";
+        const originalMax = originalData.maxAppointments !== null && originalData.maxAppointments !== undefined ? String(originalData.maxAppointments) : "";
+        if (currentMax !== originalMax) return true;
+
+        if (barberCardImage !== originalData.image) return true;
+
+        if (JSON.stringify(categoryOrder) !== JSON.stringify(originalData.categoryOrder)) return true;
+
+        if (services.length !== originalData.services.length) return true;
+
+        for (let i = 0; i < services.length; i++) {
+            const s1 = services[i];
+            const s2 = originalData.services[i];
+            if (
+                s1.serviceId !== s2.serviceId ||
+                s1.name !== s2.name ||
+                String(s1.price) !== String(s2.price) ||
+                String(s1.time) !== String(s2.time) ||
+                s1.category !== s2.category ||
+                s1.description !== s2.description
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }, [existingCard, originalData, name, isAvailable, maxAppointments, barberCardImage, categoryOrder, services]);
 
     const handleModalClose = useCallback(() => {
         setShowServiceModal(false);
@@ -1022,12 +1074,12 @@ const CreateBarberCardScreen = () => {
                         </div>
 
                         {/* Gender Filter for Main Menu */}
-                        <div className="flex bg-gray-200/50 p-1 rounded-xl mb-4">
+                        <div className="flex bg-slate-100 p-1 rounded-2xl mb-4 border border-slate-200/30">
                             {['male', 'female', 'unisex'].map(gen => (
                                 <button
                                     key={gen}
                                     onClick={() => handleSelectMainGender(gen)}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${selectedMainGender === gen ? 'bg-white text-indigo-600 shadow-sm border border-gray-100' : 'text-gray-400'}`}
+                                    className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${selectedMainGender === gen ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-700'}`}
                                 >
                                     {gen === 'male' ? '♂ Men' : gen === 'female' ? '♀ Women' : '✨ Unisex'}
                                 </button>
@@ -1044,10 +1096,10 @@ const CreateBarberCardScreen = () => {
                             </div>
                         ) : (
                             <>
-                                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-2 px-1">
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none mb-3 px-1">
                                     <button
                                         onClick={() => setSelectedMainTab('All')}
-                                        className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${selectedMainTab === 'All' ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all shadow-sm ${selectedMainTab === 'All' ? `bg-gradient-to-r from-indigo-500 to-indigo-600 border-transparent text-white shadow-md shadow-indigo-100` : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50/50 hover:text-slate-800'}`}
                                     >
                                         <span>💈</span>
                                         All
@@ -1060,7 +1112,7 @@ const CreateBarberCardScreen = () => {
                                             <button
                                                 key={tab}
                                                 onClick={() => setSelectedMainTab(tab)}
-                                                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[13px] font-bold whitespace-nowrap transition-colors ${isActive ? `bg-indigo-500 border-indigo-500 text-white` : 'bg-white border-gray-200 text-gray-600'}`}
+                                                className={`shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all shadow-sm ${isActive ? `bg-gradient-to-r from-indigo-500 to-indigo-600 border-transparent text-white shadow-md shadow-indigo-100` : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50/50 hover:text-slate-800'}`}
                                             >
                                                 <span>{meta.emoji}</span>
                                                 {tab}
@@ -1074,46 +1126,63 @@ const CreateBarberCardScreen = () => {
                                     })}
                                 </div>
 
-                                <Reorder.Group
-                                    axis="y"
-                                    values={filteredServices}
-                                    onReorder={handleReorderServices}
-                                    className="space-y-3"
-                                >
-                                    <AnimatePresence mode='popLayout'>
-                                        {filteredServices.map(item => (
-                                            <ServiceItem
-                                                key={item.id}
-                                                item={item}
-                                                meta={getCatMeta(item.category || 'General')}
-                                                onEdit={handleEditService}
-                                                onDelete={handleDeleteService}
-                                                isLocked={!isMainOwner && isSyncEnabled}
-                                            />
-                                        ))}
-                                    </AnimatePresence>
-                                </Reorder.Group>
+                                {filteredServices.length === 0 ? (
+                                    <div className="bg-white border border-slate-100 rounded-[28px] shadow-sm p-8 flex flex-col items-center justify-center text-center">
+                                        <Scissors size={24} className="text-slate-350 mb-2" />
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No services in this category</p>
+                                    </div>
+                                ) : (
+                                    <Reorder.Group
+                                        axis="y"
+                                        values={filteredServices}
+                                        onReorder={handleReorderServices}
+                                        className="bg-white border border-slate-100 rounded-[28px] shadow-sm p-1 divide-y divide-slate-100 overflow-hidden"
+                                    >
+                                        <AnimatePresence mode='popLayout'>
+                                            {filteredServices.map(item => (
+                                                <ServiceItem
+                                                    key={item.id}
+                                                    item={item}
+                                                    meta={getCatMeta(item.category || 'General')}
+                                                    onEdit={handleEditService}
+                                                    onDelete={handleDeleteService}
+                                                    isLocked={!isMainOwner && isSyncEnabled}
+                                                />
+                                            ))}
+                                        </AnimatePresence>
+                                    </Reorder.Group>
+                                )}
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* FOOTER - ALWAYS SHOW SAVE (Staff can edit personal details) */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-8 flex justify-center z-40">
-                    <div className="w-full max-w-[450px]">
-                        <button
-                            onClick={handleSave}
-                            disabled={loading}
-                            className="w-full h-14 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4338CA] text-white font-bold text-lg shadow-xl shadow-indigo-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+                {/* FOOTER - ONLY SHOW SAVE WHEN CHANGES ARE MADE */}
+                <AnimatePresence>
+                    {showSaveButton && (
+                        <motion.div
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                            className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 p-4 pb-8 flex justify-center z-40"
                         >
-                            {loading ? <RefreshCw className="animate-spin" /> : (
-                                <>
-                                    {existingCard ? "Save Changes" : "Create Profile"} <ArrowRight size={20} />
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
+                            <div className="w-full max-w-[450px]">
+                                <button
+                                    onClick={handleSave}
+                                    disabled={loading}
+                                    className="w-full h-14 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4338CA] text-white font-bold text-lg shadow-xl shadow-indigo-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+                                >
+                                    {loading ? <RefreshCw className="animate-spin" /> : (
+                                        <>
+                                            {existingCard ? "Save Changes" : "Create Profile"} <ArrowRight size={20} />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* MODAL */}
                 <AnimatePresence>
