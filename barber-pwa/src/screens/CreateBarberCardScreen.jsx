@@ -297,9 +297,6 @@ const ServiceItem = React.memo(({ item, meta, onEdit, onDelete, isLocked }) => {
                                 )}
                             </h4>
                             <div className="flex items-center gap-2 mt-0.5">
-                                {item.category && (
-                                    <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 uppercase tracking-wider">{item.category}</span>
-                                )}
                                 <span className="text-xs font-bold text-slate-400">{item.time} min</span>
                                 <ChevronRight size={12} strokeWidth={2.5} className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                             </div>
