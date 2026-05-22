@@ -43,8 +43,13 @@ const ActivityItem = ({ icon: Icon, title, subtitle, isLast }) => (
 );
 
 const SectionHeader = ({ title }) => (
-    <div className="mb-3 mt-2.5 px-1.5">
-        <h3 className="text-[12px] font-extrabold text-[#999] tracking-widest uppercase">{title}</h3>
+    <div className="flex items-center w-full mb-4 px-1.5 mt-2.5">
+        {/* Header Pill */}
+        <div className="bg-[#F8F9FA] px-4 py-1.5 rounded-full border border-black/[0.06] shadow-[0_2px_4px_rgba(0,0,0,0.03)] flex items-center mr-2.5 flex-shrink-0">
+            <h3 className="text-[10px] font-[900] text-[#1A1A1A] uppercase tracking-[0.1em]">{title}</h3>
+        </div>
+        {/* Header Line */}
+        <div className="flex-1 h-[1.5px] bg-black/[0.08] rounded-full" />
     </div>
 );
 

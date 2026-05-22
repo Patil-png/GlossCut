@@ -78,88 +78,177 @@ const TopToast = React.memo(({ visible, message, type, onHide }) => {
 });
 
 const BarberCardPreview = React.memo(({ barberData }) => {
+    const isAvailable = barberData.isAvailable !== false;
+    const coverImage = barberData.image?.uri;
+
     return (
-        <div className="bg-white rounded-[20px] overflow-hidden shadow-xl border border-gray-100 relative">
-            <div className="h-[180px] bg-gray-200 relative">
-                {barberData.image?.uri ? (
+        <div className="bg-white rounded-[24px] mb-4 border border-black/[0.04] shadow-[0_10px_30px_rgba(0,0,0,0.06)] relative overflow-hidden group transition-all duration-300 hover:shadow-2xl">
+            {/* Image Area */}
+            <div className="h-[225px] relative rounded-t-[24px] overflow-hidden bg-slate-100">
+                {coverImage ? (
                     <img
-                        src={barberData.image.uri}
+                        src={coverImage}
                         alt="Barber Cover"
                         className="w-full h-full object-cover"
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300 text-4xl font-bold">
-                        {barberData.name?.charAt(0)?.toUpperCase() || "?"}
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 gap-2">
+                        <User size={40} className="text-slate-350" />
+                        <span className="text-[9px] font-black tracking-widest uppercase text-slate-400">No Cover Image</span>
                     </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                {/* Image Overlay */}
+                <div className="absolute inset-0 bg-black/10 pointer-events-none z-10" />
 
-                <div className="absolute top-3 right-3 flex gap-2">
-                    <div className="bg-[#27AE60] text-white text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                        {barberData.rating > 0 ? barberData.rating.toFixed(1) : "New"} <Star size={10} fill="#fff" />
+                {/* Top-Right: Status Badge */}
+                <div className="absolute top-3 right-3 z-20">
+                    <div className={`flex flex-row items-center px-[10px] py-[6px] rounded-[20px] border shadow-sm ${isAvailable ? 'bg-[#FFF] border-[#F1F5F9]' : 'bg-[#000] border-transparent'}`}>
+                        {/* Pulse Dot */}
+                        <div className="w-2 h-2 mr-1.5 flex items-center justify-center relative">
+                            {isAvailable && (
+                                <div className="absolute w-2 h-2 rounded-full bg-[#10B981] animate-ping opacity-35" />
+                            )}
+                            <div className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`} />
+                        </div>
+                        <span className={`text-[10px] font-[800] uppercase tracking-[0.5px] ${isAvailable ? 'text-black' : 'text-white'}`}>
+                            {isAvailable ? 'Online' : 'Offline'}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Top-Left: Category Badge */}
+                <div className="absolute top-3 left-3 z-20 flex flex-col gap-[6px] items-start">
+                    <div className="bg-[#0F172A] border border-white/10 px-[10px] py-[5px] rounded-[6px] self-start">
+                        <span className="text-[9px] font-[900] text-white tracking-[1.2px] uppercase">
+                            BARBER
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <div className="p-4 relative">
-                <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-xl font-extrabold text-[#1C1C1E] flex-1 truncate pr-2">
+            {/* Content Area */}
+            <div className="p-4">
+                <div className="flex justify-between items-center mb-1">
+                    <h3 className="text-[19px] font-[800] tracking-[-0.5px] text-slate-900 flex-1 mr-2.5 truncate uppercase">
                         {barberData.name || "Your Name Here"}
                     </h3>
-                    <CheckCircle size={16} className="text-[#6366F1] flex-shrink-0" fill="white" />
-                </div>
-                <p className="text-sm text-gray-500 font-medium mb-3">
-                    {barberData.address || "Shop Address, City"}
-                </p>
-
-                <div className="h-px bg-gray-100 my-3" />
-
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="flex items-center gap-1.5 text-[#64748B]">
-                        <Clock size={14} />
-                        <span className="text-[13px] font-semibold">{barberData.avgAppointmentTime || "30 min"}</span>
-                    </div>
-                    <div className="w-1 h-1 rounded-full bg-gray-300" />
-                    <div className="flex items-center gap-1.5 text-[#64748B]">
-                        <Scissors size={14} />
-                        <span className="text-[13px] font-semibold">{barberData.totalServices || 0} Services</span>
+                    <div className="flex items-center bg-slate-100 px-2 py-1 rounded-[8px] gap-1 ml-2">
+                        <Star size={12} className="text-yellow-500 fill-[#F59E0B]" />
+                        <span className="text-xs font-[800] text-slate-800 ml-1">
+                            {barberData.rating > 0 ? barberData.rating.toFixed(1) : 'New'}
+                        </span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-xl w-fit">
-                    <div className={`w-2 h-2 rounded-full ${barberData.isAvailable ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <span className={`text-xs font-bold ${barberData.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                        {barberData.isAvailable ? "Accepting Bookings" : "Currently Offline"}
-                    </span>
+                <div className="flex items-start gap-1 text-slate-500 mb-3">
+                    <MapPin size={14} className="text-slate-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-[13px] text-slate-500 ml-[6px] flex-1 leading-[18px] truncate">
+                        {barberData.address || "Shop Address, City"}
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-[1px] bg-slate-100 my-3" />
+
+                {/* Stats */}
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-[#64748B]">
+                        <Clock size={14} className="text-slate-400" />
+                        <span className="text-xs font-[700] text-slate-600">{barberData.avgAppointmentTime || "30 min"}</span>
+                    </div>
+                    <div className="w-1 h-1 rounded-full bg-slate-350" />
+                    <div className="flex items-center gap-1.5 text-[#64748B]">
+                        <Scissors size={14} className="text-slate-400" />
+                        <span className="text-xs font-[700] text-slate-600">{barberData.totalServices || 0} Services</span>
+                    </div>
                 </div>
             </div>
         </div>
     );
 });
 
-const InfoRow = React.memo(({ icon: Icon, label, value, onPress, canEdit = true }) => (
-    <div
-        onClick={canEdit ? onPress : undefined}
-        className={`mb-3 bg-white border border-gray-100 rounded-2xl p-4 flex items-center justify-between shadow-sm transition-transform active:scale-[0.99] ${canEdit ? 'cursor-pointer' : 'opacity-80'}`}
-    >
-        <div className="flex items-center gap-3.5 overflow-hidden">
-            <div className="w-11 h-11 rounded-full bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                <Icon size={20} className="text-[#6366F1]" />
+const DetailRow = React.memo(({ icon: Icon, label, value, onClick, canEdit = true, isLast = false }) => {
+    let gradient = "from-indigo-500 to-indigo-650";
+    let textLight = "text-indigo-600";
+    let bgLight = "bg-indigo-50/50";
+    let glowColor = "rgba(99, 102, 241, 0.08)";
+
+    const lowerLabel = (label || '').toLowerCase();
+    if (lowerLabel.includes('name')) {
+        gradient = "from-amber-400 via-amber-500 to-orange-500";
+        textLight = "text-amber-600";
+        bgLight = "bg-amber-50/50";
+        glowColor = "rgba(245, 158, 11, 0.08)";
+    } else if (lowerLabel.includes('image')) {
+        gradient = "from-rose-500 to-pink-500";
+        textLight = "text-rose-600";
+        bgLight = "bg-rose-50/50";
+        glowColor = "rgba(244, 63, 94, 0.08)";
+    } else if (lowerLabel.includes('duration') || lowerLabel.includes('time')) {
+        gradient = "from-violet-500 to-purple-650";
+        textLight = "text-violet-600";
+        bgLight = "bg-violet-50/50";
+        glowColor = "rgba(139, 92, 246, 0.08)";
+    } else if (lowerLabel.includes('limit')) {
+        gradient = "from-teal-500 to-emerald-600";
+        textLight = "text-teal-600";
+        bgLight = "bg-teal-50/50";
+        glowColor = "rgba(20, 184, 166, 0.08)";
+    }
+
+    return (
+        <div 
+            onClick={canEdit ? onClick : undefined}
+            className={`flex items-center justify-between py-4 ${!isLast ? 'border-b border-slate-100' : ''} ${canEdit ? 'cursor-pointer hover:bg-slate-50/40' : 'opacity-85'} transition-all duration-200 px-3 first:rounded-t-[28px] last:rounded-b-[28px] group relative overflow-hidden`}
+        >
+            {canEdit && (
+                <div className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b ${gradient} opacity-0 group-hover:opacity-100 transition-opacity`} />
+            )}
+            
+            <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-3">
+                <div 
+                    className={`w-10 h-10 rounded-[14px] bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0 text-white shadow-md`}
+                    style={{ boxShadow: `0 3px 10px ${glowColor}` }}
+                >
+                    <Icon size={16} strokeWidth={2.5} />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">{label}</div>
+                    <div className="text-[13px] font-extrabold text-slate-800 truncate leading-tight">{value || "Not Configured"}</div>
+                </div>
             </div>
-            <div className="min-w-0">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
-                <p className="text-base font-bold text-[#1C1C1E] truncate">{value}</p>
-            </div>
+            {canEdit ? (
+                <div className={`w-7 h-7 rounded-lg ${bgLight} flex items-center justify-center transition-colors group-hover:bg-opacity-100 flex-shrink-0`}>
+                    <ChevronRight size={14} strokeWidth={3} className={textLight} />
+                </div>
+            ) : (
+                <div className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200/50 shadow-sm flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[7px] font-black text-slate-500 tracking-wider uppercase">AUTO</span>
+                </div>
+            )}
         </div>
-        {canEdit ? (
-            <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
-                <ChevronRight size={16} className="text-[#6366F1]" />
-            </div>
-        ) : (
-            <div className="bg-green-50 px-2 py-1 rounded-lg">
-                <span className="text-[10px] font-bold text-green-600 tracking-wide">AUTO</span>
-            </div>
-        )}
+    );
+});
+
+const SectionHeader = React.memo(({ title, isPublicView = false, count = null }) => (
+    <div className="flex items-center w-full mb-5 px-1.5">
+        {/* Header Pill */}
+        <div className="bg-[#F8F9FA] px-4 py-1.5 rounded-full border border-black/[0.06] shadow-[0_2px_4px_rgba(0,0,0,0.03)] flex items-center gap-2 mr-2.5 flex-shrink-0">
+            <h2 className="text-[10px] font-[900] text-[#1A1A1A] uppercase tracking-[0.1em]">{title}</h2>
+            {isPublicView && (
+                <div className="flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] animate-pulse" />
+                    <span className="text-[8px] font-black text-[#27AE60] uppercase tracking-wider">PUBLIC VIEW</span>
+                </div>
+            )}
+            {count !== null && (
+                <span className="text-[8px] font-black bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider border border-indigo-100">
+                    {count}
+                </span>
+            )}
+        </div>
+        {/* Header Line */}
+        <div className="flex-1 h-[1.5px] bg-black/[0.08] rounded-full" />
     </div>
 ));
 
@@ -738,36 +827,43 @@ const CreateBarberCardScreen = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#F4F5F7] flex justify-center pb-24">
-            <div className="w-full max-w-[450px] bg-[#F4F5F7] min-h-screen shadow-2xl relative">
+        <div className="min-h-screen bg-[#F8FAFC] flex justify-center pb-24">
+            <div className="w-full max-w-[450px] bg-[#F8FAFC] min-h-screen shadow-2xl relative">
                 <TopToast {...toast} onHide={hideToast} />
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
                 {/* HEADER */}
-                <div className="bg-gradient-to-br from-[#6366F1] to-[#4338CA] pt-3 pb-4 px-6 rounded-b-[30px] relative overflow-hidden">
-                    <div className="absolute top-[-30px] right-[-30px] w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none" />
-                    <div className="absolute bottom-[-20px] left-[-20px] w-24 h-24 rounded-full bg-white/5 blur-lg pointer-events-none" />
-
-                    <div className="flex items-center justify-between relative z-10 mb-2">
-                        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform">
-                            <ArrowLeft size={20} />
+                <header className="sticky top-0 z-50 bg-[#F8FAFC]/85 backdrop-blur-md border-b border-slate-100 px-6 py-4 mb-6">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center active:scale-95 hover:bg-slate-50 transition-all cursor-pointer text-slate-800"
+                        >
+                            <ArrowLeft size={18} strokeWidth={3} className="text-slate-700" />
                         </button>
-                        <div className="flex flex-col items-center">
-                            <h1 className="text-lg font-black text-white">{existingCard ? 'Edit Profile' : 'Create Profile'}</h1>
+                        <div className="flex flex-col items-center text-center">
+                            <h1 className="text-base font-[900] text-[#1C1C1E] uppercase tracking-tight leading-none">
+                                {existingCard ? 'Edit Profile' : 'Create Profile'}
+                            </h1>
+                            <p className="text-indigo-600 text-[8px] font-black tracking-[0.2em] mt-1.5 uppercase leading-none">
+                                Barber Card
+                            </p>
                         </div>
-                        <div className="w-10">
-                            {existingCard && (
+                        <div className="w-10 h-10 flex items-center justify-center">
+                            {existingCard ? (
                                 <button
                                     onClick={handleStartScanning}
-                                    className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/10 active:scale-95 transition-transform"
+                                    className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center active:scale-95 hover:bg-slate-50 transition-all cursor-pointer text-slate-800"
                                     title="Mark Attendance"
                                 >
-                                    {scannerLoading ? <RefreshCw size={20} className="animate-spin" /> : <Scan size={20} />}
+                                    {scannerLoading ? <RefreshCw size={18} className="text-slate-700 animate-spin" /> : <Scan size={18} className="text-slate-700" />}
                                 </button>
+                            ) : (
+                                <div className="w-10" />
                             )}
                         </div>
                     </div>
-                </div>
+                </header>
 
                 {/* LOCKDOWN NOTICE FOR STAFF (SERVICES ONLY) */}
                 {!isMainOwner && isSyncEnabled && (
@@ -775,7 +871,7 @@ const CreateBarberCardScreen = () => {
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="p-4 bg-amber-50 border border-amber-200 rounded-3xl flex items-center gap-3 shadow-sm shadow-amber-100/50"
+                            className="p-4 bg-amber-50 border border-amber-200 rounded-[24px] flex items-center gap-3 shadow-sm shadow-amber-100/50"
                         >
                             <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
                                 <Lock size={20} />
@@ -815,10 +911,7 @@ const CreateBarberCardScreen = () => {
                 <div className="px-5 mt-4 relative z-20">
                     {/* PREVIEW */}
                     <div className="mb-6">
-                        <div className="flex items-center justify-between mb-2 px-1">
-                            <h2 className="text-lg font-extrabold text-[#1C1C1E]">Live Preview</h2>
-                            <span className="bg-[#E8F5E9] text-[#27AE60] text-[10px] font-bold px-2 py-0.5 rounded-md">PUBLIC VIEW</span>
-                        </div>
+                        <SectionHeader title="Live Preview" isPublicView={true} />
                         <BarberCardPreview barberData={{
                             name, address: shopData?.address, image: barberCardImage ? { uri: barberCardImage } : null,
                             rating: 4.8, avgAppointmentTime, totalServices: services.length, isAvailable
@@ -827,62 +920,71 @@ const CreateBarberCardScreen = () => {
 
                     {/* ESSENTIALS */}
                     <div className="mb-6">
-                        <h2 className="text-lg font-extrabold text-[#1C1C1E] mb-3 px-1">Essential Details</h2>
-                        <InfoRow
-                            icon={User} label="Display Name"
-                            value={name || "Set Name"}
-                            onPress={() => navigate('/edit-name', { state: { currentName: name } })}
-                            canEdit={true}
-                        />
-                        <InfoRow
-                            icon={Camera} label="Cover Image"
-                            value={barberCardImage ? "Image Added" : "Add Image"}
-                            onPress={() => fileInputRef.current?.click()}
-                            canEdit={true}
-                        />
-                        <InfoRow
-                            icon={Clock} label="Slot Duration"
-                            value={avgAppointmentTime}
-                            canEdit={false}
-                        />
-                        <InfoRow
-                            icon={Zap} label="Daily Limit"
-                            value={maxAppointments && maxAppointments !== "0" ? `${maxAppointments} Slots` : "Unlimited"}
-                            onPress={() => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
-                            canEdit={true}
-                        />
-
+                        <SectionHeader title="Essential Details" />
+                        <div className="bg-white border border-slate-100 rounded-[28px] shadow-sm p-1">
+                            <DetailRow
+                                icon={User}
+                                label="Display Name"
+                                value={name || "Set Name"}
+                                onClick={() => navigate('/edit-name', { state: { currentName: name } })}
+                                canEdit={true}
+                                isLast={false}
+                            />
+                            <DetailRow
+                                icon={Camera}
+                                label="Cover Image"
+                                value={barberCardImage ? "Image Added" : "Add Image"}
+                                onClick={() => fileInputRef.current?.click()}
+                                canEdit={true}
+                                isLast={false}
+                            />
+                            <DetailRow
+                                icon={Clock}
+                                label="Slot Duration"
+                                value={avgAppointmentTime}
+                                canEdit={false}
+                                isLast={false}
+                            />
+                            <DetailRow
+                                icon={Zap}
+                                label="Daily Limit"
+                                value={maxAppointments && maxAppointments !== "0" ? `${maxAppointments} Slots` : "Unlimited"}
+                                onClick={() => navigate('/edit-max-appointments', { state: { currentMaxAppointments: maxAppointments } })}
+                                canEdit={true}
+                                isLast={true}
+                            />
+                        </div>
                     </div>
 
                     {/* Owner-Only: Sync Services Toggle */}
                     {shopData && (shopData.owner?._id === user?.id || shopData.owner === user?.id) && (
-                        <div className="mb-6 p-4 rounded-3xl bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 shadow-sm overflow-hidden relative group">
-                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
+                        <div className="mb-6 p-5 rounded-[28px] bg-white border border-slate-100 shadow-sm overflow-hidden relative group">
                             <div className="flex items-center justify-between relative z-10">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                                        <RefreshCw size={22} className={syncLoading ? 'animate-spin' : ''} />
+                                <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-3">
+                                    <div 
+                                        className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-indigo-500 to-indigo-650 flex items-center justify-center flex-shrink-0 text-white shadow-md"
+                                        style={{ boxShadow: `0 3px 10px rgba(99, 102, 241, 0.08)` }}
+                                    >
+                                        <RefreshCw size={16} className={syncLoading ? 'animate-spin' : ''} strokeWidth={2.5} />
                                     </div>
-                                    <div>
-                                        <h3 className="text-sm font-black text-[#1C1C1E] uppercase tracking-tighter">Sync with Staff</h3>
-                                        <p className="text-[10px] text-indigo-600 font-bold uppercase opacity-70">
-                                            {isSyncEnabled ? 'Force active' : 'Manual mode'}
-                                        </p>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">Management Tool</p>
+                                        <div className="text-[13px] font-extrabold text-slate-800 leading-tight">Sync with Staff</div>
                                     </div>
                                 </div>
                                 <button
                                     onClick={handleToggleSync}
                                     disabled={syncLoading}
-                                    className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isSyncEnabled ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isSyncEnabled ? 'bg-indigo-600' : 'bg-slate-200'}`}
                                 >
                                     <span
-                                        className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isSyncEnabled ? 'translate-x-6' : 'translate-x-0'}`}
+                                        className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isSyncEnabled ? 'translate-x-5' : 'translate-x-0'}`}
                                     />
                                 </button>
                             </div>
-                            <div className="mt-3 bg-white/60 p-2.5 rounded-2xl border border-indigo-50/50">
-                                <p className="text-[11px] text-gray-500 font-medium leading-relaxed">
-                                    <Sparkles size={10} className="inline mr-1 text-indigo-500" />
+                            <div className="mt-4 bg-slate-50/50 p-3.5 rounded-[20px] border border-slate-100/50">
+                                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                                    <Sparkles size={12} className="inline mr-1.5 text-indigo-500 fill-indigo-500/20" />
                                     When enabled, your staff members will <span className="text-indigo-600 font-bold">automatically inherit</span> all services defined in your shop master list.
                                 </p>
                             </div>
@@ -890,21 +992,20 @@ const CreateBarberCardScreen = () => {
                     )}
 
                     <div className="mb-24">
-                        <div className="flex items-center justify-between mb-3 px-1">
-                            <div>
-                                <h2 className="text-lg font-extrabold text-[#1C1C1E]">Service Menu</h2>
-                                <p className="text-xs text-gray-500 font-medium">{services.length} Active Services</p>
+                        <div className="flex items-center justify-between mb-4 px-1">
+                            <div className="flex-1 mr-4">
+                                <SectionHeader title="Service Menu" count={`${services.length} Active`} />
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-shrink-0">
                                 {(!isMainOwner && isSyncEnabled) ? (
-                                    <div className="bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100">
+                                    <div className="bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100 flex items-center justify-center">
                                         <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Locked</span>
                                     </div>
                                 ) : (
                                     <>
                                         <button
                                             onClick={() => setShowCategoryModal(true)}
-                                            className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 active:scale-95 transition-transform"
+                                            className="w-9 h-9 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-500 active:scale-95 transition-transform"
                                             title="Manage Categories"
                                         >
                                             <GripVertical size={18} />

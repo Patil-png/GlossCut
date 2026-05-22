@@ -24,11 +24,14 @@ import LeafletMap from '../components/LeafletMap';
 // --- COMPONENTS ---
 
 const SectionHeader = ({ title, icon: Icon }) => (
-    <div className="flex items-center px-5 mb-3 mt-6">
-        {Icon && <Icon size={16} className="text-[#6A1B9A] mr-2" />}
-        <h2 className="text-[15px] font-bold text-gray-500 uppercase tracking-wider">
-            {title}
-        </h2>
+    <div className="flex items-center w-full px-6 mb-5 mt-6">
+        {/* Header Pill */}
+        <div className="bg-[#FAF7FD] px-4 py-1.5 rounded-full border border-[#6A1B9A]/10 shadow-[0_2px_4px_rgba(106,27,154,0.02)] flex items-center gap-2 mr-2.5 flex-shrink-0">
+            {Icon && <Icon size={14} className="text-[#6A1B9A]" />}
+            <h2 className="text-[10.5px] font-[800] text-[#6A1B9A] uppercase tracking-[0.08em]">{title}</h2>
+        </div>
+        {/* Header Line */}
+        <div className="flex-1 h-[1.5px] bg-[#6A1B9A]/10 rounded-full" />
     </div>
 );
 
