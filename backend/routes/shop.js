@@ -971,14 +971,9 @@ router.get('/my-shop', auth, async (req, res) => {
     const isMainOwner = shop.owner._id.toString() === req.user.id;
 
     // --- SUBSCRIPTION GATING FOR COORDINATES ---
+    // Bypassed: Allow unsubscribed users to retrieve their actual shop location coordinates for area listing tier selection/payment
     const subscription = await checkEffectiveSubscription(req.user.id);
     const result = shop.toObject();
-
-    if (!subscription.isActive) {
-      if (result.location) {
-        result.location.coordinates = [0, 0];
-      }
-    }
     // ------------------------------------------
 
     res.json({ ...result, isMainOwner });

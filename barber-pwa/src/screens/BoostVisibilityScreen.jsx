@@ -110,6 +110,7 @@ const BoostVisibilityScreen = () => {
     const [processing, setProcessing] = useState(false);
     const [mapMode, setMapMode] = useState(false);
     const [region, setRegion] = useState(null);
+    const [isAgreed, setIsAgreed] = useState(false);
 
     // Check subscription status
     const isSubscribed = (user?.isSubscribed || user?.subscriptionStatus === 'active') &&
@@ -240,10 +241,6 @@ const BoostVisibilityScreen = () => {
     };
 
     const handlePinLocation = async () => {
-        if (!isSubscribed) {
-            alert("Subscription Required to Pin Location");
-            return;
-        }
 
         setMapMode(true);
 
@@ -556,12 +553,12 @@ const BoostVisibilityScreen = () => {
                                 <div className="flex items-start justify-between mb-5">
                                     <div>
                                         <h3 className="text-[17px] font-[800] text-gray-900 mb-1">Map Visibility</h3>
-                                        <p className={`text-[13px] font-[600] ${isSubscribed && shopData?.location?.coordinates ? 'text-[#6A1B9A]' : 'text-gray-400'}`}>
-                                            {!isSubscribed ? "Subscription Required to Pin" : (shopData?.location?.coordinates ? "● Active on Search" : "○ Not Pinned Yet")}
+                                        <p className={`text-[13px] font-[600] ${shopData?.location?.coordinates ? 'text-[#6A1B9A]' : 'text-gray-400'}`}>
+                                            {shopData?.location?.coordinates ? "● Active on Search" : "○ Not Pinned Yet"}
                                         </p>
                                     </div>
-                                    <div className={`w-[48px] h-[48px] rounded-[18px] flex items-center justify-center ${isSubscribed ? 'bg-[#6A1B9A]/10' : 'bg-gray-100'}`}>
-                                        {!isSubscribed ? <Lock size={22} className="text-gray-400" /> : <Navigation size={22} className="text-[#6A1B9A]" />}
+                                    <div className="w-[48px] h-[48px] rounded-[18px] flex items-center justify-center bg-[#6A1B9A]/10">
+                                        <Navigation size={22} className={shopData?.location?.coordinates ? 'text-[#6A1B9A]' : 'text-gray-400'} />
                                     </div>
                                 </div>
 
@@ -583,7 +580,7 @@ const BoostVisibilityScreen = () => {
                                         Manual
                                     </button>
                                     <button
-                                        className={`flex-[1.5] h-[52px] rounded-2xl text-[14px] font-[700] text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all ${isSubscribed ? 'bg-[#6A1B9A]' : 'bg-gray-300 cursor-not-allowed shadow-none'}`}
+                                        className="flex-[1.5] h-[52px] rounded-2xl text-[14px] font-[700] text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all bg-[#6A1B9A]"
                                         onClick={handlePinLocation}
                                     >
                                         <MapPin size={16} className="mr-2" />
