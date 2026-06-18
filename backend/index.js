@@ -77,6 +77,14 @@ const io = socketIo(server, {
 // 2. SECURITY & BASIC MIDDLEWARE
 // ============================================================================
 
+// Normalize double slashes in URLs (e.g., //api/path -> /api/path)
+app.use((req, res, next) => {
+  if (req.url && req.url.startsWith('//')) {
+    req.url = req.url.replace(/^\/+/, '/');
+  }
+  next();
+});
+
 // A. Security Headers
 app.use(helmet({
   crossOriginResourcePolicy: false,
