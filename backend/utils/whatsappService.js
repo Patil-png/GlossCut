@@ -31,21 +31,25 @@ class WhatsAppService {
             }
         });
 
-        this.isReady = false;
+        this.latestQr = null;
 
         this.client.on('qr', (qr) => {
             console.log('--- WHATSAPP LOGIN REQUIRED ---');
+            this.latestQr = qr;
             qrcode.generate(qr, { small: true });
             console.log('Scan the QR code above to log in to WhatsApp.');
+            console.log('👉 Or open in browser to scan easily: [Your Backend URL]/api/whatsapp/qr');
         });
 
         this.client.on('ready', () => {
             console.log('✅ WhatsApp Client is Ready!');
             this.isReady = true;
+            this.latestQr = null;
         });
 
         this.client.on('authenticated', () => {
             console.log('✅ WhatsApp Authenticated!');
+            this.latestQr = null;
         });
 
         this.client.on('auth_failure', (msg) => {
@@ -55,6 +59,7 @@ class WhatsAppService {
         this.client.on('disconnected', (reason) => {
             console.log('❌ WhatsApp Client Disconnected:', reason);
             this.isReady = false;
+            this.latestQr = null;
         });
 
         this.client.initialize();

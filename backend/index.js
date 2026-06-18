@@ -271,6 +271,24 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOption
 // 7. ROUTES
 // ============================================================================
 
+const qrCodeGenerator = require('qrcode');
+app.get('/api/whatsapp/qr', async (req, res) => {
+  const whatsappService = require('./utils/whatsappService');
+  if (whatsappService.isReady) {
+    return res.send('<h1>✅ WhatsApp is already connected!</h1>');
+  }
+  if (!whatsappService.latestQr) {
+    return res.send('<h1>⏳ No QR code generated yet. Please wait or check if WhatsApp is already connected.</h1>');
+  }
+  try {
+    res.setHeader('Content-Type', 'image/png');
+    await qrCodeGenerator.toFileStream(res, whatsappService.latestQr);
+  } catch (err) {
+    console.error('QR Gen Error:', err);
+    res.status(500).send('Failed to generate QR code image');
+  }
+});
+
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/barber-card', require('./routes/barberCard'));
